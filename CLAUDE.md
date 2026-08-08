@@ -93,6 +93,20 @@ DESIGN.md の色8・影3・フォント3・サイズ表を定数化してある�
 
 ---
 
+## Next.js 15 App Router ベストプラクティス（web/）
+
+Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026-08-08 取得）。Next 16 の機能（`use cache` 等）は使わない。
+
+- **Server Components がデフォルト**。`'use client'` は操作が必要な末端（音声再生・開幕演出・拡大表示など）にだけ付ける。`'use client'` を付けたファイルが import するものはすべてクライアントバンドルに入るため、境界はできるだけ葉に近く・小さく保つ
+- **データ取得はサーバー側で完結**させ、Client Components へは表示用の値だけを props で渡す。`SUPABASE_SERVICE_ROLE_KEY` を扱うモジュールは `server-only` パッケージを import してクライアント混入をビルドエラーで防ぐ
+- **Next 15 は `fetch` がデフォルト非キャッシュ**（`no-store`）。キャッシュしたい場合のみ `cache: 'force-cache'` を明示。worker から取得する**署名付きURLは有効期限があるためキャッシュしない**こと
+- **動的 API は Promise**：`params` / `searchParams` / `cookies()` / `headers()` は `await` が必要（例：`const { slug } = await params`）。`generateMetadata` の `params` も同様
+- 無効・失効 slug は `next/navigation` の **`notFound()`** で404にする
+- **noindex は metadata で宣言**：ルートレイアウトの `metadata` に `robots: { index: false, follow: false }`（全ページ必須。REQUIREMENTS §3.6）
+- 同一リクエスト内で同じデータを `generateMetadata` とページ本体の両方で使う場合は、`cache: 'force-cache'` か React の `cache()` でメモ化して二重取得を避ける
+
+---
+
 ## 環境変数の命名
 
 | 場所 | 変数 |
