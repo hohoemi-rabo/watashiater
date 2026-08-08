@@ -1,7 +1,7 @@
 # 03. app 基盤（フォント・共通UI・画面骨格）
 
 - ステータス: 未着手
-- 参照: DESIGN.md §3〜§5（トークン・影・質感） / §9（アイコン） / REQUIREMENTS.md §7（画面一覧） / `app/src/constants/tokens.ts`
+- 参照: DESIGN.md §3〜§5（トークン・影・質感） / §9（アイコン） / REQUIREMENTS.md §7（画面一覧） / `app/constants/tokens.ts`
 - 依存: なし（00 と並行可）
 
 ## 目的

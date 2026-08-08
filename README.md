@@ -10,7 +10,7 @@
 
 | ディレクトリ | 内容 | 技術 |
 |---|---|---|
-| `app/` | 書き手用アプリ（Android先行） | Expo SDK 56 / TypeScript |
+| `app/` | 書き手用アプリ（Android先行） | Expo SDK 54 / TypeScript |
 | `web/` | 閲覧専用Webページ（`/w/[slug]`） | Next.js 15.5.22 / Tailwind CSS 3.4.17 |
 | `worker/` | AI生成プロキシ＋R2署名URL発行 | Cloudflare Workers / wrangler 4 |
 
@@ -43,5 +43,5 @@ cd worker && npm test         # Worker のテスト（vitest）
 
 DESIGN.md のトークン（色8・影3・フォント3・サイズ表）は以下に定数化してあり、生値のハードコードは禁止。app と web で値を一致させること。
 
-- app: `app/src/constants/tokens.ts`
+- app: `app/constants/tokens.ts`
 - web: `web/tailwind.config.js`（`theme.extend`）

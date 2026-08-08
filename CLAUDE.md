@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | ディレクトリ | 役割 | 技術 |
 |---|---|---|
-| `app/` | 書き手用アプリ（Android 先行） | Expo SDK 56 / expo-router / TypeScript。コードは `src/` 配下、エイリアス `@/*` → `src/*` |
+| `app/` | 書き手用アプリ（Android 先行） | Expo SDK 54 / expo-router / TypeScript。コードはプロジェクト直下（`app/`・`components/`・`constants/`）、エイリアス `@/*` → `./*` |
 | `web/` | 閲覧専用 Web（`/w/[slug]`。家族が URL で見るだけ） | Next.js 15.5.22 App Router / Tailwind CSS 3.4.17 |
 | `worker/` | AI 生成プロキシ＋R2 署名 URL 発行 | Cloudflare Workers / wrangler 4 / vitest |
 
@@ -63,7 +63,7 @@ npm run deploy                # wrangler deploy
 | next | **15.5.22** | 16 系にアップグレードしない |
 | tailwindcss | **3.4.17** | **v4 を使わない（重要・下記参照）** |
 | react (web) | next 15.5.22 の peerDependencies に従う | |
-| Expo SDK | **56** | 57 に上げない（下記「既知の注意点」参照） |
+| Expo SDK | **54** | 上げない（下記「既知の注意点」参照） |
 
 ### Tailwind v3 の注意（最重要）
 
@@ -86,7 +86,7 @@ npm run deploy                # wrangler deploy
 
 ### デザイントークン（二重管理・値の一致必須）
 
-- app: `app/src/constants/tokens.ts`
+- app: `app/constants/tokens.ts`
 - web: `web/tailwind.config.js` の `theme.extend`
 
 DESIGN.md の色8・影3・フォント3・サイズ表を定数化してある。生値のハードコード禁止。片方を変えたら必ずもう片方も合わせる（フォントサイズのスケールだけは DESIGN.md §4 の指定でアプリと Web が意図的に別）。
@@ -138,7 +138,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 
 ## 既知の注意点
 
-- Expo SDK は **56 に固定**（2026-08-08 時点）。ユーザー端末の Expo Go が SDK 57 のプロジェクトを開けず「This project requires a newer version of Expo Go」になるため下げた。上げる場合は実機の Expo Go が対応する SDK を先に確認し、`npx expo install --fix` で揃えること
+- Expo SDK は **54 に固定**（2026-08-08 時点）。ユーザー端末の Expo Go が新しい SDK のプロジェクトを開けず「This project requires a newer version of Expo Go」になるため、動作実績のある SDK 54 環境（expo ~54.0.35 / react-native 0.81.5 / react 19.1.0）に合わせて再スキャフォールドした。上げる場合は実機の Expo Go が対応する SDK を先に確認し、`npx expo install --fix` で揃えること
 - `worker/wrangler.jsonc` の `compatibility_date` はローカル workerd の対応上限（2026-03-10）に合わせてある。無闇に上げない（テストで警告が出て本番と挙動が乖離する）
 - `npm audit` が next 15.5.22 同梱の postcss / sharp の脆弱性を報告するが、修正には next 16 が必要なため対応不可（意図的な妥協。README 参照）
 - `app/AGENTS.md`（Expo SDK 57 ドキュメント参照）と `worker/AGENTS.md`（Cloudflare 向け）はスキャフォールド生成物で有効。web 側の AGENTS.md は Next 16 向けの内容だったため削除済み — 復活させない

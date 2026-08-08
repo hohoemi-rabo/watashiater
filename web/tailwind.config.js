@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 // ワタシアター デザイントークン（DESIGN.md §3〜§5）
-// app 側の定義（app/src/constants/tokens.ts）と値を一致させること（DESIGN.md §12）
+// app 側の定義（app/constants/tokens.ts）と値を一致させること（DESIGN.md §12）
 module.exports = {
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
