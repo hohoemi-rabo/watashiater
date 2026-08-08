@@ -10,7 +10,7 @@
 
 | ディレクトリ | 内容 | 技術 |
 |---|---|---|
-| `app/` | 書き手用アプリ（Android先行） | Expo SDK 57 / TypeScript |
+| `app/` | 書き手用アプリ（Android先行） | Expo SDK 56 / TypeScript |
 | `web/` | 閲覧専用Webページ（`/w/[slug]`） | Next.js 15.5.22 / Tailwind CSS 3.4.17 |
 | `worker/` | AI生成プロキシ＋R2署名URL発行 | Cloudflare Workers / wrangler 4 |
 
