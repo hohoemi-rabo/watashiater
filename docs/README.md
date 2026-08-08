@@ -6,7 +6,7 @@
 | # | チケット | フェーズ |
 |---|---|---|
 | 00 | [技術検証：録音＋手動テキスト](./00-tech-validation-recording.md) | 検証 |
-| 01 | [【手作業】Supabase・Google OAuth 準備](./01-manual-supabase-oauth.md) | 準備 |
+| 01 | [Supabase・Google OAuth 準備（一部手作業）](./01-manual-supabase-oauth.md) | 準備 |
 | 02 | [DBスキーマ＋RLS＋お題シード](./02-supabase-schema-rls.md) | 準備 |
 | 03 | [app 基盤（フォント・共通UI・画面骨格）](./03-app-foundation.md) | app コア |
 | 04 | [認証・オンボーディング](./04-app-auth-onboarding.md) | app コア |
