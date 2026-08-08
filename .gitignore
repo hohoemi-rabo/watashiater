@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# env（各ディレクトリの .env.example のみコミットする）
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# OS / editor
+.DS_Store
+*.pem
+
+# Claude Code ローカル設定
+.claude/settings.local.json
+
+# MCP設定（SUPABASE_ACCESS_TOKEN が平文で含まれるためコミット禁止）
+.mcp.json
