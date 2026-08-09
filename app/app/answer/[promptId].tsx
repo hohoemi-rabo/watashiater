@@ -236,14 +236,14 @@ export default function AnswerScreen() {
               <View style={[styles.modeButton, styles.modeButtonActive]}>
                 <Keyboard color={colors.cardWhite} size={22} strokeWidth={2} />
                 <AppText variant="bodyMedium" style={styles.modeLabelActive}>
-                  じぶんで かく
+                  自分でかく
                 </AppText>
               </View>
               <View style={[styles.modeButton, styles.modeButtonDisabled]}>
                 <Mic color={colors.textSoft} size={22} strokeWidth={2} />
                 <View>
                   <AppText variant="bodyMedium" style={styles.modeLabelDisabled}>
-                    こえで はなす
+                    声で話す
                   </AppText>
                   <AppText variant="caption">じゅんびちゅう</AppText>
                 </View>
