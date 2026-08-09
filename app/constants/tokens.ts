@@ -80,3 +80,25 @@ export const lineHeights = {
 
 /** REQUIREMENTS.md §4.1 タップターゲット最小サイズ（dp） */
 export const TAP_TARGET_MIN = 48;
+
+/**
+ * 余白スケール（app 側の実装規約。チケット03で決定）
+ * DESIGN.md に余白の定義は無いため、画面ごとに数値が散らばらないようここで固定する。
+ * DESIGN.md §3 の「web と値一致必須」の対象（色8・影3・フォント3・サイズ）ではない
+ * （web は Tailwind 標準スケールを使う）。
+ */
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  section: 32,
+} as const;
+
+/** 角丸スケール（app 側の実装規約。spacing と同じ扱い） */
+export const radii = {
+  button: 12,
+  card: 16,
+} as const;
