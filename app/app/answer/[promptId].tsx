@@ -24,7 +24,7 @@ import { AppText } from '@/components/app-text';
 import { BackButton } from '@/components/back-button';
 import { PrimaryButton } from '@/components/primary-button';
 import { SkyBackground } from '@/components/sky-background';
-import { TAP_TARGET_MIN, colors, fonts, fontSizes, lineHeights, radii, shadows, spacing } from '@/constants/tokens';
+import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, shadows, spacing } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { usePrompts } from '@/lib/use-prompts';
@@ -218,8 +218,9 @@ export default function AnswerScreen() {
 
   return (
     <SkyBackground>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <BackButton />
+      <View style={styles.screen}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <BackButton />
 
         {loading ? (
           <ActivityIndicator color={colors.curtainRed} size="large" />
@@ -286,25 +287,24 @@ export default function AnswerScreen() {
                 </AppText>
               </View>
             </View>
+          </>
+        )}
+        </ScrollView>
 
+        {/* 保存はスクロールの外の固定フッターに置き、キーボードが出ても（adjustResize で）
+            その真上に浮くようにする。キーボードを閉じずに1タップで保存できる（実機フィードバック反映） */}
+        {!loading ? (
+          <View style={styles.footer}>
+            {saveError ? <AppText style={styles.footerError}>{saveError}</AppText> : null}
             <PrimaryButton
               icon={Check}
               label={busy ? 'ほぞんしています…' : 'ほぞんする'}
               onPress={() => void handleSave()}
               disabled={!canSave}
             />
-
-            {saveError ? (
-              <AppCard style={styles.gapCard}>
-                <AppText variant="cardTitle" style={styles.errorTitle}>
-                  うまく いきませんでした
-                </AppText>
-                <AppText>{saveError}</AppText>
-              </AppCard>
-            ) : null}
-          </>
-        )}
-      </ScrollView>
+          </View>
+        ) : null}
+      </View>
 
       {/* 保存成功のスタンプ（DESIGN §8。reduced-motion 時はアニメなしで表示のみ） */}
       {showStamp ? (
@@ -332,10 +332,22 @@ export default function AnswerScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   content: {
     gap: spacing.xl,
     padding: spacing.xl,
     paddingBottom: spacing.section,
+  },
+  footer: {
+    gap: spacing.sm,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+  },
+  footerError: {
+    color: colors.errorRed,
   },
   title: {
     textAlign: 'center',
@@ -355,7 +367,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     justifyContent: 'center',
     minHeight: TAP_TARGET_MIN,
-    paddingHorizontal: spacing.md,
+    // 文字がボタンの縁に触れないよう左右にゆとりを持たせる（実機フィードバック反映）
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
   },
   modeButtonActive: {
@@ -391,7 +404,9 @@ const styles = StyleSheet.create({
     color: colors.stageNavy,
     fontFamily: fonts.body,
     fontSize: fontSizes.body,
-    lineHeight: fontSizes.body * lineHeights.body,
+    // lineHeight は指定しない：Android はカーソルが行の高さいっぱいに描かれるため、
+    // 1.7倍にすると文字よりカーソルが大きく見えて戸惑わせる（実機フィードバック反映）。
+    // 読み物としての行間1.7は表示側（一覧プレビュー・じぶん史）で使う
     minHeight: 200,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
