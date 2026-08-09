@@ -19,6 +19,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 実装の着手順は **app → worker → web**（app のローカル動作を先に作り、写真アップロード・AI 生成が必要になった段階で worker、最後に web）。
 
+- DB スキーマはルートの **`supabase/migrations/`**（番号順 SQL）が正。MCP の `apply_migration` で適用したものと同内容を必ず残す
+- Supabase プロジェクト: `watashiater`（ref: `shqkwdxpjnfnctatukqn` / ap-northeast-1 / 組織 create-hohoemi）。TypeScript 型は `app/types/database.types.ts`（スキーマ変更のたびに MCP で再生成）
+
 ## 開発コマンド
 
 ```bash
@@ -26,6 +29,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm start                     # Expo 開発サーバー（npm run android で Android 起動）
 npm run lint                  # expo lint
 npx tsc --noEmit              # 型チェック
+npx expo export --platform android --output-dir <一時dir> --clear
+                              # バンドル検証＋typed routes 再生成。
+                              # 新ルート追加後は tsc の前にこれを実行（.expo/types が古いと型エラーになる）
 
 # web/
 npm run dev                   # 開発サーバー
@@ -41,6 +47,7 @@ npm run deploy                # wrangler deploy
 ```
 
 - app の型チェックには `expo-env.d.ts`（CSS モジュール等の型宣言。gitignore 対象）が必要。無ければ `expo start` を一度起動すると自動生成される
+- **動作検証は常に実機の Expo Go**（この開発機＝WSL2 に Android SDK・adb・エミュレータは無い）。ネイティブモジュール追加後は `npx expo start --clear`、QR がつながらないときは `--tunnel`。実機確認が要る変更はユーザーに依頼して結果を待つ
 
 ---
 
@@ -136,9 +143,18 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 1. **MVP スコープ厳守**：REQUIREMENTS.md §2.2 の項目（ペット・課金・通知・コメント・iOS・会話型 AI）を実装しない。先回りの抽象化もしない（`subject_type` カラムのみ例外）
 2. **デザイントークン**：上記の定数ファイルから参照する。生値ハードコード禁止
 3. **文字サイズ変更機能を作らない**（DESIGN.md §11-3）
-4. **UI 文言は日本語・やさしい言葉**。REQUIREMENTS.md の文言（「みたよ」「ならべかえ」「じぶん史をつくる」）をそのまま使う
+4. **UI 文言は日本語・やさしい言葉**。REQUIREMENTS.md の文言（「みたよ」「ならべかえ」「じぶん史をつくる」）をそのまま使う。**ひらがなの分かち書きにしすぎず、日常的な漢字をスペースなしで使う**（例：「自分でかく」「声で話す」。チケット06でのユーザー指示）
 5. AI 呼び出し・R2 アクセスは必ず worker 経由。レート制限は 1日3回/ユーザー・JST 0時リセット
 6. 迷ったら判断基準は「シニアの書き手が一人で迷わず使えるか」。判断内容はコードコメントに残す
+
+## 実装で確立したパターン（チケット00〜06。詳細は各チケットのメモ）
+
+- **認証**：`lib/auth-context.tsx` の `useAuth()`（session / subject / signInWithGoogle / signOut）。ルートガードは `app/_layout.tsx` の AuthGate。ログインは Expo Go 制約により**ブラウザ経由の `signInWithOAuth`**（Supabase の Redirect URLs に `exp://**` 登録済み。Android 用 OAuth クライアントはリリースビルドまで不要）
+- **データ取得**：`lib/use-prompts.ts`（画面フォーカス毎に refetch。保存して戻ると一覧・進捗が自動追随）。「回答済み」＝answers に行が存在する
+- **共通UI**：`components/` の sky-background / app-text / app-card / prompt-card（演目札）/ primary・secondary-button / back-button / progress-dots。tokens.ts の spacing・radii は app 専用の実装規約（web と値一致必須の対象外）
+- **非同期処理直後の分岐は処理の戻り値で行う**。setState 直後に state を読まない（チケット04で実際に起きたバグの教訓）
+- **入力を伴う画面**：保存ボタンはスクロール外の固定フッター（キーボードの真上に浮く）。TextInput に lineHeight を指定しない（Android はカーソルが行の高さいっぱいに描かれる）。書きかけ保護は `usePreventRemove`
+- **録音の検証済み事実**（チケット00）：AAC は `RecordingPresets.HIGH_QUALITY` のみ／`record({ forDuration })` は実機で有効／3分＝約2.78MB／`File.type` はアップロードの Content-Type に使わない（詳細は docs/00 検証結果）
 
 ## 技術検証を最初にやること
 
