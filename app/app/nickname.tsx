@@ -35,6 +35,14 @@ export default function NicknameScreen() {
       nickname: trimmed,
     });
     if (error) {
+      // 23505 = unique 制約違反。すでに博物館がある（登録済みユーザーが何かの拍子に
+      // この画面へ来た）ケースなので、エラーではなく既存データを読み直してホームへ
+      if (error.code === '23505') {
+        await refreshSubject();
+        setBusy(false);
+        router.replace('/');
+        return;
+      }
       setBusy(false);
       setErrorMessage(
         'ほぞんできませんでした。インターネットに つながっているか たしかめて、もういちど ためしてください。',

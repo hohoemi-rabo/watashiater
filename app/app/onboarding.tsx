@@ -32,7 +32,7 @@ const GUIDE_CARDS = [
 ] as const;
 
 export default function OnboardingScreen() {
-  const { session, subject, signInWithGoogle } = useAuth();
+  const { session, signInWithGoogle } = useAuth();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -43,8 +43,9 @@ export default function OnboardingScreen() {
     const result = await signInWithGoogle();
     setBusy(false);
     if (result.status === 'success') {
-      // ガード任せにせず明示的に遷移する（subject は signIn 内で取得済み）
-      router.replace(subject ? '/' : '/nickname');
+      // 遷移判定は必ず result.hasSubject を使う。context の subject を読むと
+      // ボタン押下時点の古い値（ログアウト直後＝null）を掴んで誤誘導する
+      router.replace(result.hasSubject ? '/' : '/nickname');
       return;
     }
     if (result.status === 'error') {

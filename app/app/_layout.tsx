@@ -60,6 +60,12 @@ function AuthGate({ children }: { children: ReactNode }) {
     // 「subject なし」と確定した場合だけニックネーム登録へ
     if (!subject && !subjectError && pathname !== '/nickname') {
       router.replace('/nickname');
+      return;
+    }
+    // 登録済みユーザーがニックネーム画面に居たらホームへ返す
+    // （二重登録の誤誘導に対する安全網）
+    if (subject && pathname === '/nickname') {
+      router.replace('/');
     }
   }, [loading, session, subject, subjectError, pathname, router]);
 

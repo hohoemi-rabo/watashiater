@@ -28,7 +28,16 @@ const redirectTo = makeRedirectUri();
 export type Subject = Tables<'subjects'>;
 
 /** signInWithGoogle の結果。dismiss（ユーザーがブラウザを閉じた）はエラー扱いにしない */
-type SignInResult = { status: 'success' | 'dismissed' | 'error'; message?: string };
+type SignInResult = {
+  status: 'success' | 'dismissed' | 'error';
+  /**
+   * success 時のみ。登録済みの subject があるか（遷移判定は必ずこれを使う。
+   * context の subject state は setState 直後の再レンダー前だと古い値のままで、
+   * ログアウト→再ログインでニックネーム画面へ誤誘導するバグの原因になった）
+   */
+  hasSubject?: boolean;
+  message?: string;
+};
 
 type AuthContextValue = {
   /** null = 未ログイン。undefined は無い（loading 中は Provider が画面を出さない） */
@@ -71,19 +80,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [subjectError, setSubjectError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadSubject = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from('subjects')
-      .select('*')
-      .eq('owner_user_id', userId)
-      .maybeSingle();
-    if (error) {
-      setSubjectError('データを よみこめませんでした。でんぱの よいところで もういちど ためしてください。');
-      return;
-    }
-    setSubjectError(null);
-    setSubject(data);
-  }, []);
+  /** state を更新しつつ、取得結果を戻り値でも返す（呼び出し直後の判定は戻り値を使う） */
+  const loadSubject = useCallback(
+    async (userId: string): Promise<{ ok: boolean; subject: Subject | null }> => {
+      const { data, error } = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('owner_user_id', userId)
+        .maybeSingle();
+      if (error) {
+        setSubjectError(
+          'データを よみこめませんでした。でんぱの よいところで もういちど ためしてください。',
+        );
+        return { ok: false, subject: null };
+      }
+      setSubjectError(null);
+      setSubject(data);
+      return { ok: true, subject: data };
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -141,8 +157,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           message: 'ログインできませんでした。もういちど ためしてください。',
         };
       }
-      await loadSubject(newSession.user.id);
-      return { status: 'success' };
+      const loaded = await loadSubject(newSession.user.id);
+      // 取得に失敗したときは hasSubject: true を返してニックネーム登録へは送らない
+      // （既存ユーザーの二重登録誘導を防ぐ。AuthGate のリトライ画面が引き受ける）
+      return { status: 'success', hasSubject: loaded.ok ? loaded.subject !== null : true };
     } catch {
       return {
         status: 'error',
