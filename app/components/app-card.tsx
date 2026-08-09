@@ -12,8 +12,8 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, radii, shadows, spacing } from '@/constants/tokens';
 
-/** cardWhite(#FFFFFF) 85% + skyBottom(#FDF6E8) 15% の混色 */
-const PAPER_TINT = '#FFFEFC';
+/** cardWhite(#FFFFFF) 85% + skyBottom(#FDF6E8) 15% の混色。演目札（prompt-card）と共有 */
+export const PAPER_TINT = '#FFFEFC';
 
 type AppCardProps = {
   children: ReactNode;
