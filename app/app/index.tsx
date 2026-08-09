@@ -12,9 +12,11 @@ import { PrimaryButton } from '@/components/primary-button';
 import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { colors, spacing } from '@/constants/tokens';
+import { useAuth } from '@/lib/auth-context';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { subject } = useAuth();
 
   return (
     <SkyBackground>
@@ -24,7 +26,9 @@ export default function HomeScreen() {
         </AppText>
 
         <AppCard shadow="raised" style={styles.progressCard}>
-          <AppText variant="cardTitle">わたしの博物館</AppText>
+          <AppText variant="cardTitle">
+            {subject ? `${subject.nickname}さんの博物館` : 'わたしの博物館'}
+          </AppText>
           <AppText>10このうち 0こ こたえました</AppText>
           <PrimaryButton
             icon={BookOpen}
