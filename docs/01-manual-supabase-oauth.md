@@ -1,6 +1,6 @@
 # 01. Supabase・Google OAuth 準備（一部手作業）
 
-- ステータス: 進行中（のこりはユーザーの Google OAuth 設定のみ）
+- ステータス: 完了
 - 種別: Supabase 側は Claude が supabase MCP で実行。Google OAuth 設定のみユーザーの手作業
 - 参照: REQUIREMENTS.md §2.1 / §5 / CLAUDE.md「環境変数の命名」「Git・外部ツール」
 - 依存: なし
@@ -19,8 +19,8 @@ app の認証（Google OAuth / Supabase Auth）と DB 接続に必要な外部�
 
 ### ユーザーの手作業（MCP では不可）
 
-- [ ] Google Cloud Console で OAuth クライアントを作成（Web 用のみ。Android 用は延期 → メモ参照）
-- [ ] Supabase ダッシュボードで Auth の Google プロバイダを有効化・設定
+- [x] Google Cloud Console で OAuth クライアントを作成（Web 用のみ。Android 用は延期 → メモ参照）
+- [x] Supabase ダッシュボードで Auth の Google プロバイダを有効化・設定
 
 ## 完了条件
 
@@ -56,3 +56,5 @@ app から Supabase への接続とテストログインが通る状態（接続
 3. 「認証情報」→「認証情報を作成」→「OAuth クライアント ID」→ 種類「**ウェブ アプリケーション**」
    - 承認済みのリダイレクト URI: `https://shqkwdxpjnfnctatukqn.supabase.co/auth/v1/callback`
 4. 発行されたクライアント ID とシークレットを、[Supabase ダッシュボード](https://supabase.com/dashboard/project/shqkwdxpjnfnctatukqn/auth/providers) → Authentication → Sign In / Providers → Google に貼って有効化（Save）
+
+→ 2026-08-09 ユーザーが設定完了を報告。実際のテストログインはチケット04冒頭で確認する（完了条件のとおり）。
