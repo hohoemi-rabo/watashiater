@@ -111,6 +111,9 @@ export default function RecordingCheckScreen() {
   /** 停止は「タップ」「native の自動停止」「JS の予備処理」の3経路から来る。
    *  state ではなく ref で同期的にガードしないと、setPhase を待つ間に2本目がすり抜ける。 */
   const finalizingRef = useRef(false);
+  /** ポーリングで見えた最後の録音長。forDuration の自動停止後は getStatus() が 0 を返す
+   *  ことが実機で確認できたため（検証結果参照）、こちらを長さの控えにする */
+  const lastDurationMsRef = useRef(0);
   /** statusListener は recorder.id が変わるまで再登録されない＝古いクロージャが残るため、ref 経由で最新を呼ぶ */
   const onNativeFinishRef = useRef<(url: string | null) => void>(() => {});
 
@@ -135,8 +138,10 @@ export default function RecordingCheckScreen() {
       }
       finalizingRef.current = true;
 
-      // 長さは stop() の前に読む。stop 後は 0 に戻りうる
-      const durationSec = recorder.getStatus().durationMillis / 1000;
+      // 長さは stop() の前に読む。ただし native の forDuration で自動停止した後は
+      // getStatus() が 0 を返す（実機で確認済み）ので、ポーリングの控えと大きい方を使う
+      const durationSec =
+        Math.max(recorder.getStatus().durationMillis, lastDurationMsRef.current) / 1000;
 
       let uri = urlFromStatus;
       try {
@@ -222,6 +227,7 @@ export default function RecordingCheckScreen() {
     if (phase !== 'recording') {
       return;
     }
+    lastDurationMsRef.current = Math.max(lastDurationMsRef.current, recorderState.durationMillis);
     if (recorderState.durationMillis >= (MAX_RECORDING_SEC + BACKSTOP_GRACE_SEC) * 1000) {
       void finalize('backstop', null);
     }
@@ -270,6 +276,7 @@ export default function RecordingCheckScreen() {
       // stop() で MediaRecorder がリセットされるため、録音のたびに毎回よびだす
       await recorder.prepareToRecordAsync();
       finalizingRef.current = false;
+      lastDurationMsRef.current = 0;
       setLevels([]);
       setMeasurement(null);
       setRecordedUri(null);
