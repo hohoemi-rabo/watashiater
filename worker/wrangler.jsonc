@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "worker",
+	"name": "watashiater-worker",
 	"main": "src/index.ts",
 	// ローカルの workerd が対応する最新日付に合わせる（本番との挙動差異を避ける）
 	"compatibility_date": "2026-03-10",
@@ -14,7 +14,19 @@
 	"upload_source_maps": true,
 	"compatibility_flags": [
 		"nodejs_compat"
-	]
+	],
+	// メディア（写真・音声）の唯一の置き場。アクセスは必ずこの worker の署名URL経由（REQUIREMENTS §4.3）
+	"r2_buckets": [
+		{
+			"binding": "MEDIA",
+			"bucket_name": "watashiater-media"
+		}
+	],
+	"vars": {
+		// 秘密ではない設定値。シークレット（SUPABASE_SECRET_KEY / SIGNING_SECRET / GEMINI_API_KEY）は
+		// ローカル .dev.vars / 本番 wrangler secret put で管理する
+		"SUPABASE_URL": "https://shqkwdxpjnfnctatukqn.supabase.co"
+	}
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
