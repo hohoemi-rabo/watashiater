@@ -16,13 +16,25 @@
  * - 全滅・最後の1枚削除では cleanupEmptyAnswer で「空の済」を残さない（確認失敗時は消さない側に倒す）
  * - アップロードは PhotoStrip＋lib/photo-attach.ts。失敗分は署名URLを取り直してリトライ
  *
- * 音声入力の切替ボタンはチケット10まで無効表示。
+ * 録音（チケット10）：
+ * - 「声で話す」モードは RecordingBox（録音 → プレビュー → のこす）。録音の保存順序は
+ *   「R2 へ PUT → answers 行の用意 → recordings upsert」（空行が残る失敗経路を作らない）
+ * - 録音中・プレビュー・声のアップロード中はモード切替と保存を無効にし、離脱もガードする
+ * - 文字起こしはしない（音声認識はチケット22。テキストは手動入力のまま）
  */
 import { usePreventRemove } from '@react-navigation/native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { Check, Keyboard, Mic } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
 
 import { AppCard } from '@/components/app-card';
@@ -30,6 +42,7 @@ import { AppText } from '@/components/app-text';
 import { BackButton } from '@/components/back-button';
 import { PhotoStrip } from '@/components/photo-strip';
 import { PrimaryButton } from '@/components/primary-button';
+import { RecordingBox, type RecordingBoxPhase } from '@/components/recording-box';
 import { SkyBackground } from '@/components/sky-background';
 import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, shadows, spacing } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
@@ -39,8 +52,10 @@ import {
   pickPhotos,
   uploadCompressedPhotos,
 } from '@/lib/photo-attach';
+import { deleteRecording } from '@/lib/recording-attach';
 import { supabase } from '@/lib/supabase';
 import { usePhotos, type Photo } from '@/lib/use-photos';
+import { useRecording, type Recording } from '@/lib/use-recording';
 import { usePrompts } from '@/lib/use-prompts';
 
 const SAVE_ERROR_MESSAGE =
@@ -70,10 +85,14 @@ export default function AnswerScreen() {
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showStamp, setShowStamp] = useState(false);
-  // 写真だけ先にのせたとき自動作成した answers 行の id（setState 直後に読まないよう state で持つ）
+  // 写真・録音だけ先にのせたとき自動作成した answers 行の id（setState 直後に読まないよう state で持つ）
   const [createdAnswerId, setCreatedAnswerId] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<{ done: number; total: number } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // 入力モード。切替で bodyText は消えない（state のまま保持）。入場時の自動切替はしない
+  const [mode, setMode] = useState<'text' | 'voice'>('text');
+  // RecordingBox の進行状態（離脱ガード・保存/モード切替の無効化に使う）
+  const [recPhase, setRecPhase] = useState<RecordingBoxPhase>('idle');
 
   const initialBodyRef = useRef('');
   const initialTitleRef = useRef('');
@@ -90,6 +109,13 @@ export default function AnswerScreen() {
     error: photosError,
     refetch: refetchPhotos,
   } = usePhotos(answerId);
+  const {
+    recording,
+    viewUrl: recordingViewUrl,
+    loading: recordingLoading,
+    error: recordingError,
+    refetch: refetchRecording,
+  } = useRecording(answerId);
 
   // プレフィルは読み込み完了時に一度だけ（編集中の再取得で入力を上書きしない）
   useEffect(() => {
@@ -119,12 +145,37 @@ export default function AnswerScreen() {
     (bodyText !== initialBodyRef.current || (isFree && customTitle !== initialTitleRef.current));
 
   const uploading = uploadState !== null;
+  // 録音の進行中（録音・未保存プレビュー・アップロード）。この間はモード切替と保存を止める
+  const recBusy = recPhase === 'recording' || recPhase === 'preview' || recPhase === 'uploading';
 
-  // 書きかけ保護：未保存の変更・アップロード中は「もどる」を差し止める
-  usePreventRemove(dirty || uploading, ({ data }) => {
+  // 書きかけ保護：未保存の変更・各アップロード・録音中は「もどる」を差し止める
+  usePreventRemove(dirty || uploading || recBusy, ({ data }) => {
+    if (recPhase === 'recording') {
+      Alert.alert('録音しています', '「とめる」を おしてから おもどりください。', [
+        { text: 'わかりました', style: 'cancel' },
+      ]);
+      return;
+    }
+    if (recPhase === 'uploading') {
+      Alert.alert('声を のこしています', 'おわるまで すこし おまちください。', [
+        { text: 'わかりました', style: 'cancel' },
+      ]);
+      return;
+    }
     if (uploading) {
       Alert.alert('写真をのせています', 'おわるまで すこし おまちください。', [
         { text: 'わかりました', style: 'cancel' },
+      ]);
+      return;
+    }
+    if (recPhase === 'preview') {
+      Alert.alert('ろくおんした声を まだ のこしていません', 'もどると きえてしまいます。', [
+        { text: 'やめる', style: 'cancel' },
+        {
+          text: 'のこさないで もどる',
+          style: 'destructive',
+          onPress: () => navigation.dispatch(data.action),
+        },
       ]);
       return;
     }
@@ -144,9 +195,27 @@ export default function AnswerScreen() {
   const canSave =
     !busy &&
     !uploading &&
+    !recBusy &&
     initialized &&
     (answerId !== null || trimmedBody.length > 0) &&
     (!isFree || trimmedTitle.length > 0 || (answerId !== null && trimmedBody.length === 0));
+
+  /**
+   * 自由お題は custom_title が必須（DB の CHECK）。行の自動作成が起きる操作
+   * （写真をのせる・録音をはじめる・声をのこす）の前にタイトルを求める
+   */
+  const requireFreeTitle = (kind: 'photo' | 'voice'): boolean => {
+    if (!isFree || answerId !== null || trimmedTitle.length > 0) {
+      return true;
+    }
+    Alert.alert(
+      'さきに お題のなまえを かいてください',
+      kind === 'photo'
+        ? 'いちばん上の「お題の なまえ」を うめると、写真をのせられます。'
+        : 'いちばん上の「お題の なまえ」を うめると、声を のこせます。',
+    );
+    return false;
+  };
 
   const saveAnswer = async (): Promise<SaveResult> => {
     if (!subject) {
@@ -317,15 +386,10 @@ export default function AnswerScreen() {
   };
 
   const handleAddPhotos = async () => {
-    if (busy || uploading) {
+    if (busy || uploading || recPhase === 'recording' || recPhase === 'uploading') {
       return;
     }
-    // 自由お題は custom_title が必須（DB の CHECK）。行の自動作成前にタイトルを求める
-    if (isFree && !answerId && trimmedTitle.length === 0) {
-      Alert.alert(
-        'さきに お題のなまえを かいてください',
-        'いちばん上の「お題の なまえ」を うめると、写真をのせられます。',
-      );
+    if (!requireFreeTitle('photo')) {
       return;
     }
     const remaining = PHOTO_MAX_PER_ANSWER - photos.length;
@@ -365,7 +429,7 @@ export default function AnswerScreen() {
   };
 
   const handleDeletePhoto = (photo: Photo) => {
-    if (busy || uploading) {
+    if (busy || uploading || recPhase === 'recording' || recPhase === 'uploading') {
       return;
     }
     // 破壊的操作は必ず確認ダイアログ（REQUIREMENTS §4.1）
@@ -389,6 +453,44 @@ export default function AnswerScreen() {
             }
             await refetchPhotos();
             // 最後の1枚を消して本文も空なら「空の済」を残さない
+            if (answerId) {
+              await cleanupEmptyAnswer(answerId);
+            }
+            void refetch();
+          })();
+        },
+      },
+    ]);
+  };
+
+  /** 録音の保存成功。RecordingBox が await するので、作りたての id で refetch を終えてから返す */
+  const handleRecordingSaved = async (savedAnswerId: string) => {
+    await refetchRecording(savedAnswerId);
+    void refetch();
+  };
+
+  const handleDeleteRecording = (target: Recording) => {
+    if (busy || uploading || recBusy) {
+      return;
+    }
+    // 破壊的操作は必ず確認ダイアログ（REQUIREMENTS §4.1）
+    Alert.alert('この声を けしますか？', 'けした声は もどせません。', [
+      { text: 'やめる', style: 'cancel' },
+      {
+        text: 'けす',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            const deleted = await deleteRecording(target.id);
+            if (!deleted) {
+              Alert.alert(
+                'けせませんでした',
+                'でんぱの よいところで もういちど ためしてください。',
+              );
+              return;
+            }
+            await refetchRecording();
+            // 録音だけの回答だったら「空の済」を残さない（済スタンプが戻る）
             if (answerId) {
               await cleanupEmptyAnswer(answerId);
             }
@@ -444,23 +546,60 @@ export default function AnswerScreen() {
               {isFree && trimmedTitle ? trimmedTitle : title}
             </AppText>
 
-            {/* テキスト⇄音声の大きな2ボタン。音声はチケット10まで準備中 */}
+            {/* テキスト⇄音声の大きな2ボタン（DESIGN §7）。録音の進行中は切り替えない
+                （未保存のテイクが RecordingBox のアンマウントで消えるのを防ぐ） */}
             <View style={styles.modeRow}>
-              <View style={[styles.modeButton, styles.modeButtonActive]}>
-                <Keyboard color={colors.cardWhite} size={22} strokeWidth={2} />
-                <AppText variant="bodyMedium" style={styles.modeLabelActive}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: mode === 'text' }}
+                disabled={busy || uploading || recBusy}
+                onPress={() => setMode('text')}
+                style={({ pressed }) => [
+                  styles.modeButton,
+                  mode === 'text' ? styles.modeButtonActive : styles.modeButtonInactive,
+                  pressed && styles.modePressed,
+                ]}>
+                <Keyboard
+                  color={mode === 'text' ? colors.cardWhite : colors.stageNavy}
+                  size={22}
+                  strokeWidth={2}
+                />
+                <AppText
+                  variant="bodyMedium"
+                  style={mode === 'text' ? styles.modeLabelActive : styles.modeLabelInactive}>
                   自分でかく
                 </AppText>
-              </View>
-              <View style={[styles.modeButton, styles.modeButtonDisabled]}>
-                <Mic color={colors.textSoft} size={22} strokeWidth={2} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: mode === 'voice' }}
+                disabled={busy || uploading || recBusy}
+                onPress={() => setMode('voice')}
+                style={({ pressed }) => [
+                  styles.modeButton,
+                  mode === 'voice' ? styles.modeButtonActive : styles.modeButtonInactive,
+                  pressed && styles.modePressed,
+                ]}>
+                <Mic
+                  color={mode === 'voice' ? colors.cardWhite : colors.stageNavy}
+                  size={22}
+                  strokeWidth={2}
+                />
                 <View>
-                  <AppText variant="bodyMedium" style={styles.modeLabelDisabled}>
+                  <AppText
+                    variant="bodyMedium"
+                    style={mode === 'voice' ? styles.modeLabelActive : styles.modeLabelInactive}>
                     声で話す
                   </AppText>
-                  <AppText variant="caption">じゅんびちゅう</AppText>
+                  {recording ? (
+                    <AppText
+                      variant="caption"
+                      style={mode === 'voice' ? styles.modeCaptionActive : undefined}>
+                      ろくおん あり
+                    </AppText>
+                  ) : null}
                 </View>
-              </View>
+              </Pressable>
             </View>
 
             {isFree ? (
@@ -478,19 +617,35 @@ export default function AnswerScreen() {
               </AppCard>
             ) : null}
 
-            <AppCard style={styles.gapCard}>
-              <AppText variant="cardTitle">おはなしを どうぞ</AppText>
-              <TextInput
-                accessibilityLabel="回答の本文"
-                value={bodyText}
-                onChangeText={setBodyText}
-                placeholder="おもいだしたことを じゆうに かいてください"
-                placeholderTextColor={colors.textSoft}
-                multiline
-                textAlignVertical="top"
-                style={styles.bodyInput}
+            {mode === 'text' ? (
+              <AppCard style={styles.gapCard}>
+                <AppText variant="cardTitle">おはなしを どうぞ</AppText>
+                <TextInput
+                  accessibilityLabel="回答の本文"
+                  value={bodyText}
+                  onChangeText={setBodyText}
+                  placeholder="おもいだしたことを じゆうに かいてください"
+                  placeholderTextColor={colors.textSoft}
+                  multiline
+                  textAlignVertical="top"
+                  style={styles.bodyInput}
+                />
+              </AppCard>
+            ) : (
+              /* 音声カード（チケット10）。録音〜のこすの流れは RecordingBox がまとめる */
+              <RecordingBox
+                recording={recording}
+                viewUrl={recordingViewUrl}
+                loading={recordingLoading}
+                loadError={recordingError}
+                onRetryLoad={() => void refetchRecording()}
+                requireFreeTitle={() => requireFreeTitle('voice')}
+                ensureAnswerId={ensureAnswerId}
+                onSaved={handleRecordingSaved}
+                onDeleteRequest={handleDeleteRecording}
+                onPhaseChange={setRecPhase}
               />
-            </AppCard>
+            )}
 
             {/* 写真エリア（チケット09）。表示・追加・削除・進捗は PhotoStrip がまとめる */}
             <PhotoStrip
@@ -593,16 +748,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.stageNavy,
     ...shadows.raised,
   },
-  modeButtonDisabled: {
+  modeButtonInactive: {
     backgroundColor: colors.cardWhite,
-    opacity: 0.6,
     ...shadows.rest,
+  },
+  modePressed: {
+    transform: [{ scale: 0.98 }],
   },
   modeLabelActive: {
     color: colors.cardWhite,
   },
-  modeLabelDisabled: {
-    color: colors.textSoft,
+  modeLabelInactive: {
+    color: colors.stageNavy,
+  },
+  modeCaptionActive: {
+    color: colors.cardWhite,
   },
   titleInput: {
     borderColor: colors.textSoft,
