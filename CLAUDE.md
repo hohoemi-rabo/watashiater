@@ -147,7 +147,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 5. AI 呼び出し・R2 アクセスは必ず worker 経由。レート制限は 1日3回/ユーザー・JST 0時リセット
 6. 迷ったら判断基準は「シニアの書き手が一人で迷わず使えるか」。判断内容はコードコメントに残す
 
-## 実装で確立したパターン（チケット00〜09。詳細は各チケットのメモ）
+## 実装で確立したパターン（チケット00〜10。詳細は各チケットのメモ）
 
 - **認証**：`lib/auth-context.tsx` の `useAuth()`（session / subject / signInWithGoogle / signOut）。ルートガードは `app/_layout.tsx` の AuthGate。ログインは Expo Go 制約により**ブラウザ経由の `signInWithOAuth`**（Supabase の Redirect URLs に `exp://**` 登録済み。Android 用 OAuth クライアントはリリースビルドまで不要）
 - **データ取得**：`lib/use-prompts.ts`（画面フォーカス毎に refetch。保存して戻ると一覧・進捗が自動追随）。「回答済み」＝answers に行が存在する
@@ -156,6 +156,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 - **入力を伴う画面**：保存ボタンはスクロール外の固定フッター（キーボードの真上に浮く）。TextInput に lineHeight を指定しない（Android はカーソルが行の高さいっぱいに描かれる）。書きかけ保護は `usePreventRemove`
 - **メディア（チケット09）**：worker 呼び出しは `lib/worker-api.ts`（署名URL発行・PUT・閲覧URL一括。エラーは日本語 message の `WorkerApiError`）。アップロードは legacy `FileSystem.uploadAsync`（worker が Content-Length 必須のため）。画像表示は expo-image で `source={{ uri, cacheKey: r2_key }}`（署名URLのクエリは毎回変わる）。DB 行削除時も R2 オブジェクトは消さない（回収はチケット18。docs/09 メモ）
 - **録音の検証済み事実**（チケット00）：AAC は `RecordingPresets.HIGH_QUALITY` のみ／`record({ forDuration })` は実機で有効／3分＝約2.78MB／`File.type` はアップロードの Content-Type に使わない（詳細は docs/00 検証結果）
+- **録音（チケット10）**：本番プリセットは HIGH_QUALITY ベースの 1ch/64kbps（3分≈1.4MB・耳確認済み）。1回答1録音＝`recordings` は upsert(`onConflict:'answer_id'`)。保存順序は「PUT → answers 行の用意 → upsert」（空行の失敗経路を作らない）。録音まわりの機微は `components/recording-box.tsx` 冒頭コメントと docs/10 メモ
 
 ## 技術検証を最初にやること
 
