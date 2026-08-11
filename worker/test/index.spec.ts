@@ -1,29 +1,27 @@
-import {
-	env,
-	createExecutionContext,
-	waitOnExecutionContext,
-	SELF,
-} from "cloudflare:test";
-import { describe, it, expect } from "vitest";
-import worker from "../src/index";
+import { SELF } from "cloudflare:test";
+import { describe, expect, it } from "vitest";
 
-// For now, you'll need to do something like this to get a correctly-typed
-// `Request` to pass to `worker.fetch()`.
-const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
-
-describe("Hello World worker", () => {
-	it("responds with Hello World! (unit style)", async () => {
-		const request = new IncomingRequest("http://example.com");
-		// Create an empty context to pass to `worker.fetch()`.
-		const ctx = createExecutionContext();
-		const response = await worker.fetch(request, env, ctx);
-		// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
-		await waitOnExecutionContext(ctx);
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+// ルーティングの外形テスト。各エンドポイントの中身は upload.spec.ts / view.spec.ts
+describe("ルーティング", () => {
+	it("未知のパスは 404 の JSON エラー", async () => {
+		const response = await SELF.fetch("https://example.com/nothing-here");
+		expect(response.status).toBe(404);
+		const body = (await response.json()) as { error: { code: string } };
+		expect(body.error.code).toBe("not_found");
 	});
 
-	it("responds with Hello World! (integration style)", async () => {
-		const response = await SELF.fetch("https://example.com");
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+	it("ルートも 404", async () => {
+		const response = await SELF.fetch("https://example.com/");
+		expect(response.status).toBe(404);
+	});
+
+	it("/media/objects/ への未対応メソッド（POST）は 404", async () => {
+		const response = await SELF.fetch("https://example.com/media/objects/whatever.jpg", { method: "POST" });
+		expect(response.status).toBe(404);
+	});
+
+	it("/media/upload-urls への GET は 404", async () => {
+		const response = await SELF.fetch("https://example.com/media/upload-urls");
+		expect(response.status).toBe(404);
 	});
 });
