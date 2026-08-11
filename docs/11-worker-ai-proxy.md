@@ -22,4 +22,11 @@
 
 ## メモ
 
-（作業中の記録）
+### 着手前の申し送り（チケット07〜10より）
+
+- Gemini API キーは取得済みで `worker/.dev.vars` の `GEMINI_API_KEY` に記入済み（ローカル開発はそのまま動く）。
+  **本番の `wrangler secret put GEMINI_API_KEY` は未実施**＝このチケットのデプロイ時に行う
+  （SIGNING_SECRET / SUPABASE_SECRET_KEY は08で設定済み）
+- キーは新形式（`AQ.` プレフィックス）。`GET /v1beta/models` での疎通確認は07で済み（HTTP 200）
+- JWT 検証・エラー形式・テストヘルパーは08のものを再利用する（CLAUDE.md「実装で確立したパターン」参照）
+- レート制限の保存先候補を検討する際、wrangler.jsonc の compatibility_date（2026-03-10）は変更しないこと

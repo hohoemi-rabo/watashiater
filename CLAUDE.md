@@ -155,6 +155,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 - **非同期処理直後の分岐は処理の戻り値で行う**。setState 直後に state を読まない（チケット04で実際に起きたバグの教訓）
 - **入力を伴う画面**：保存ボタンはスクロール外の固定フッター（キーボードの真上に浮く）。TextInput に lineHeight を指定しない（Android はカーソルが行の高さいっぱいに描かれる）。書きかけ保護は `usePreventRemove`
 - **メディア（チケット09）**：worker 呼び出しは `lib/worker-api.ts`（署名URL発行・PUT・閲覧URL一括。エラーは日本語 message の `WorkerApiError`）。アップロードは legacy `FileSystem.uploadAsync`（worker が Content-Length 必須のため）。画像表示は expo-image で `source={{ uri, cacheKey: r2_key }}`（署名URLのクエリは毎回変わる）。DB 行削除時も R2 オブジェクトは消さない（回収はチケット18。docs/09 メモ）
+- **worker（チケット08）**：本番 URL は `https://watashiater-worker.rabo-hohoemi.workers.dev`（app の `EXPO_PUBLIC_WORKER_URL`・web の `WORKER_URL` はこれ）。構成は素の fetch ルーター（`src/index.ts`）＋JWT検証 `verifyAccessToken`（`src/auth.ts`・公開 JWKS）＋PostgREST 照会（`src/supabase.ts`・sb_secret は apikey ヘッダーのみ）＋エラー形式 `jsonError`（`src/http.ts`。`{error:{code,message}}`・日本語 message。チケット11の生成 API も同形で返す）。テストは `test/helpers.ts` の fetchMock ヘルパーを再利用（JWKS モックは persist＋事前1回読みが必須・PostgREST モックは1回消費）
 - **録音の検証済み事実**（チケット00）：AAC は `RecordingPresets.HIGH_QUALITY` のみ／`record({ forDuration })` は実機で有効／3分＝約2.78MB／`File.type` はアップロードの Content-Type に使わない（詳細は docs/00 検証結果）
 - **録音（チケット10）**：本番プリセットは HIGH_QUALITY ベースの 1ch/64kbps（3分≈1.4MB・耳確認済み）。1回答1録音＝`recordings` は upsert(`onConflict:'answer_id'`)。保存順序は「PUT → answers 行の用意 → upsert」（空行の失敗経路を作らない）。録音まわりの機微は `components/recording-box.tsx` 冒頭コメントと docs/10 メモ
 
