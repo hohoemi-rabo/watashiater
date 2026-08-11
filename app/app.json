@@ -45,6 +45,12 @@
           "microphonePermission": "こえを ろくおん するために マイクを つかいます。",
           "recordAudioAndroid": true
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "おもいでの 写真を えらぶために 写真フォルダーを つかいます。"
+        }
       ]
     ],
     "experiments": {
