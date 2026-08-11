@@ -301,7 +301,8 @@ export default function AnswerScreen() {
       setUploadState({ done, total }),
     );
     setUploadState(null);
-    await refetchPhotos();
+    // 行を作った直後は refetchPhotos の closure が古い answerId(null) を見ているため id を明示的に渡す
+    await refetchPhotos(targetAnswerId);
     if (outcome.failedUris.length > 0) {
       pendingUrisRef.current = outcome.failedUris;
       setUploadError(outcome.errorMessage ?? SAVE_ERROR_MESSAGE);

@@ -32,33 +32,40 @@ export function usePhotos(answerId: string | null) {
   // 2回目以降のフォーカス時はローディング表示を出さない（ちらつき防止。use-prompts と同じ）
   const hasLoadedRef = useRef(false);
 
-  const refetch = useCallback(async () => {
-    if (!answerId) {
-      setState({ photos: [], viewUrls: {}, loading: false, error: null });
-      return;
-    }
-    if (!hasLoadedRef.current) {
-      setState((prev) => ({ ...prev, loading: true }));
-    }
-    const { data, error } = await supabase
-      .from('photos')
-      .select('*')
-      .eq('answer_id', answerId)
-      .order('created_at');
-    if (error) {
-      setState((prev) => ({ ...prev, loading: false, error: LOAD_ERROR_MESSAGE }));
-      return;
-    }
-    let viewUrls: Record<string, string> = {};
-    try {
-      viewUrls = await getViewUrls(data.map((photo) => photo.r2_key));
-    } catch {
-      setState((prev) => ({ ...prev, loading: false, error: LOAD_ERROR_MESSAGE }));
-      return;
-    }
-    hasLoadedRef.current = true;
-    setState({ photos: data, viewUrls, loading: false, error: null });
-  }, [answerId]);
+  const refetch = useCallback(
+    async (overrideAnswerId?: string) => {
+      // 回答行を作った直後は answerId(state 由来) がまだ古い closure に残っているため、
+      // 呼び出し側が作りたての id を明示的に渡せるようにする
+      //（実機で「のせた直後に写真が出ない」バグの原因だった。値は引数で流す＝チケット04の教訓）
+      const targetId = overrideAnswerId ?? answerId;
+      if (!targetId) {
+        setState({ photos: [], viewUrls: {}, loading: false, error: null });
+        return;
+      }
+      if (!hasLoadedRef.current) {
+        setState((prev) => ({ ...prev, loading: true }));
+      }
+      const { data, error } = await supabase
+        .from('photos')
+        .select('*')
+        .eq('answer_id', targetId)
+        .order('created_at');
+      if (error) {
+        setState((prev) => ({ ...prev, loading: false, error: LOAD_ERROR_MESSAGE }));
+        return;
+      }
+      let viewUrls: Record<string, string> = {};
+      try {
+        viewUrls = await getViewUrls(data.map((photo) => photo.r2_key));
+      } catch {
+        setState((prev) => ({ ...prev, loading: false, error: LOAD_ERROR_MESSAGE }));
+        return;
+      }
+      hasLoadedRef.current = true;
+      setState({ photos: data, viewUrls, loading: false, error: null });
+    },
+    [answerId],
+  );
 
   useFocusEffect(
     useCallback(() => {
