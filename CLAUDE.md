@@ -131,7 +131,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 |---|---|
 | app (.env) | `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` / `EXPO_PUBLIC_WORKER_URL` |
 | web (.env.local) | `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`（サーバー側のみ） / `WORKER_URL` |
-| worker | ローカルは `.dev.vars`（`.dev.vars.example` をコピー）。本番は `wrangler secret put GEMINI_API_KEY` / `wrangler secret put SUPABASE_JWT_SECRET` |
+| worker | シークレットは `GEMINI_API_KEY` / `SUPABASE_SECRET_KEY` / `SIGNING_SECRET`（ローカルは `.dev.vars`＝`.dev.vars.example` をコピー、本番は `wrangler secret put`）。`SUPABASE_URL` は秘密ではないので `wrangler.jsonc` の `vars`。JWT シークレットは無い（公開 JWKS・ES256 で検証。docs/07） |
 
 - API キー類をクライアントコードに直書きしない。各ディレクトリの `.env.example` / `.dev.vars.example` だけをコミットする
 - ルートの `.mcp.json` は Supabase アクセストークンを含むため gitignore 済み。コミットしないこと
