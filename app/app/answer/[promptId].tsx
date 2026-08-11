@@ -10,7 +10,13 @@
  *   付属物の有無を確認し、あれば行を残して本文だけ空にする
  * - 保存成功の判定・遷移は保存処理の戻り値で行う（チケット04の教訓：state を読まない）
  *
- * 音声入力の切替ボタンはチケット10まで無効表示。写真枠はポラロイド型の空枠のみ（チケット09）。
+ * 写真添付（チケット09）：
+ * - photos 行には answers 行が必要（RLS）なので、回答が未保存のまま写真をのせたときは
+ *   body_text '' の行を自動作成する（写真だけでも「回答済み」になる＝仕様どおり）
+ * - 全滅・最後の1枚削除では cleanupEmptyAnswer で「空の済」を残さない（確認失敗時は消さない側に倒す）
+ * - アップロードは PhotoStrip＋lib/photo-attach.ts。失敗分は署名URLを取り直してリトライ
+ *
+ * 音声入力の切替ボタンはチケット10まで無効表示。
  */
 import { usePreventRemove } from '@react-navigation/native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
@@ -22,11 +28,19 @@ import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
 import { BackButton } from '@/components/back-button';
+import { PhotoStrip } from '@/components/photo-strip';
 import { PrimaryButton } from '@/components/primary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, shadows, spacing } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
+import {
+  PHOTO_MAX_PER_ANSWER,
+  compressPhoto,
+  pickPhotos,
+  uploadCompressedPhotos,
+} from '@/lib/photo-attach';
 import { supabase } from '@/lib/supabase';
+import { usePhotos, type Photo } from '@/lib/use-photos';
 import { usePrompts } from '@/lib/use-prompts';
 
 const SAVE_ERROR_MESSAGE =
@@ -56,10 +70,26 @@ export default function AnswerScreen() {
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showStamp, setShowStamp] = useState(false);
+  // 写真だけ先にのせたとき自動作成した answers 行の id（setState 直後に読まないよう state で持つ）
+  const [createdAnswerId, setCreatedAnswerId] = useState<string | null>(null);
+  const [uploadState, setUploadState] = useState<{ done: number; total: number } | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const initialBodyRef = useRef('');
   const initialTitleRef = useRef('');
   const backTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // アップロードに失敗した圧縮済みファイル（「もういちど のせる」で使う）
+  const pendingUrisRef = useRef<string[]>([]);
+
+  // 回答行の id。usePrompts の再取得が追いつく前でも createdAnswerId で写真を扱える
+  const answerId = existingAnswer?.id ?? createdAnswerId;
+  const {
+    photos,
+    viewUrls,
+    loading: photosLoading,
+    error: photosError,
+    refetch: refetchPhotos,
+  } = usePhotos(answerId);
 
   // プレフィルは読み込み完了時に一度だけ（編集中の再取得で入力を上書きしない）
   useEffect(() => {
@@ -88,8 +118,16 @@ export default function AnswerScreen() {
     !showStamp &&
     (bodyText !== initialBodyRef.current || (isFree && customTitle !== initialTitleRef.current));
 
-  // 書きかけ保護：未保存の変更があるときだけ「もどる」を差し止めて確認する
-  usePreventRemove(dirty, ({ data }) => {
+  const uploading = uploadState !== null;
+
+  // 書きかけ保護：未保存の変更・アップロード中は「もどる」を差し止める
+  usePreventRemove(dirty || uploading, ({ data }) => {
+    if (uploading) {
+      Alert.alert('写真をのせています', 'おわるまで すこし おまちください。', [
+        { text: 'わかりました', style: 'cancel' },
+      ]);
+      return;
+    }
     Alert.alert('かきかけの ぶんしょうが ほぞんされていません', 'もどると きえてしまいます。', [
       { text: 'やめる', style: 'cancel' },
       {
@@ -105,9 +143,10 @@ export default function AnswerScreen() {
   // 新規で本文が空なら保存するものが無い。自由お題の新規はタイトルも必要
   const canSave =
     !busy &&
+    !uploading &&
     initialized &&
-    (existingAnswer !== null || trimmedBody.length > 0) &&
-    (!isFree || trimmedTitle.length > 0 || (existingAnswer !== null && trimmedBody.length === 0));
+    (answerId !== null || trimmedBody.length > 0) &&
+    (!isFree || trimmedTitle.length > 0 || (answerId !== null && trimmedBody.length === 0));
 
   const saveAnswer = async (): Promise<SaveResult> => {
     if (!subject) {
@@ -115,16 +154,16 @@ export default function AnswerScreen() {
     }
 
     // 本文を空にした場合：付属物（写真・録音）が無ければ行ごと削除、あれば本文だけ空に
-    if (existingAnswer && trimmedBody.length === 0) {
+    if (answerId && trimmedBody.length === 0) {
       const [photosResult, recordingsResult] = await Promise.all([
         supabase
           .from('photos')
           .select('id', { count: 'exact', head: true })
-          .eq('answer_id', existingAnswer.id),
+          .eq('answer_id', answerId),
         supabase
           .from('recordings')
           .select('id', { count: 'exact', head: true })
-          .eq('answer_id', existingAnswer.id),
+          .eq('answer_id', answerId),
       ]);
       // 件数確認に失敗したときは消さない側に倒す（写真・録音の巻き添え削除を防ぐ）
       const attachmentCount =
@@ -133,27 +172,27 @@ export default function AnswerScreen() {
           : (photosResult.count ?? 0) + (recordingsResult.count ?? 0);
 
       if (attachmentCount === 0) {
-        const { error: deleteError } = await supabase
-          .from('answers')
-          .delete()
-          .eq('id', existingAnswer.id);
+        const { error: deleteError } = await supabase.from('answers').delete().eq('id', answerId);
+        if (!deleteError) {
+          setCreatedAnswerId(null);
+        }
         return deleteError ? { ok: false, message: SAVE_ERROR_MESSAGE } : { ok: true };
       }
       const { error: updateError } = await supabase
         .from('answers')
         .update({ body_text: '' })
-        .eq('id', existingAnswer.id);
+        .eq('id', answerId);
       return updateError ? { ok: false, message: SAVE_ERROR_MESSAGE } : { ok: true };
     }
 
-    if (existingAnswer) {
+    if (answerId) {
       const { error: updateError } = await supabase
         .from('answers')
         .update({
           body_text: trimmedBody,
           ...(isFree ? { custom_title: trimmedTitle } : {}),
         })
-        .eq('id', existingAnswer.id);
+        .eq('id', answerId);
       return updateError ? { ok: false, message: SAVE_ERROR_MESSAGE } : { ok: true };
     }
 
@@ -184,6 +223,179 @@ export default function AnswerScreen() {
     setShowStamp(true);
     setBusy(false);
     backTimerRef.current = setTimeout(() => router.back(), STAMP_DWELL_MS);
+  };
+
+  /**
+   * 写真をのせる前に answers 行を用意する（photos の RLS は answer_id 必須）。
+   * 自由お題のタイトルはここで確定・保存されるので initialTitleRef も同期する
+   */
+  const ensureAnswerId = async (): Promise<
+    { ok: true; answerId: string } | { ok: false; message: string }
+  > => {
+    if (answerId) {
+      return { ok: true, answerId };
+    }
+    if (!subject) {
+      return { ok: false, message: SAVE_ERROR_MESSAGE };
+    }
+    const { data, error: insertError } = await supabase
+      .from('answers')
+      .insert({
+        subject_id: subject.id,
+        prompt_id: isFree ? null : Number(promptId),
+        custom_title: isFree ? trimmedTitle : null,
+        body_text: '',
+      })
+      .select('id')
+      .single();
+    if (insertError || !data) {
+      return { ok: false, message: SAVE_ERROR_MESSAGE };
+    }
+    setCreatedAnswerId(data.id);
+    if (isFree) {
+      initialTitleRef.current = trimmedTitle;
+      setCustomTitle(trimmedTitle);
+    }
+    void refetch();
+    return { ok: true, answerId: data.id };
+  };
+
+  /**
+   * 「空の済」を残さない後始末。DB 上で本文空・写真0・録音0のときだけ行を消す。
+   * 確認に失敗したときは消さない側に倒す（保存済み内容の巻き添え削除を防ぐ）
+   */
+  const cleanupEmptyAnswer = async (targetAnswerId: string) => {
+    const [answerResult, photosResult, recordingsResult] = await Promise.all([
+      supabase.from('answers').select('body_text').eq('id', targetAnswerId).single(),
+      supabase
+        .from('photos')
+        .select('id', { count: 'exact', head: true })
+        .eq('answer_id', targetAnswerId),
+      supabase
+        .from('recordings')
+        .select('id', { count: 'exact', head: true })
+        .eq('answer_id', targetAnswerId),
+    ]);
+    if (answerResult.error || photosResult.error || recordingsResult.error) {
+      return;
+    }
+    if (
+      answerResult.data.body_text !== '' ||
+      (photosResult.count ?? 0) > 0 ||
+      (recordingsResult.count ?? 0) > 0
+    ) {
+      return;
+    }
+    const { error: deleteError } = await supabase.from('answers').delete().eq('id', targetAnswerId);
+    if (!deleteError) {
+      setCreatedAnswerId(null);
+      void refetch();
+    }
+  };
+
+  /** 圧縮済み uri 群をアップロードして photos 行を作る（初回・リトライ共通） */
+  const runUpload = async (targetAnswerId: string, uris: string[]) => {
+    setUploadError(null);
+    setUploadState({ done: 0, total: uris.length });
+    const outcome = await uploadCompressedPhotos(targetAnswerId, uris, (done, total) =>
+      setUploadState({ done, total }),
+    );
+    setUploadState(null);
+    await refetchPhotos();
+    if (outcome.failedUris.length > 0) {
+      pendingUrisRef.current = outcome.failedUris;
+      setUploadError(outcome.errorMessage ?? SAVE_ERROR_MESSAGE);
+      if (outcome.uploadedCount === 0) {
+        // 1枚ものせられなかったとき、写真のために自動作成した行が空のままなら回収する
+        void cleanupEmptyAnswer(targetAnswerId);
+      }
+      return;
+    }
+    pendingUrisRef.current = [];
+    void refetch();
+  };
+
+  const handleAddPhotos = async () => {
+    if (busy || uploading) {
+      return;
+    }
+    // 自由お題は custom_title が必須（DB の CHECK）。行の自動作成前にタイトルを求める
+    if (isFree && !answerId && trimmedTitle.length === 0) {
+      Alert.alert(
+        'さきに お題のなまえを かいてください',
+        'いちばん上の「お題の なまえ」を うめると、写真をのせられます。',
+      );
+      return;
+    }
+    const remaining = PHOTO_MAX_PER_ANSWER - photos.length;
+    if (remaining <= 0) {
+      return;
+    }
+    const picked = await pickPhotos(remaining);
+    if (!picked || picked.length === 0) {
+      return;
+    }
+    setUploadError(null);
+    setUploadState({ done: 0, total: picked.length });
+    const uris: string[] = [];
+    try {
+      for (const photo of picked) {
+        uris.push((await compressPhoto(photo)).uri);
+      }
+    } catch {
+      setUploadState(null);
+      setUploadError('写真を よみこめませんでした。ちがう写真で ためしてください。');
+      return;
+    }
+    const ensured = await ensureAnswerId();
+    if (!ensured.ok) {
+      setUploadState(null);
+      setUploadError(ensured.message);
+      return;
+    }
+    await runUpload(ensured.answerId, uris);
+  };
+
+  const handleRetryUpload = async () => {
+    if (!answerId || uploading || pendingUrisRef.current.length === 0) {
+      return;
+    }
+    await runUpload(answerId, pendingUrisRef.current);
+  };
+
+  const handleDeletePhoto = (photo: Photo) => {
+    if (busy || uploading) {
+      return;
+    }
+    // 破壊的操作は必ず確認ダイアログ（REQUIREMENTS §4.1）
+    Alert.alert('この写真を けしますか？', 'けした写真は もどせません。', [
+      { text: 'やめる', style: 'cancel' },
+      {
+        text: 'けす',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            const { error: deleteError } = await supabase
+              .from('photos')
+              .delete()
+              .eq('id', photo.id);
+            if (deleteError) {
+              Alert.alert(
+                'けせませんでした',
+                'でんぱの よいところで もういちど ためしてください。',
+              );
+              return;
+            }
+            await refetchPhotos();
+            // 最後の1枚を消して本文も空なら「空の済」を残さない
+            if (answerId) {
+              await cleanupEmptyAnswer(answerId);
+            }
+            void refetch();
+          })();
+        },
+      },
+    ]);
   };
 
   // お題の読み込み自体に失敗（通信など）：入力させる前にリトライへ誘導する
@@ -279,14 +491,19 @@ export default function AnswerScreen() {
               />
             </AppCard>
 
-            {/* ポラロイド型の空枠（「ここに写真がのります」が形で分かる。機能はチケット09） */}
-            <View style={styles.polaroid}>
-              <View style={styles.polaroidInner}>
-                <AppText variant="caption" style={styles.polaroidText}>
-                  ここに 写真が のります{'\n'}（もうすこし あとで つかえます）
-                </AppText>
-              </View>
-            </View>
+            {/* 写真エリア（チケット09）。表示・追加・削除・進捗は PhotoStrip がまとめる */}
+            <PhotoStrip
+              photos={photos}
+              viewUrls={viewUrls}
+              loading={photosLoading}
+              loadError={photosError}
+              onRetryLoad={() => void refetchPhotos()}
+              uploadState={uploadState}
+              uploadError={uploadError}
+              onRetryUpload={() => void handleRetryUpload()}
+              onAdd={() => void handleAddPhotos()}
+              onDelete={handleDeletePhoto}
+            />
           </>
         )}
         </ScrollView>
@@ -410,30 +627,6 @@ const styles = StyleSheet.create({
     minHeight: 200,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-  },
-  // ポラロイドの白フチ：左右上8・下28（DESIGN §5）。±3°以内の傾きで「置いてある」感
-  polaroid: {
-    alignSelf: 'center',
-    backgroundColor: colors.cardWhite,
-    paddingBottom: 28,
-    paddingHorizontal: 8,
-    paddingTop: 8,
-    transform: [{ rotate: '-2deg' }],
-    width: '70%',
-    ...shadows.rest,
-  },
-  polaroidInner: {
-    alignItems: 'center',
-    aspectRatio: 1,
-    borderColor: colors.textSoft,
-    borderRadius: 2,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    justifyContent: 'center',
-    padding: spacing.md,
-  },
-  polaroidText: {
-    textAlign: 'center',
   },
   errorTitle: {
     color: colors.errorRed,
