@@ -147,7 +147,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 5. AI 呼び出し・R2 アクセスは必ず worker 経由。レート制限は 1日3回/ユーザー・JST 0時リセット
 6. 迷ったら判断基準は「シニアの書き手が一人で迷わず使えるか」。判断内容はコードコメントに残す
 
-## 実装で確立したパターン（チケット00〜10。詳細は各チケットのメモ）
+## 実装で確立したパターン（チケット00〜14。詳細は各チケットのメモ）
 
 - **認証**：`lib/auth-context.tsx` の `useAuth()`（session / subject / signInWithGoogle / signOut）。ルートガードは `app/_layout.tsx` の AuthGate。ログインは Expo Go 制約により**ブラウザ経由の `signInWithOAuth`**（Supabase の Redirect URLs に `exp://**` 登録済み。Android 用 OAuth クライアントはリリースビルドまで不要）
 - **データ取得**：`lib/use-prompts.ts`（画面フォーカス毎に refetch。保存して戻ると一覧・進捗が自動追随）。「回答済み」＝answers に行が存在する
