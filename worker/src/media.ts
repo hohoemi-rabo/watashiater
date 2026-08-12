@@ -226,3 +226,37 @@ export async function handleGetObject(request: Request, env: Env, r2Key: string)
 	}
 	return new Response(object.body, { status, headers });
 }
+
+// ── アカウント削除の R2 全消去（チケット18。docs/18 Todo「経路の判断をコメントに残す」）──
+// この削除ルートを worker に置く判断：
+//  1. 「R2 へのアクセスは必ず worker を通す」（REQUIREMENTS §4.3）という門番の不変条件
+//     そのものなので、メディアの門番（役割2）の範囲内。DB の行削除は worker にやらせない
+//     （src/supabase.ts は読み取り専用の設計。行削除は definer 関数 delete_own_account の責務）
+//  2. prefix はクライアントから受け取らず JWT → getOwnedSubjectId で導出（キー偽装の余地なし）
+//  3. docs/09・10 が許容してきた孤児オブジェクト（削除済み写真・録り直しの旧録音・
+//     INSERT 失敗後のリトライ残骸）もこの prefix 一括削除がまとめて回収する
+//  4. アプリはこれを delete_own_account（DB削除）の前に呼ぶ。逆順だと subject_id が
+//     消えて prefix を導出できず、孤児が永久に残る
+
+/** POST /media/wipe：自分の博物館の R2 オブジェクトを全削除（本人のみ。アカウント削除用） */
+export async function handleWipeMedia(request: Request, env: Env): Promise<Response> {
+	const auth = await verifyAccessToken(request, env);
+	if (!auth) return jsonError(401, "unauthorized", "ログインが必要です");
+
+	const subjectId = await getOwnedSubjectId(env, auth.userId);
+	if (!subjectId) return jsonError(403, "forbidden", "削除できる博物館がありません");
+
+	const prefix = `subjects/${subjectId}/`;
+	let deleted = 0;
+	// list は最大1000件/回・delete も最大1000キー/回で対になる。削除した分だけ prefix が
+	// 縮むので cursor は使わず、毎回先頭から取り直して空になるまで回す
+	for (;;) {
+		const listing = await env.MEDIA.list({ prefix, limit: 1000 });
+		if (listing.objects.length > 0) {
+			await env.MEDIA.delete(listing.objects.map((object) => object.key));
+			deleted += listing.objects.length;
+		}
+		if (!listing.truncated) break;
+	}
+	return json({ deleted });
+}

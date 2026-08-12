@@ -24,4 +24,9 @@ describe("ルーティング", () => {
 		const response = await SELF.fetch("https://example.com/media/upload-urls");
 		expect(response.status).toBe(404);
 	});
+
+	it("/media/wipe への GET は 404", async () => {
+		const response = await SELF.fetch("https://example.com/media/wipe");
+		expect(response.status).toBe(404);
+	});
 });

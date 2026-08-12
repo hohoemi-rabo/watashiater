@@ -1,6 +1,12 @@
 import { handleGenerateLifeStory } from "./ai";
 import { jsonError } from "./http";
-import { handleCreateUploadUrls, handleCreateViewUrls, handleGetObject, handlePutObject } from "./media";
+import {
+	handleCreateUploadUrls,
+	handleCreateViewUrls,
+	handleGetObject,
+	handlePutObject,
+	handleWipeMedia,
+} from "./media";
 
 // AI生成プロキシ（REQUIREMENTS §5 役割1）とメディアの門番（同 役割2）。
 // Gemini の API キーはこの worker の外に出さず、R2 への読み書きも必ずこの worker を通る。
@@ -21,6 +27,9 @@ export default {
 			}
 			if (request.method === "POST" && pathname === "/media/view-urls") {
 				return await handleCreateViewUrls(request, env);
+			}
+			if (request.method === "POST" && pathname === "/media/wipe") {
+				return await handleWipeMedia(request, env);
 			}
 			if (pathname.startsWith("/media/objects/")) {
 				const r2Key = pathname.slice("/media/objects/".length);
