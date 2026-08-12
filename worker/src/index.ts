@@ -1,7 +1,9 @@
+import { handleGenerateLifeStory } from "./ai";
 import { jsonError } from "./http";
 import { handleCreateUploadUrls, handleCreateViewUrls, handleGetObject, handlePutObject } from "./media";
 
-// メディアの門番（REQUIREMENTS §5 役割2）。R2 への読み書きは必ずこの worker を通る。
+// AI生成プロキシ（REQUIREMENTS §5 役割1）とメディアの門番（同 役割2）。
+// Gemini の API キーはこの worker の外に出さず、R2 への読み書きも必ずこの worker を通る。
 // CORS ヘッダーは意図的に付けていない：
 //  - アプリ（React Native の fetch）は CORS の制約を受けない
 //  - 閲覧 Web は Next.js のサーバー側から WORKER_URL を呼ぶ（ブラウザから直接叩かない）
@@ -11,6 +13,9 @@ export default {
 	async fetch(request, env): Promise<Response> {
 		try {
 			const { pathname } = new URL(request.url);
+			if (request.method === "POST" && pathname === "/ai/life-story") {
+				return await handleGenerateLifeStory(request, env);
+			}
 			if (request.method === "POST" && pathname === "/media/upload-urls") {
 				return await handleCreateUploadUrls(request, env);
 			}

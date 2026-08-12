@@ -85,3 +85,20 @@ export function mockFamilyCheck(subjectId: string, userId: string, rows: { id: s
 export function mockSlug(slug: string, rows: { subject_id: string }[]): void {
 	mockPostgrest("view_links", { slug: `eq.${slug}`, is_active: "is.true", select: "subject_id" }, rows);
 }
+
+// ── Gemini（チケット11）──
+
+export const GEMINI_ORIGIN = "https://generativelanguage.googleapis.com";
+const GEMINI_PATH = "/v1beta/models/gemini-3.6-flash:generateContent";
+
+/** Gemini 呼び出し1回ぶんのモック（1回で消費。呼ばれない場合は assertNoPendingInterceptors が検知） */
+export function mockGeminiRaw(status: number, body: unknown): void {
+	fetchMock.get(GEMINI_ORIGIN).intercept({ method: "POST", path: GEMINI_PATH }).reply(status, body);
+}
+
+/** 正常応答（text を candidates[0] に入れて返す） */
+export function mockGemini(text: string): void {
+	mockGeminiRaw(200, {
+		candidates: [{ content: { parts: [{ text }], role: "model" }, finishReason: "STOP" }],
+	});
+}

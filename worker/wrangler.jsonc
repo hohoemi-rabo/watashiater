@@ -22,6 +22,13 @@
 			"bucket_name": "watashiater-media"
 		}
 	],
+	// AI生成レート制限（1日3回/ユーザー・JST 0時リセット。REQUIREMENTS §3.3）の回数記録のみに使う
+	"kv_namespaces": [
+		{
+			"binding": "RATE_LIMIT",
+			"id": "58d833576b094b06a1b6c42ff8b17f8f"
+		}
+	],
 	"vars": {
 		// 秘密ではない設定値。シークレット（SUPABASE_SECRET_KEY / SIGNING_SECRET / GEMINI_API_KEY）は
 		// ローカル .dev.vars / 本番 wrangler secret put で管理する
