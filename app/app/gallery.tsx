@@ -7,9 +7,11 @@
  * - ならべかえ（チケット14）：長押しでつまんでドラッグ。ドロップ毎に board_* を保存し、
  *   見た目は「基準位置＋offset 共有値」で動かす（詳細は draggable-polaroid.tsx）。
  *   overrides は z ソート・ボード高さ・DB 保存にだけ使い、基準 props は変えない
- * - タップ拡大＋音声はチケット15
+ * - タップ拡大＋音声（チケット15）：閲覧モードのタップで PhotoLightbox を開く。
+ *   オーバーレイのアンマウント＝プレイヤー解放なので、閉じる・Android 戻るで音声は必ず止まる
  * - この画面のアクセントは木肌＋spot-yellow バッジのみ。curtainRed を持ち込まない（DESIGN §11-6）
  */
+import { usePreventRemove } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { Check, Hand, Undo2 } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
@@ -29,6 +31,7 @@ import { BackButton } from '@/components/back-button';
 import { POLAROID_EXTRA_HEIGHT } from '@/components/board-polaroid';
 import { DeskBoard, DeskGrain } from '@/components/desk-board';
 import { DraggablePolaroid } from '@/components/draggable-polaroid';
+import { PhotoLightbox } from '@/components/photo-lightbox';
 import { SecondaryButton } from '@/components/secondary-button';
 import { BOARD, resolveBoardPlacements, type BoardPlacement } from '@/lib/board-layout';
 import { colors, spacing } from '@/constants/tokens';
@@ -50,6 +53,8 @@ export default function GalleryScreen() {
   const [revertSignals, setRevertSignals] = useState<Record<string, number>>({});
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingSaves, setPendingSaves] = useState(0);
+  // タップ拡大中の写真（チケット15）。id で持ち、refetch で消えたら自然に閉じる
+  const [lightboxId, setLightboxId] = useState<string | null>(null);
 
   const boardSeed = subject?.board_seed ?? 0;
   const { placements, boardHeightFraction } = useMemo(
@@ -93,6 +98,15 @@ export default function GalleryScreen() {
   const polaroidHeight = polaroidWidth + POLAROID_EXTRA_HEIGHT;
   const boardHeightPx = effectiveHeightFraction * boardWidth;
   const rearrange = mode === 'rearrange';
+
+  const lightboxItem = lightboxId
+    ? (items.find(({ photo }) => photo.id === lightboxId) ?? null)
+    : null;
+
+  // Android 戻る1回目はライトボックスだけ閉じる（画面を出るのは2回目）
+  usePreventRemove(lightboxItem !== null, () => {
+    setLightboxId(null);
+  });
 
   const handleLift = (photoId: string) => {
     // つまめた手応え（音は出ない軽い振動）
@@ -259,11 +273,27 @@ export default function GalleryScreen() {
                 revertSignal={revertSignals[item.photo.id] ?? 0}
                 onLift={handleLift}
                 onDrop={handleDrop}
+                onOpen={setLightboxId}
               />
             ))}
           </View>
         ) : null}
       </ScrollView>
+
+      {/* ライトボックスは SafeArea の外＝ステータスバーまで含む全画面を覆う（curtain-overlay と同じ） */}
+      {lightboxItem ? (
+        <PhotoLightbox
+          key={lightboxItem.photo.id}
+          bodyText={lightboxItem.bodyText}
+          cacheKey={lightboxItem.photo.r2_key}
+          caption={lightboxItem.caption}
+          hasRecording={lightboxItem.hasRecording}
+          recordingUrl={lightboxItem.recordingUrl}
+          uri={lightboxItem.viewUrl}
+          onClose={() => setLightboxId(null)}
+          onRetry={() => void refetch()}
+        />
+      ) : null}
     </DeskBoard>
   );
 }

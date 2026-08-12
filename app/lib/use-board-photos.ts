@@ -1,8 +1,9 @@
 /**
- * 机の上ボード用に subject の全写真を取得するフック（チケット13）。
+ * 机の上ボード用に subject の全写真を取得するフック（チケット13・15）。
  * 家風どおり並列フラットクエリ＋JS join（PostgREST の embed は使わない）。
  * - キャプション＝固定お題は prompts.title、自由お題は answers.custom_title
- * - スピーカーバッジ用に recordings の有無だけ引く（音声URLはチケット15で必要になってから）
+ * - 録音の署名URLは写真と同じ1バッチで取る（チケット15。タップ→声が出るまでの
+ *   無音を作らない。worker は同一 subject なら写真＋録音の混在キーを受け付ける）
  * - 署名URLは有効期限つきなのでキャッシュせず、フォーカスのたびに取り直す
  * - どの段の失敗も単一のエラー state（部分描画しない。use-photos と同じ方針）
  */
@@ -17,8 +18,12 @@ import type { Tables } from '@/types/database.types';
 export type BoardItem = {
   photo: Tables<'photos'>;
   caption: string;
+  /** 本文エピソード（'' あり＝声だけの回答。ライトボックスの「録音なし」表示用） */
+  bodyText: string;
+  /** バッジ＋「録音ありなのに URL 無し＝読み込みエラー」の判別に使う */
   hasRecording: boolean;
   viewUrl: string | undefined;
+  recordingUrl: string | undefined;
 };
 
 type BoardPhotosState = {
@@ -76,17 +81,21 @@ export function useBoardPhotos() {
         .in('answer_id', answerIds)
         .order('created_at')
         .order('id'),
-      supabase.from('recordings').select('answer_id').in('answer_id', answerIds),
+      supabase.from('recordings').select('answer_id, r2_key').in('answer_id', answerIds),
     ]);
     if (photosResult.error || recordingsResult.error) {
       fail();
       return;
     }
     const photos = photosResult.data;
+    const recordings = recordingsResult.data;
 
     let viewUrls: Record<string, string> = {};
     try {
-      viewUrls = await getViewUrls(photos.map((photo) => photo.r2_key));
+      viewUrls = await getViewUrls([
+        ...photos.map((photo) => photo.r2_key),
+        ...recordings.map((recording) => recording.r2_key),
+      ]);
     } catch {
       fail();
       return;
@@ -94,7 +103,9 @@ export function useBoardPhotos() {
 
     const promptTitleById = new Map(promptsResult.data.map((prompt) => [prompt.id, prompt.title]));
     const answerById = new Map(answers.map((answer) => [answer.id, answer]));
-    const recordedAnswerIds = new Set(recordingsResult.data.map((row) => row.answer_id));
+    const recordingKeyByAnswerId = new Map(
+      recordings.map((recording) => [recording.answer_id, recording.r2_key]),
+    );
 
     const items: BoardItem[] = photos.map((photo) => {
       const answer = answerById.get(photo.answer_id);
@@ -102,11 +113,14 @@ export function useBoardPhotos() {
         (answer?.prompt_id !== null && answer?.prompt_id !== undefined
           ? promptTitleById.get(answer.prompt_id)
           : answer?.custom_title) ?? 'じぶんのお題';
+      const recordingKey = recordingKeyByAnswerId.get(photo.answer_id);
       return {
         photo,
         caption,
-        hasRecording: recordedAnswerIds.has(photo.answer_id),
+        bodyText: answer?.body_text ?? '',
+        hasRecording: recordingKey !== undefined,
         viewUrl: viewUrls[photo.r2_key],
+        recordingUrl: recordingKey !== undefined ? viewUrls[recordingKey] : undefined,
       };
     });
 

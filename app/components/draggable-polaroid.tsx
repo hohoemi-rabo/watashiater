@@ -13,13 +13,15 @@
  * ジェスチャー：
  * - 長押し（220ms）で持ち上げ。待機中に指が動くと Pan は fail して ScrollView が普通に勝つ。
  *   活性化すると RNGH がネイティブタッチを取り消す（GestureHandlerRootView が必須）
+ * - タップ拡大（チケット15）は内側の Pressable。閲覧モードでは Pan が disabled なので競合せず、
+ *   ならべかえ中は Pressable を disabled にしてタップ不活性（長押しは RNGH のタッチ取消で勝つ）
  * - ドラッグ中の最前面は zIndex（ドラッグ中のみ）。兄弟の並べ替えをジェスチャー中に
  *   行わない（GestureDetector の再アタッチを避ける）。静止時は「描画順=重なり」を維持
  * - 回転はドラッグで変えない（2本指回転はシニアの書き手には難しいので採用しない）
  * - React Compiler 対応：共有値は .get()/.set()、コールバックには 'worklet' を明示
  */
 import { memo, useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -59,6 +61,8 @@ type DraggablePolaroidProps = {
   revertSignal: number;
   onLift: (photoId: string) => void;
   onDrop: (photoId: string, left: number, top: number) => void;
+  /** タップ拡大（チケット15。閲覧モードのみ有効） */
+  onOpen: (photoId: string) => void;
 };
 
 export const DraggablePolaroid = memo(function DraggablePolaroid({
@@ -79,6 +83,7 @@ export const DraggablePolaroid = memo(function DraggablePolaroid({
   revertSignal,
   onLift,
   onDrop,
+  onOpen,
 }: DraggablePolaroidProps) {
   const reduceMotion = useReducedMotion();
   const tx = useSharedValue(0);
@@ -172,17 +177,24 @@ export const DraggablePolaroid = memo(function DraggablePolaroid({
           dragging ? styles.dragging : null,
           animatedStyle,
         ]}>
-        <BoardPolaroid
-          cacheKey={cacheKey}
-          caption={caption}
-          hasRecording={hasRecording}
-          left={0}
-          lifted={dragging}
-          rotation={0}
-          top={0}
-          uri={uri}
-          width={width}
-        />
+        <Pressable
+          accessibilityLabel={`「${caption}」の写真をひらく`}
+          accessibilityRole="button"
+          disabled={rearrange}
+          onPress={() => onOpen(photoId)}
+          style={({ pressed }) => [styles.fill, pressed && styles.pressed]}>
+          <BoardPolaroid
+            cacheKey={cacheKey}
+            caption={caption}
+            hasRecording={hasRecording}
+            left={0}
+            lifted={dragging}
+            rotation={0}
+            top={0}
+            uri={uri}
+            width={width}
+          />
+        </Pressable>
       </Animated.View>
     </GestureDetector>
   );
@@ -191,6 +203,12 @@ export const DraggablePolaroid = memo(function DraggablePolaroid({
 const styles = StyleSheet.create({
   dragging: {
     zIndex: 1,
+  },
+  fill: {
+    flex: 1,
+  },
+  pressed: {
+    opacity: 0.9,
   },
   wrapper: {
     position: 'absolute',
