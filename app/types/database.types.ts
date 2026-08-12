@@ -365,6 +365,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_own_account: { Args: never; Returns: undefined }
       redeem_invite_code: {
         Args: { p_code: string; p_display_name: string }
         Returns: Json
