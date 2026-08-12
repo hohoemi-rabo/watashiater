@@ -124,16 +124,19 @@ export default function GalleryScreen() {
     void (async () => {
       const saved = await saveBoardPlacement(photoId, placement);
       setPendingSaves((n) => n - 1);
-      if (!saved.ok) {
-        // 保存できなかった配置は見せ続けない：override を捨てて元の位置へ滑って戻す
-        setActionError(saved.message ?? null);
-        setOverrides((prev) => {
-          const next = { ...prev };
-          delete next[photoId];
-          return next;
-        });
-        setRevertSignals((prev) => ({ ...prev, [photoId]: (prev[photoId] ?? 0) + 1 }));
+      if (saved.ok) {
+        // 電波が戻って保存できたら、前回の失敗表示は消す（出しっぱなしにしない）
+        setActionError(null);
+        return;
       }
+      // 保存できなかった配置は見せ続けない：override を捨てて元の位置へ滑って戻す
+      setActionError(saved.message ?? null);
+      setOverrides((prev) => {
+        const next = { ...prev };
+        delete next[photoId];
+        return next;
+      });
+      setRevertSignals((prev) => ({ ...prev, [photoId]: (prev[photoId] ?? 0) + 1 }));
     })();
   };
 
