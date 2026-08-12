@@ -9,13 +9,13 @@
  */
 import { useMemo } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
 import { BackButton } from '@/components/back-button';
 import { BoardPolaroid, POLAROID_EXTRA_HEIGHT } from '@/components/board-polaroid';
-import { DeskBoard } from '@/components/desk-board';
+import { DeskBoard, DeskGrain } from '@/components/desk-board';
 import { SecondaryButton } from '@/components/secondary-button';
 import { BOARD, resolveBoardPlacements } from '@/lib/board-layout';
 import { colors, spacing } from '@/constants/tokens';
@@ -24,6 +24,7 @@ import { useBoardPhotos } from '@/lib/use-board-photos';
 
 export default function GalleryScreen() {
   const { width: boardWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { subject } = useAuth();
   const { items, loading, error, refetch } = useBoardPhotos();
 
@@ -49,9 +50,12 @@ export default function GalleryScreen() {
 
   return (
     <DeskBoard>
-      <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.header}>
+      {/* SafeAreaView で囲まず inset を内側余白にする：木目をステータスバーの下まで敷くため */}
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.section }]}>
+        {/* 木目はコンテンツ側に敷いて写真と一緒にスクロールさせる（desk-board.tsx の判断） */}
+        <DeskGrain />
+        <View style={[styles.header, { paddingTop: insets.top + spacing.xl }]}>
             <BackButton />
             <AppText variant="screenTitle" style={styles.title}>
               机の上
@@ -94,8 +98,7 @@ export default function GalleryScreen() {
               ))}
             </View>
           ) : null}
-        </ScrollView>
-      </SafeAreaView>
+      </ScrollView>
     </DeskBoard>
   );
 }
@@ -112,12 +115,10 @@ const styles = StyleSheet.create({
     color: colors.errorRed,
   },
   // ボード（写真エリア）は全幅を使うため、余白はヘッダー側にだけ付ける
+  // （paddingTop はステータスバー inset を足して gallery 本体で上書きする）
   header: {
     gap: spacing.xxl,
     padding: spacing.xl,
-  },
-  safeArea: {
-    flex: 1,
   },
   title: {
     color: colors.cardWhite,

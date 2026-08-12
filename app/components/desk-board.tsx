@@ -1,69 +1,53 @@
 /**
  * 机の上ボードの背景と縁（チケット13。DESIGN §5「机の上ボード」）。
- * deskWood の全面に、ごく薄い木目と「机の縁」の内側シャドウを重ねる。
  *
  * 実装の判断：
- * - 木目は「縦線のみ」のビューポート固定 SVG。縦線は縦スクロールで見た目が変わらないため、
- *   コンテンツに載せて全高（最大 ~6,600px）ぶんのレイヤーを持つ必要がない（メモリ節約）
- * - 内側シャドウは RN に無いので、4辺に置いた LinearGradient（stageNavy α0.15 → 0）で擬似する。
- *   縁は「机を覗く額縁」なのでスクロールに追随させず、SafeArea の外＝画面全体を囲む
+ * - 木目は DESIGN §5 が許す「軽量テクスチャ画像1枚」方式。コード描画の縦線では
+ *   木に見えなかった（実機フィードバック）ため、scripts/gen-wood-tile.mjs で生成した
+ *   縦シームレスなタイル（512x1024・板の継ぎ目と年輪入り）を敷く
+ * - 木目（DeskGrain）は年輪が見えるので、スクロールに追随しないと「写真だけが滑る」
+ *   違和感が出る。ScrollView の中（コンテンツ直下）に置き、RN 標準 Image の
+ *   resizeMode="repeat" でコンテンツ全高にタイルさせる（メモリはタイル1枚ぶんだけ）
+ * - 机の縁（DeskBoard 側）は「机を覗く額縁」なのでビューポート固定のまま。
+ *   RN に内側シャドウは無いので「濃い縁の帯＋内向きに薄れるグラデ」で作る
  * - どちらも pointerEvents="none"：チケット14のドラッグ・15のタップを絶対に遮らない
  */
 import type { ReactNode } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
-import Svg, { Line } from 'react-native-svg';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { colors } from '@/constants/tokens';
 
-/** 縁の内側シャドウの太さと濃さ（stageNavy ベース。影3段の値とは別の「質感」扱い） */
-const EDGE_WIDTH = 20;
-const EDGE_COLOR_FROM = `${colors.stageNavy}26`; // α≈0.15
+/** 縁の帯（濃い枠）と内側シャドウの寸法・濃さ（stageNavy の透過＝影と同じ色相で統一） */
+const RIM_WIDTH = 6;
+const RIM_COLOR = `${colors.stageNavy}4D`; // α≈0.30
+const EDGE_WIDTH = 26;
+const EDGE_COLOR_FROM = `${colors.stageNavy}33`; // α≈0.20
 const EDGE_COLOR_TO = `${colors.stageNavy}00`;
 
-/** 板の継ぎ目（濃いめ）と木目（薄め）の x 位置（幅比）と不透明度 */
-const SEAMS = [0.25, 0.5, 0.75];
-const GRAINS = [0.09, 0.18, 0.37, 0.62, 0.83, 0.93];
-const SEAM_OPACITY = 0.06;
-const GRAIN_OPACITY = 0.03;
+/**
+ * 木目レイヤー。ScrollView コンテンツの最初の子として置く（絶対配置で全高を覆う）。
+ * タイルの地色は colors.deskWood を焼き込み済みなので、届かない領域（バウンス等）は
+ * DeskBoard の背景色と自然につながる
+ */
+export function DeskGrain() {
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Image
+        resizeMode="repeat"
+        source={require('@/assets/images/wood-tile.png')}
+        style={styles.grain}
+      />
+    </View>
+  );
+}
 
 export function DeskBoard({ children }: { children: ReactNode }) {
-  const { width, height } = useWindowDimensions();
   return (
     <View style={styles.board}>
-      {/* 木目（背面・固定） */}
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <Svg height={height} width={width}>
-          {SEAMS.map((x) => (
-            <Line
-              key={`seam-${x}`}
-              stroke={colors.stageNavy}
-              strokeOpacity={SEAM_OPACITY}
-              strokeWidth={1.5}
-              x1={x * width}
-              x2={x * width}
-              y1={0}
-              y2={height}
-            />
-          ))}
-          {GRAINS.map((x) => (
-            <Line
-              key={`grain-${x}`}
-              stroke={colors.stageNavy}
-              strokeOpacity={GRAIN_OPACITY}
-              strokeWidth={1}
-              x1={x * width}
-              x2={x * width}
-              y1={0}
-              y2={height}
-            />
-          ))}
-        </Svg>
-      </View>
-
       {children}
 
-      {/* 机の縁（前面・固定）：4辺の内側シャドウ */}
+      {/* 机の縁（前面・ビューポート固定）：濃い帯＋内側へ薄れるシャドウの額縁 */}
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
         <LinearGradient
           colors={[EDGE_COLOR_FROM, EDGE_COLOR_TO]}
@@ -85,6 +69,10 @@ export function DeskBoard({ children }: { children: ReactNode }) {
           start={{ x: 0, y: 0 }}
           style={[styles.edgeSide, styles.edgeRight]}
         />
+        <View style={[styles.rim, styles.rimTop]} />
+        <View style={[styles.rim, styles.rimBottom]} />
+        <View style={[styles.rimSide, styles.rimLeft]} />
+        <View style={[styles.rimSide, styles.rimRight]} />
       </View>
     </View>
   );
@@ -93,6 +81,9 @@ export function DeskBoard({ children }: { children: ReactNode }) {
 const styles = StyleSheet.create({
   board: {
     backgroundColor: colors.deskWood,
+    flex: 1,
+  },
+  grain: {
     flex: 1,
   },
   edge: {
@@ -117,6 +108,31 @@ const styles = StyleSheet.create({
     width: EDGE_WIDTH,
   },
   edgeTop: {
+    top: 0,
+  },
+  rim: {
+    backgroundColor: RIM_COLOR,
+    height: RIM_WIDTH,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+  },
+  rimBottom: {
+    bottom: 0,
+  },
+  rimLeft: {
+    left: 0,
+  },
+  rimRight: {
+    right: 0,
+  },
+  rimSide: {
+    bottom: 0,
+    position: 'absolute',
+    top: 0,
+    width: RIM_WIDTH,
+  },
+  rimTop: {
     top: 0,
   },
 });
