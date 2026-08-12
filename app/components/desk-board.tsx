@@ -18,11 +18,25 @@ import { Image, StyleSheet, View } from 'react-native';
 
 import { colors } from '@/constants/tokens';
 
-/** 縁の帯（濃い枠）と内側シャドウの寸法・濃さ（stageNavy の透過＝影と同じ色相で統一） */
-const RIM_WIDTH = 6;
-const RIM_COLOR = `${colors.stageNavy}4D`; // α≈0.30
-const EDGE_WIDTH = 26;
-const EDGE_COLOR_FROM = `${colors.stageNavy}33`; // α≈0.20
+/** deskWood を明暗させた派生色を作る（生値を増やさず単一ソースを保つ。木目タイルと同じ考え方） */
+function shade(hex: string, factor: number): string {
+  const value = parseInt(hex.slice(1), 16);
+  const channel = (shift: number) =>
+    Math.max(0, Math.min(255, Math.round(((value >> shift) & 0xff) * factor)));
+  return `#${[16, 8, 0].map((s) => channel(s).toString(16).padStart(2, '0')).join('')}`;
+}
+
+/**
+ * 机の縁：半透明の影だけでは木肌の上で見えない（実機フィードバック）ため、
+ * 不透明の濃い木枠＋面取りのハイライト1本＋内側へ薄れる影、の3層で「木の額縁」にする
+ */
+const RIM_WIDTH = 8;
+const RIM_COLOR = shade(colors.deskWood, 0.5); // 濃い枠木
+const RIM_HIGHLIGHT_WIDTH = 2;
+const RIM_HIGHLIGHT_COLOR = shade(colors.deskWood, 1.25); // 面取りに当たる光
+const EDGE_INSET = RIM_WIDTH + RIM_HIGHLIGHT_WIDTH;
+const EDGE_WIDTH = 24;
+const EDGE_COLOR_FROM = `${colors.stageNavy}40`; // α≈0.25
 const EDGE_COLOR_TO = `${colors.stageNavy}00`;
 
 /**
@@ -47,8 +61,10 @@ export function DeskBoard({ children }: { children: ReactNode }) {
     <View style={styles.board}>
       {children}
 
-      {/* 机の縁（前面・ビューポート固定）：濃い帯＋内側へ薄れるシャドウの額縁 */}
+      {/* 机の縁（前面・ビューポート固定）：濃い木枠＋面取りの光＋内側へ薄れる影 */}
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <View style={styles.rim} />
+        <View style={styles.rimHighlight} />
         <LinearGradient
           colors={[EDGE_COLOR_FROM, EDGE_COLOR_TO]}
           style={[styles.edge, styles.edgeTop]}
@@ -69,10 +85,6 @@ export function DeskBoard({ children }: { children: ReactNode }) {
           start={{ x: 0, y: 0 }}
           style={[styles.edgeSide, styles.edgeRight]}
         />
-        <View style={[styles.rim, styles.rimTop]} />
-        <View style={[styles.rim, styles.rimBottom]} />
-        <View style={[styles.rimSide, styles.rimLeft]} />
-        <View style={[styles.rimSide, styles.rimRight]} />
       </View>
     </View>
   );
@@ -88,51 +100,38 @@ const styles = StyleSheet.create({
   },
   edge: {
     height: EDGE_WIDTH,
-    left: 0,
+    left: EDGE_INSET,
     position: 'absolute',
-    right: 0,
+    right: EDGE_INSET,
   },
   edgeBottom: {
-    bottom: 0,
+    bottom: EDGE_INSET,
   },
   edgeLeft: {
-    left: 0,
+    left: EDGE_INSET,
   },
   edgeRight: {
-    right: 0,
+    right: EDGE_INSET,
   },
   edgeSide: {
-    bottom: 0,
+    bottom: EDGE_INSET,
     position: 'absolute',
-    top: 0,
+    top: EDGE_INSET,
     width: EDGE_WIDTH,
   },
   edgeTop: {
-    top: 0,
+    top: EDGE_INSET,
   },
+  // 枠は border で4辺と角をまとめて描く（辺ごとの View を並べるより単純で角も綺麗）
   rim: {
-    backgroundColor: RIM_COLOR,
-    height: RIM_WIDTH,
-    left: 0,
-    position: 'absolute',
-    right: 0,
+    ...StyleSheet.absoluteFillObject,
+    borderColor: RIM_COLOR,
+    borderWidth: RIM_WIDTH,
   },
-  rimBottom: {
-    bottom: 0,
-  },
-  rimLeft: {
-    left: 0,
-  },
-  rimRight: {
-    right: 0,
-  },
-  rimSide: {
-    bottom: 0,
-    position: 'absolute',
-    top: 0,
-    width: RIM_WIDTH,
-  },
-  rimTop: {
-    top: 0,
+  rimHighlight: {
+    ...StyleSheet.absoluteFillObject,
+    borderColor: RIM_HIGHLIGHT_COLOR,
+    borderWidth: RIM_HIGHLIGHT_WIDTH,
+    margin: RIM_WIDTH,
   },
 });
