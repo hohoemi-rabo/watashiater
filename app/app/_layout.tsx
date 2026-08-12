@@ -43,7 +43,8 @@ const lightTheme = {
 };
 
 function AuthGate({ children }: { children: ReactNode }) {
-  const { session, subject, memberships, loading, subjectError, refreshSubject } = useAuth();
+  const { session, subject, memberships, restoredFromCache, loading, subjectError, refreshSubject } =
+    useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -51,7 +52,9 @@ function AuthGate({ children }: { children: ReactNode }) {
     if (loading) {
       return;
     }
-    if (!session) {
+    // 未ログイン扱いにするのは「セッションが無く、この端末にキャッシュも無い」ときだけ。
+    // 機内モードでトークンが期限切れになっただけの人を締め出さない（チケット19）
+    if (!session && !restoredFromCache) {
       if (pathname !== '/onboarding') {
         router.replace('/onboarding');
       }
@@ -76,7 +79,7 @@ function AuthGate({ children }: { children: ReactNode }) {
     if (subject && pathname === '/nickname') {
       router.replace('/');
     }
-  }, [loading, session, subject, memberships, subjectError, pathname, router]);
+  }, [loading, session, restoredFromCache, subject, memberships, subjectError, pathname, router]);
 
   // セッション復元が終わるまで何も出さない（スプラッシュが出続ける）
   if (loading) {
@@ -84,7 +87,9 @@ function AuthGate({ children }: { children: ReactNode }) {
   }
 
   // 通信失敗で subject を確かめられていない：既存ユーザーをニックネーム登録へ
-  // 誤誘導しないよう、リトライ画面で止める
+  // 誤誘導しないよう、リトライ画面で止める。
+  // （チケット19以降、端末キャッシュから戻せたときは subjectError が null になるので
+  //   この画面は出ず、そのままキャッシュした博物館が見える。条件式は変えていない）
   if (session && !subject && subjectError) {
     return (
       <SkyBackground>
