@@ -19,6 +19,7 @@ import { SkyBackground } from '@/components/sky-background';
 import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, spacing } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
 import { redeemInviteCode, type RedeemResult } from '@/lib/family-join';
+import { useIsOnline } from '@/lib/use-online';
 
 const CODE_LENGTH = 6;
 
@@ -37,6 +38,7 @@ export default function JoinScreen() {
   const { session, refreshSubject } = useAuth();
   const router = useRouter();
 
+  const isOnline = useIsOnline();
   const metadataName = session?.user.user_metadata?.full_name;
   const [code, setCode] = useState('');
   const [name, setName] = useState(
@@ -121,7 +123,9 @@ export default function JoinScreen() {
               icon={Check}
               label={busy ? 'とうろくしています…' : 'とうろくする'}
               onPress={() => void handleJoin()}
-              disabled={busy || trimmedCode.length !== CODE_LENGTH || trimmedName.length === 0}
+              disabled={
+                busy || trimmedCode.length !== CODE_LENGTH || trimmedName.length === 0 || !isOnline
+              }
             />
             {errorMessage ? <AppText style={styles.error}>{errorMessage}</AppText> : null}
           </AppCard>

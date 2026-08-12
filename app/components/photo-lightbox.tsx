@@ -62,6 +62,8 @@ type PhotoLightboxProps = {
   onRetry: () => void;
   /** 家族の閲覧時だけ渡す「みたよ」（チケット16）。書き手側は渡さない＝表示しない */
   reaction?: { reacted: boolean; onReact: () => void };
+  /** オフライン（チケット19）。声はオンライン前提なので、赤いエラーではなく案内を出す */
+  offline?: boolean;
 };
 
 export function PhotoLightbox({
@@ -74,6 +76,7 @@ export function PhotoLightbox({
   onClose,
   onRetry,
   reaction,
+  offline,
 }: PhotoLightboxProps) {
   const reduceMotion = useReducedMotion();
   const { width, height } = useWindowDimensions();
@@ -195,7 +198,12 @@ export function PhotoLightbox({
 
           {hasRecording ? (
             <View style={styles.controls}>
-              {loadFailed ? (
+              {offline ? (
+                // オフラインは「失敗」ではないので赤くしない（チケット19。DESIGN §3）
+                <AppCard style={styles.errorCard}>
+                  <AppText>声は つながると 聞けます。</AppText>
+                </AppCard>
+              ) : loadFailed ? (
                 <AppCard style={styles.errorCard}>
                   <AppText style={styles.errorText}>{LOAD_ERROR_MESSAGE}</AppText>
                   <SecondaryButton icon={RotateCcw} label="もういちどよみこむ" onPress={onRetry} />

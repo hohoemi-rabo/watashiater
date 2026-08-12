@@ -37,16 +37,18 @@ import {
   CurtainOverlay,
   type CurtainPhase,
 } from '@/components/curtain-overlay';
+import { OfflineNote } from '@/components/offline-note';
 import { PrimaryButton } from '@/components/primary-button';
 import { SecondaryButton } from '@/components/secondary-button';
 import { colors, fonts, fontSizes, radii, spacing } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
 import { buildLifeStoryAnswers, saveLifeStory, saveManualEdit } from '@/lib/life-story';
+import { useIsOnline } from '@/lib/use-online';
 import { useLifeStory } from '@/lib/use-life-story';
 import { usePrompts } from '@/lib/use-prompts';
 import { WorkerApiError, generateLifeStory } from '@/lib/worker-api';
 
-const GENERATE_ERROR_MESSAGE = 'つくれませんでした。もういちどためしてください。';
+const GENERATE_ERROR_MESSAGE = 'つくれませんでした。電波のよいところで、もういちどためしてください。';
 
 function formatJaDate(iso: string): string {
   const date = new Date(iso);
@@ -57,6 +59,7 @@ export default function StoryScreen() {
   const navigation = useNavigation();
   const reduceMotion = useReducedMotion();
   const { subject } = useAuth();
+  const isOnline = useIsOnline();
   const {
     items,
     freeAnswer,
@@ -293,7 +296,7 @@ export default function StoryScreen() {
                 icon={Check}
                 label={busy ? 'ほぞんしています…' : 'ほぞんする'}
                 onPress={() => void handleSaveEdit()}
-                disabled={busy || trimmedDraft === ''}
+                disabled={busy || trimmedDraft === '' || !isOnline}
               />
               <SecondaryButton label="やめる" onPress={handleCancelEdit} disabled={busy} />
             </View>
@@ -302,6 +305,8 @@ export default function StoryScreen() {
           <ScrollView contentContainerStyle={styles.content}>
             <BackButton />
             <AppText variant="screenTitle">じぶん史</AppText>
+
+            {!isOnline ? <OfflineNote detail="じぶん史づくりは つながってから できます。" /> : null}
 
             {loading ? <ActivityIndicator color={colors.curtainRed} size="large" /> : null}
 
@@ -359,7 +364,7 @@ export default function StoryScreen() {
                       icon={Pencil}
                       label="書きなおす"
                       onPress={startEdit}
-                      disabled={generating}
+                      disabled={generating || !isOnline}
                     />
                     {/* 残り回数はボタン自体に出す（実機フィードバック反映）。
                         worker が生成応答で返す値なので、この画面で一度つくる（または
@@ -372,7 +377,7 @@ export default function StoryScreen() {
                           : 'もういちどつくる'
                       }
                       onPress={handleRegenerate}
-                      disabled={generating || usableAnswers.length === 0 || remaining === 0}
+                      disabled={generating || usableAnswers.length === 0 || remaining === 0 || !isOnline}
                     />
                     {remaining === 0 ? (
                       <AppText variant="caption" style={styles.dateCaption}>
@@ -410,7 +415,7 @@ export default function StoryScreen() {
                     icon={ScrollText}
                     label="じぶん史をつくる"
                     onPress={() => void handleGenerate()}
-                    disabled={generating || remaining === 0}
+                    disabled={generating || remaining === 0 || !isOnline}
                   />
                 </AppCard>
               )

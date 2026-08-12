@@ -20,6 +20,7 @@ import { SkyBackground } from '@/components/sky-background';
 import { colors, fonts, fontSizes, spacing } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
 import { createInviteCode } from '@/lib/invite';
+import { useIsOnline } from '@/lib/use-online';
 import { useShareData } from '@/lib/use-share-data';
 import { buildViewUrl, createViewLink, deactivateViewLink } from '@/lib/view-link';
 
@@ -33,6 +34,7 @@ export default function ShareScreen() {
   const { invite, viewLink, family, reactions, loading, error, refetch } = useShareData();
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const isOnline = useIsOnline();
   const [linkBusy, setLinkBusy] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
 
@@ -163,7 +165,7 @@ export default function ShareScreen() {
                   <PrimaryButton
                     label={creating ? 'つくっています…' : '招待コードをつくる'}
                     onPress={() => void handleCreateCode()}
-                    disabled={creating}
+                    disabled={creating || !isOnline}
                   />
                 </>
               )}
@@ -190,7 +192,7 @@ export default function ShareScreen() {
                     icon={StopCircle}
                     label={linkBusy ? '止めています…' : 'リンクを止める'}
                     onPress={handleStopLink}
-                    disabled={linkBusy}
+                    disabled={linkBusy || !isOnline}
                   />
                 </>
               ) : (
@@ -206,7 +208,7 @@ export default function ShareScreen() {
                     icon={Link2}
                     label={linkBusy ? 'つくっています…' : '見せる用リンクをつくる'}
                     onPress={() => void handleCreateLink()}
-                    disabled={linkBusy}
+                    disabled={linkBusy || !isOnline}
                   />
                 </>
               )}

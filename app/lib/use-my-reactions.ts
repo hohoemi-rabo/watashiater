@@ -15,7 +15,8 @@ export type ReactionTargetType = 'photo' | 'life_story';
 const reactionKey = (targetType: ReactionTargetType, targetId: string) =>
   `${targetType}:${targetId}`;
 
-const SEND_ERROR_MESSAGE = 'みたよ を おくれませんでした。もういちど ためしてください。';
+const SEND_ERROR_MESSAGE =
+  'みたよ を おくれませんでした。電波のよいところで、もういちど ためしてください。';
 const LOAD_ERROR_MESSAGE =
   'よみこめませんでした。電波のよいところで、もういちどためしてください。';
 

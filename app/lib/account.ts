@@ -8,6 +8,7 @@
  * 1 と 2 の間で失敗しても、行が残っているので再実行でつづきから消せる
  * （空 prefix への wipe は冪等）。
  */
+import { clearOfflineCache } from '@/lib/offline-cache';
 import { supabase } from '@/lib/supabase';
 import { WorkerApiError, wipeMedia } from '@/lib/worker-api';
 
@@ -48,5 +49,7 @@ export async function deleteAccount(hasSubject: boolean): Promise<AccountResult>
     // R2 は消えたが行は残っている状態。再実行で wipe（0件）→ RPC のつづきから消せる
     return { ok: false, message: hasSubject ? DELETE_RETRY_MESSAGE : DELETE_ERROR_MESSAGE };
   }
+  // 端末に残した写し（オフライン閲覧用）も消す（チケット19）
+  await clearOfflineCache();
   return { ok: true };
 }

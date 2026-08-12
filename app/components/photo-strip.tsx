@@ -29,6 +29,8 @@ type PhotoStripProps = {
   onRetryUpload: () => void;
   onAdd: () => void;
   onDelete: (photo: Photo) => void;
+  /** オフライン（チケット19）。のせる・けすはオンライン前提なので隠して案内に替える */
+  offline?: boolean;
 };
 
 export function PhotoStrip({
@@ -42,6 +44,7 @@ export function PhotoStrip({
   onRetryUpload,
   onAdd,
   onDelete,
+  offline,
 }: PhotoStripProps) {
   const uploading = uploadState !== null;
 
@@ -63,7 +66,7 @@ export function PhotoStrip({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="この写真をけす"
-            disabled={uploading}
+            disabled={uploading || offline}
             hitSlop={8}
             onPress={() => onDelete(photo)}
             style={({ pressed }) => [styles.deleteButton, pressed && styles.deletePressed]}>
@@ -77,7 +80,12 @@ export function PhotoStrip({
 
       {loading ? <ActivityIndicator color={colors.stageNavy} /> : null}
 
-      {loadError ? (
+      {loadError && offline ? (
+        // オフラインは「失敗」ではないので赤くしない（チケット19。DESIGN §3）
+        <View style={styles.centerBlock}>
+          <AppText variant="caption">写真は つながると 見られます。</AppText>
+        </View>
+      ) : loadError ? (
         <View style={styles.centerBlock}>
           <AppText variant="caption" style={styles.errorText}>
             {loadError}
@@ -115,7 +123,11 @@ export function PhotoStrip({
         </View>
       ) : null}
 
-      {!uploading && !uploadError && !loadError && photos.length < PHOTO_MAX_PER_ANSWER ? (
+      {offline ? (
+        <AppText variant="caption" style={styles.limitText}>
+          写真を のせるには インターネットが ひつようです。
+        </AppText>
+      ) : !uploading && !uploadError && !loadError && photos.length < PHOTO_MAX_PER_ANSWER ? (
         <SecondaryButton icon={ImagePlus} label="写真をのせる" onPress={onAdd} disabled={loading} />
       ) : null}
       {photos.length >= PHOTO_MAX_PER_ANSWER ? (

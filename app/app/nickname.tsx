@@ -15,10 +15,12 @@ import { SkyBackground } from '@/components/sky-background';
 import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, spacing } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
+import { useIsOnline } from '@/lib/use-online';
 
 export default function NicknameScreen() {
   const { session, refreshSubject } = useAuth();
   const router = useRouter();
+  const isOnline = useIsOnline();
   const [nickname, setNickname] = useState('');
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -74,7 +76,7 @@ export default function NicknameScreen() {
             icon={Check}
             label={busy ? 'ほぞんしています…' : 'これで けってい'}
             onPress={() => void handleSave()}
-            disabled={busy || trimmed.length === 0}
+            disabled={busy || trimmed.length === 0 || !isOnline}
           />
           {errorMessage ? (
             <AppText style={styles.error}>{errorMessage}</AppText>

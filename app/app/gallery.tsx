@@ -31,6 +31,7 @@ import { BackButton } from '@/components/back-button';
 import { POLAROID_EXTRA_HEIGHT } from '@/components/board-polaroid';
 import { DeskBoard, DeskGrain } from '@/components/desk-board';
 import { DraggablePolaroid } from '@/components/draggable-polaroid';
+import { OfflineNote } from '@/components/offline-note';
 import { PhotoLightbox } from '@/components/photo-lightbox';
 import { SecondaryButton } from '@/components/secondary-button';
 import { BOARD, resolveBoardPlacements, type BoardPlacement } from '@/lib/board-layout';
@@ -38,12 +39,14 @@ import { colors, spacing } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
 import { resetBoardPlacements, saveBoardPlacement } from '@/lib/board-save';
 import { useBoardPhotos } from '@/lib/use-board-photos';
+import { useIsOnline } from '@/lib/use-online';
 
 export default function GalleryScreen() {
   const { width: boardWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { subject } = useAuth();
   const { items, loading, error, refetch } = useBoardPhotos();
+  const isOnline = useIsOnline();
 
   const [mode, setMode] = useState<'view' | 'rearrange'>('view');
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -199,6 +202,8 @@ export default function GalleryScreen() {
             机の上
           </AppText>
 
+          {!isOnline ? <OfflineNote detail="ならべかえは つながってから できます。" /> : null}
+
           {loading ? <ActivityIndicator color={colors.cardWhite} size="large" /> : null}
 
           {!loading && error ? (
@@ -233,14 +238,20 @@ export default function GalleryScreen() {
                   icon={Undo2}
                   label="もとにもどす"
                   onPress={handleReset}
-                  disabled={pendingSaves > 0 || draggingId !== null}
+                  disabled={pendingSaves > 0 || draggingId !== null || !isOnline}
                 />
                 <AppText variant="caption" style={styles.hint}>
                   写真を長押しすると、動かせます
                 </AppText>
               </View>
             ) : (
-              <SecondaryButton icon={Hand} label="ならべかえ" onPress={() => setMode('rearrange')} />
+              // ならべかえは配置をその都度サーバーに保存するのでオフラインでは入れない
+              <SecondaryButton
+                icon={Hand}
+                label="ならべかえ"
+                onPress={() => setMode('rearrange')}
+                disabled={!isOnline}
+              />
             )
           ) : null}
 
@@ -289,6 +300,7 @@ export default function GalleryScreen() {
           caption={lightboxItem.caption}
           hasRecording={lightboxItem.hasRecording}
           recordingUrl={lightboxItem.recordingUrl}
+          offline={!isOnline}
           uri={lightboxItem.viewUrl}
           onClose={() => setLightboxId(null)}
           onRetry={() => void refetch()}

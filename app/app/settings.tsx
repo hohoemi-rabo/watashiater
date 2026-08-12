@@ -18,10 +18,12 @@ import { SkyBackground } from '@/components/sky-background';
 import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, spacing } from '@/constants/tokens';
 import { deleteAccount, updateNickname } from '@/lib/account';
 import { useAuth } from '@/lib/auth-context';
+import { useIsOnline } from '@/lib/use-online';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { subject, signOut, refreshSubject } = useAuth();
+  const isOnline = useIsOnline();
 
   const [nickname, setNickname] = useState(subject?.nickname ?? '');
   const [nicknameBusy, setNicknameBusy] = useState(false);
@@ -124,9 +126,12 @@ export default function SettingsScreen() {
             icon={Check}
             label={nicknameBusy ? 'ほぞんしています…' : '保存する'}
             onPress={() => void handleSaveNickname()}
-            disabled={nicknameBusy || trimmed.length === 0 || unchanged}
+            disabled={nicknameBusy || trimmed.length === 0 || unchanged || !isOnline}
           />
           {nicknameSaved ? <AppText variant="caption">ほぞんしました</AppText> : null}
+          {!isOnline ? (
+            <AppText variant="caption">なまえの変更は つながってから できます。</AppText>
+          ) : null}
           {nicknameError ? <AppText style={styles.error}>{nicknameError}</AppText> : null}
         </AppCard>
         <SecondaryButton
@@ -140,13 +145,20 @@ export default function SettingsScreen() {
           label="かぞくの博物館"
           onPress={() => router.push('/family')}
         />
-        <SecondaryButton icon={LogOut} label="ログアウト" onPress={confirmSignOut} />
+        {/* オフラインでログアウトすると再ログインできず、キャッシュした博物館への
+            入口を自分で閉じてしまう（チケット19） */}
+        <SecondaryButton
+          icon={LogOut}
+          label="ログアウト"
+          onPress={confirmSignOut}
+          disabled={!isOnline}
+        />
         <SecondaryButton
           destructive
           icon={Trash2}
           label={deleting ? '削除しています…' : 'アカウントを削除する'}
           onPress={confirmDelete}
-          disabled={deleting}
+          disabled={deleting || !isOnline}
         />
       </View>
     </SkyBackground>

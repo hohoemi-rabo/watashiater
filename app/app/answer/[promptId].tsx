@@ -40,6 +40,7 @@ import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
 import { BackButton } from '@/components/back-button';
+import { OfflineNote } from '@/components/offline-note';
 import { PhotoStrip } from '@/components/photo-strip';
 import { PrimaryButton } from '@/components/primary-button';
 import { RecordingBox, type RecordingBoxPhase } from '@/components/recording-box';
@@ -54,6 +55,7 @@ import {
 } from '@/lib/photo-attach';
 import { deleteRecording } from '@/lib/recording-attach';
 import { supabase } from '@/lib/supabase';
+import { useIsOnline } from '@/lib/use-online';
 import { usePhotos, type Photo } from '@/lib/use-photos';
 import { useRecording, type Recording } from '@/lib/use-recording';
 import { usePrompts } from '@/lib/use-prompts';
@@ -189,6 +191,7 @@ export default function AnswerScreen() {
     ]);
   });
 
+  const isOnline = useIsOnline();
   const trimmedBody = bodyText.trim();
   const trimmedTitle = customTitle.trim();
   // 新規で本文が空なら保存するものが無い。自由お題の新規はタイトルも必要
@@ -546,6 +549,8 @@ export default function AnswerScreen() {
               {isFree && trimmedTitle ? trimmedTitle : title}
             </AppText>
 
+            {!isOnline ? <OfflineNote detail="ほぞんは つながってから できます。" /> : null}
+
             {/* テキスト⇄音声の大きな2ボタン（DESIGN §7）。録音の進行中は切り替えない
                 （未保存のテイクが RecordingBox のアンマウントで消えるのを防ぐ） */}
             <View style={styles.modeRow}>
@@ -644,6 +649,7 @@ export default function AnswerScreen() {
                 onSaved={handleRecordingSaved}
                 onDeleteRequest={handleDeleteRecording}
                 onPhaseChange={setRecPhase}
+                offline={!isOnline}
               />
             )}
 
@@ -659,6 +665,7 @@ export default function AnswerScreen() {
               onRetryUpload={() => void handleRetryUpload()}
               onAdd={() => void handleAddPhotos()}
               onDelete={handleDeletePhoto}
+              offline={!isOnline}
             />
           </>
         )}
@@ -673,7 +680,7 @@ export default function AnswerScreen() {
               icon={Check}
               label={busy ? 'ほぞんしています…' : 'ほぞんする'}
               onPress={() => void handleSave()}
-              disabled={!canSave}
+              disabled={!canSave || !isOnline}
             />
           </View>
         ) : null}

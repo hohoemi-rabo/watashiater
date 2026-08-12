@@ -9,12 +9,14 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
+import { OfflineNote } from '@/components/offline-note';
 import { PrimaryButton } from '@/components/primary-button';
 import { ProgressDots } from '@/components/progress-dots';
 import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { colors, radii, shadows, spacing } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
+import { useIsOnline } from '@/lib/use-online';
 import { usePrompts } from '@/lib/use-prompts';
 
 const PROMPT_TOTAL = 10;
@@ -23,6 +25,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { subject, memberships } = useAuth();
   const { answeredCount, loading, error } = usePrompts();
+  const isOnline = useIsOnline();
 
   return (
     <SkyBackground>
@@ -30,6 +33,8 @@ export default function HomeScreen() {
         <AppText variant="screenTitle" style={styles.logo}>
           ワタシアター
         </AppText>
+
+        {!isOnline ? <OfflineNote /> : null}
 
         <AppCard shadow="raised" style={styles.progressCard}>
           <AppText variant="cardTitle">

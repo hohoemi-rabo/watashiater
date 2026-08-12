@@ -93,6 +93,8 @@ type RecordingBoxProps = {
   onDeleteRequest: (recording: Recording) => void;
   /** 親の離脱ガード・保存/モード切替の無効化に使う */
   onPhaseChange: (phase: RecordingBoxPhase) => void;
+  /** オフライン（チケット19）。録音の保存も再生もオンライン前提なので案内に替える */
+  offline?: boolean;
 };
 
 function formatDuration(seconds: number) {
@@ -119,6 +121,7 @@ export function RecordingBox({
   onSaved,
   onDeleteRequest,
   onPhaseChange,
+  offline,
 }: RecordingBoxProps) {
   const [phase, setPhase] = useState<RecordingBoxPhase>('checking');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -371,7 +374,10 @@ export function RecordingBox({
     <AppCard style={styles.card}>
       {loading ? <ActivityIndicator color={colors.stageNavy} /> : null}
 
-      {!loading && loadError ? (
+      {!loading && loadError && offline ? (
+        // オフラインは「失敗」ではないので赤くしない（チケット19。DESIGN §3）
+        <AppText variant="caption">声は つながると 聞けます。</AppText>
+      ) : !loading && loadError ? (
         <>
           <AppText variant="caption" style={styles.errorText}>
             {loadError}
@@ -397,11 +403,23 @@ export function RecordingBox({
           {phase === 'idle' && !recording ? (
             <>
               <AppText variant="cardTitle">声で おはなしを どうぞ</AppText>
-              <AppText variant="caption">{SAVE_NOTICE}</AppText>
-              <SecondaryButton icon={Mic} label="録音をはじめる" onPress={() => void startRecording()} />
-              <AppText variant="caption" style={styles.centerText}>
-                録音は いちばん長くて 3分です
-              </AppText>
+              {offline ? (
+                <AppText variant="caption">
+                  声を のこすには インターネットが ひつようです。
+                </AppText>
+              ) : (
+                <>
+                  <AppText variant="caption">{SAVE_NOTICE}</AppText>
+                  <SecondaryButton
+                    icon={Mic}
+                    label="録音をはじめる"
+                    onPress={() => void startRecording()}
+                  />
+                  <AppText variant="caption" style={styles.centerText}>
+                    録音は いちばん長くて 3分です
+                  </AppText>
+                </>
+              )}
             </>
           ) : null}
 
@@ -417,10 +435,16 @@ export function RecordingBox({
               <AppText variant="caption" style={styles.centerText}>
                 長さ {formatDuration(recording.duration_sec)}
               </AppText>
-              <SecondaryButton icon={RotateCcw} label="とりなおす" onPress={() => void startRecording()} />
+              <SecondaryButton
+                icon={RotateCcw}
+                label="とりなおす"
+                onPress={() => void startRecording()}
+                disabled={offline}
+              />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="この声をけす"
+                disabled={offline}
                 hitSlop={8}
                 onPress={() => onDeleteRequest(recording)}
                 style={({ pressed }) => [styles.deleteButton, pressed && styles.deletePressed]}>
