@@ -38,14 +38,15 @@ const styles = StyleSheet.create({
     overflow: 'visible',
     padding: spacing.xl,
   },
+  // ハイライトは角丸の「直線部分」にだけ引く。高さ1px の View に borderRadius を
+  // 指定しても半径は高さ側にクランプされて効かず、左右いっぱいに引くと角丸の外側へ
+  // 直線がはみ出して、空色の背景に白い線として見えてしまう（実機で確認）
   topHighlight: {
     backgroundColor: colors.cardWhite,
-    borderTopLeftRadius: radii.card,
-    borderTopRightRadius: radii.card,
     height: 1,
-    left: 0,
+    left: radii.card,
     position: 'absolute',
-    right: 0,
+    right: radii.card,
     top: 0,
   },
 });
