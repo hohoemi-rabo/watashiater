@@ -6,12 +6,27 @@
  *   無音を作らない。worker は同一 subject なら写真＋録音の混在キーを受け付ける）
  * - 署名URLは有効期限つきなのでキャッシュせず、フォーカスのたびに取り直す
  * - どの段の失敗も単一のエラー state（部分描画しない。use-photos と同じ方針）
+ *
+ * オフライン対応（チケット19。骨格の判断コメントは use-life-story.ts）：
+ * - 【「署名URLはキャッシュしない」原則の唯一の例外】オフライン閲覧用の端末キャッシュ
+ *   にだけは、最後に取れた**写真の**閲覧URLを入れる。expo-image のディスクキャッシュは
+ *   cacheKey（r2_key）で引くので、URL が期限切れでも絵がディスクにあれば通信せずに描ける。
+ *   逆に uri を undefined にすると expo-image は何も探しに行かず、机の上が空になる。
+ *   保存先はアプリ専用領域で、期限切れURLは誰の役にも立たない（1時間で失効し、再発行は
+ *   必ず worker の JWT 検証を通る）ため、持ち出されても新しい権限を与えない。
+ *   フォーカスのたびに取り直す原則（オンライン時）は変えない
+ * - **録音の署名URLは入れない**：声はオンライン前提（チケット19のスコープ外）で、
+ *   録音の実体を端末に残さない方針（docs/00・10）も変えない
+ * - 配置（board_x/y/rotation/z）は photos 行の列なので別途キャッシュ不要。
+ *   board_seed は auth スナップショット（lib/auth-context.tsx）から来る
  */
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
 import { useAuth } from '@/lib/auth-context';
+import { cacheKeys, readCache, writeCache } from '@/lib/offline-cache';
 import { supabase } from '@/lib/supabase';
+import { useIsOnline } from '@/lib/use-online';
 import { getViewUrls } from '@/lib/worker-api';
 import type { Tables } from '@/types/database.types';
 
@@ -32,6 +47,10 @@ type BoardPhotosState = {
   error: string | null;
 };
 
+/** 端末に残すのは写真ぶんだけ（声はオンライン前提なので recordingUrl を持たない） */
+type CachedBoardItem = Omit<BoardItem, 'recordingUrl'>;
+type CachedBoard = { items: CachedBoardItem[] };
+
 const LOAD_ERROR_MESSAGE =
   '写真をよみこめませんでした。電波のよいところで、もういちどためしてください。';
 
@@ -41,7 +60,10 @@ const LOAD_ERROR_MESSAGE =
  */
 export function useBoardPhotos(targetSubjectId?: string) {
   const { subject } = useAuth();
+  const isOnline = useIsOnline();
   const subjectId = targetSubjectId ?? subject?.id ?? null;
+  // 家族の博物館は端末に残さない（lib/offline-cache.ts の判断）
+  const cacheKey = targetSubjectId === undefined && subjectId ? cacheKeys.board(subjectId) : null;
   const [state, setState] = useState<BoardPhotosState>({
     items: [],
     loading: subjectId !== null,
@@ -49,6 +71,8 @@ export function useBoardPhotos(targetSubjectId?: string) {
   });
   // 2回目以降のフォーカス時はローディング表示を出さない（ちらつき防止。use-prompts と同じ）
   const hasLoadedRef = useRef(false);
+  const hasFreshRef = useRef(false);
+  const hydratedRef = useRef(false);
 
   const refetch = useCallback(async () => {
     if (!subjectId) {
@@ -58,7 +82,52 @@ export function useBoardPhotos(targetSubjectId?: string) {
     if (!hasLoadedRef.current) {
       setState((prev) => ({ ...prev, loading: true }));
     }
-    const fail = () => setState((prev) => ({ ...prev, loading: false, error: LOAD_ERROR_MESSAGE }));
+    // 見せるものが端末にあるならエラーにしない（画面を白くしない＝チケット19の契約）
+    const fail = () =>
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error: hasLoadedRef.current ? null : LOAD_ERROR_MESSAGE,
+      }));
+
+    const saveCache = (items: BoardItem[]) => {
+      if (!cacheKey) {
+        return;
+      }
+      const cachedItems: CachedBoardItem[] = items.map(
+        ({ photo, caption, bodyText, hasRecording, viewUrl }) => ({
+          photo,
+          caption,
+          bodyText,
+          hasRecording,
+          viewUrl,
+        }),
+      );
+      void writeCache(cacheKey, { items: cachedItems } satisfies CachedBoard);
+    };
+
+    if (cacheKey && !hydratedRef.current) {
+      hydratedRef.current = true;
+      const cached = await readCache<CachedBoard>(cacheKey);
+      if (cached && !hasFreshRef.current) {
+        hasLoadedRef.current = true;
+        setState({
+          // 声はオンラインでのみ聞ける（キャッシュに録音URLは無い）
+          items: cached.items.map((item) => ({ ...item, recordingUrl: undefined })),
+          loading: false,
+          error: null,
+        });
+      }
+    }
+
+    if (!isOnline) {
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error: hasLoadedRef.current ? null : LOAD_ERROR_MESSAGE,
+      }));
+      return;
+    }
 
     const [answersResult, promptsResult] = await Promise.all([
       supabase.from('answers').select('*').eq('subject_id', subjectId),
@@ -72,7 +141,10 @@ export function useBoardPhotos(targetSubjectId?: string) {
     const answerIds = answers.map((answer) => answer.id);
     if (answerIds.length === 0) {
       hasLoadedRef.current = true;
+      hasFreshRef.current = true;
       setState({ items: [], loading: false, error: null });
+      // 「写真が1枚も無い」も最新の事実なので残す（古いキャッシュを見せ続けない）
+      saveCache([]);
       return;
     }
 
@@ -129,8 +201,10 @@ export function useBoardPhotos(targetSubjectId?: string) {
     });
 
     hasLoadedRef.current = true;
+    hasFreshRef.current = true;
     setState({ items, loading: false, error: null });
-  }, [subjectId]);
+    saveCache(items);
+  }, [subjectId, cacheKey, isOnline]);
 
   useFocusEffect(
     useCallback(() => {
