@@ -164,6 +164,10 @@ export default function StoryScreen() {
       generated = await generateLifeStory(usableAnswers);
     } catch (error) {
       failureMessage = error instanceof WorkerApiError ? error.message : GENERATE_ERROR_MESSAGE;
+      // レート制限で断られた＝今日の残りは0。ボタンの回数表示にも反映する
+      if (error instanceof WorkerApiError && error.code === 'rate_limited') {
+        setRemaining(0);
+      }
     }
 
     if (generated) {
@@ -348,13 +352,6 @@ export default function StoryScreen() {
                     {story.edited_by_user ? '（じぶんで書きなおしました）' : ''}
                   </AppText>
                 ) : null}
-                {remaining !== null ? (
-                  <AppText variant="caption" style={styles.dateCaption}>
-                    {remaining > 0
-                      ? `今日はあと${remaining}回つくれます`
-                      : '今日つくれる回数はこれでおしまいです。また明日つくれます'}
-                  </AppText>
-                ) : null}
                 <AppText variant="story">{bodyToShow}</AppText>
                 {unsavedBody === null && story ? (
                   <View style={styles.actions}>
@@ -364,12 +361,24 @@ export default function StoryScreen() {
                       onPress={startEdit}
                       disabled={generating}
                     />
+                    {/* 残り回数はボタン自体に出す（実機フィードバック反映）。
+                        worker が生成応答で返す値なので、この画面で一度つくる（または
+                        レート制限に当たる）までは分からず、その間は素のラベルにする */}
                     <SecondaryButton
                       icon={RotateCcw}
-                      label="もういちどつくる"
+                      label={
+                        remaining !== null
+                          ? `もういちどつくる（あと${remaining}回）`
+                          : 'もういちどつくる'
+                      }
                       onPress={handleRegenerate}
-                      disabled={generating || usableAnswers.length === 0}
+                      disabled={generating || usableAnswers.length === 0 || remaining === 0}
                     />
+                    {remaining === 0 ? (
+                      <AppText variant="caption" style={styles.dateCaption}>
+                        今日つくれる回数はこれでおしまいです。また明日つくれます
+                      </AppText>
+                    ) : null}
                     {usableAnswers.length === 0 && !promptsLoading ? (
                       <AppText variant="caption" style={styles.dateCaption}>
                         {promptsError
@@ -401,7 +410,7 @@ export default function StoryScreen() {
                     icon={ScrollText}
                     label="じぶん史をつくる"
                     onPress={() => void handleGenerate()}
-                    disabled={generating}
+                    disabled={generating || remaining === 0}
                   />
                 </AppCard>
               )
