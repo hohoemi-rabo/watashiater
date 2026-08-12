@@ -1,6 +1,6 @@
 # 18. せってい（ニックネーム・アカウント削除）
 
-- ステータス: 進行中（実装済み・実機確認待ち）
+- ステータス: 完了
 - 参照: REQUIREMENTS.md §3.1（ニックネーム変更） / §4.3（アカウント削除は MVP に含む） / §7-8
 - 依存: 04（完全削除の確認は 09・10 実装後）
 
@@ -38,4 +38,7 @@
 - worker：`npm test -- --run` 53件全通過（wipe.spec.ts 新規4件＋ルーティング1件含む）。本番デプロイ済み
 - app：tsc / lint / expo export クリーン
 - MCP：apply_migration・advisors（definer WARN は redeem と同様に意図どおり）・types 再生成済み
-- 実機：未実施。**家族テスト用 Google アカウントで行う**（メインの実データは消さない）。手順は plans 参照（テスト用博物館作成 → 写真＋録音 → r2_key を控える → アプリから削除 → execute_sql で全テーブル 0 件・`wrangler r2 object get` で not found・オンボーディングへ戻る）
+- 実機（2026-08-12・家族テスト用アカウントで実施・ユーザー確認済み）：ニックネーム変更の保存・反映 OK。家族専用アカウントの削除（/family ハブから・二重確認 → オンボーディングへ）OK
+- 削除後の DB 検証（execute_sql）：auth.users は本人1件のみ（テストアカウント消滅）・family_members / reactions 0件（カスケード）・本人の博物館は無傷（answers 7 / photos 6 / recordings 3 / life_story 1）。**消費済み招待コードは used_by が set null で戻ったが expires_at 失効済み＝再利用不可（復活バグ修正の本番確認）**
+- R2：本人メディアのスポットチェック無傷（`wrangler r2 object get --remote` 取得成功）。テストアカウントは家族専用で R2 を持たないため wipe 経路の網羅性は vitest（実 miniflare R2・prefix 空検証）が担保
+- 削除方針の確認（ユーザーと合意）：**即時・完全削除・復活不可**（猶予付きソフトデリートは採らない。誤操作対策は二重確認）。インフラ層のバックアップ保持だけは各社ポリシーに従い日数で消える旨を説明済み
