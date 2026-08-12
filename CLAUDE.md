@@ -129,7 +129,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 
 | 場所 | 変数 |
 |---|---|
-| app (.env) | `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` / `EXPO_PUBLIC_WORKER_URL` |
+| app (.env) | `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` / `EXPO_PUBLIC_WORKER_URL` / `EXPO_PUBLIC_WEB_URL`（閲覧Webのベース。暫定値＝チケット20のデプロイで確定） |
 | web (.env.local) | `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`（サーバー側のみ） / `WORKER_URL` |
 | worker | シークレットは `GEMINI_API_KEY` / `SUPABASE_SECRET_KEY` / `SIGNING_SECRET`（ローカルは `.dev.vars`＝`.dev.vars.example` をコピー、本番は `wrangler secret put`）。`SUPABASE_URL` は秘密ではないので `wrangler.jsonc` の `vars`。JWT シークレットは無い（公開 JWKS・ES256 で検証。docs/07） |
 

@@ -1,6 +1,7 @@
 /**
  * 招待コードの発行・取得（チケット16。書き手側）。REQUIREMENTS §3.5(a)。
- * - 6桁英数。紛らわしい 0/O/1/I/L を除いた32文字（256 % 32 === 0 なので剰余の偏りなし）
+ * - 6桁英数。紛らわしい 0/O/1/I を除いた32文字（256 % 32 === 0 なので剰余の偏りなし。
+ *   大文字の L は 1 と紛れないため残す。チケット17で31文字だった誤りを修正）
  * - 有効期限は DB のカラムデフォルト（7日間・サーバー時刻）に任せ、insert 後に読み戻す
  * - RLS（invite_codes_owner_all）により本人しか発行・参照できない
  */
@@ -11,7 +12,7 @@ import type { Tables } from '@/types/database.types';
 
 export type InviteCode = Tables<'invite_codes'>;
 
-const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 6;
 const CREATE_ERROR_MESSAGE =
   '招待コードをつくれませんでした。電波のよいところで、もういちどためしてください。';

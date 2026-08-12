@@ -1,13 +1,15 @@
 /**
- * みんなに見せる（チケット16：招待コード・かぞく一覧・みたよ一覧。REQUIREMENTS §7-7）。
- * 閲覧URLの発行・無効化はチケット17で実装する。
- * - 招待コードの発行がこの画面で最も重要なアクション＝唯一の curtainRed（DESIGN §3）
+ * みんなに見せる（チケット16：招待コード・かぞく一覧・みたよ一覧／チケット17：閲覧専用URL。
+ * REQUIREMENTS §7-7）。
+ * - 招待コードの発行がこの画面で最も重要なアクション＝唯一の curtainRed（DESIGN §3）。
+ *   リンク系のボタンはすべて Secondary
  * - コードは大きく・字間を空けて表示（電話で読み上げる・書き写す場面を想定）
  * - みたよ一覧はアプリ内のみ・最新30件（通知は出さない。REQUIREMENTS §3.5(a)）
+ * - リンクの再発行は「止める → つくり直す」の2段階（無効化は確認ダイアログ必須。§3.5(b)）
  */
-import { Share2 } from 'lucide-react-native';
+import { Link2, Share2, StopCircle } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
@@ -19,6 +21,7 @@ import { colors, fonts, fontSizes, spacing } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
 import { createInviteCode } from '@/lib/invite';
 import { useShareData } from '@/lib/use-share-data';
+import { buildViewUrl, createViewLink, deactivateViewLink } from '@/lib/view-link';
 
 function formatJaDate(iso: string): string {
   const date = new Date(iso);
@@ -27,9 +30,11 @@ function formatJaDate(iso: string): string {
 
 export default function ShareScreen() {
   const { subject } = useAuth();
-  const { invite, family, reactions, loading, error, refetch } = useShareData();
+  const { invite, viewLink, family, reactions, loading, error, refetch } = useShareData();
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   const handleCreateCode = async () => {
     if (!subject) {
@@ -60,6 +65,62 @@ export default function ShareScreen() {
     } catch {
       // ユーザーが共有をやめた等。エラー表示は不要
     }
+  };
+
+  const handleCreateLink = async () => {
+    if (!subject) {
+      return;
+    }
+    setLinkBusy(true);
+    setLinkError(null);
+    const result = await createViewLink(subject.id);
+    setLinkBusy(false);
+    if (!result.ok) {
+      setLinkError(result.message);
+      return;
+    }
+    await refetch();
+  };
+
+  const handleShareLink = async () => {
+    if (!viewLink) {
+      return;
+    }
+    try {
+      await Share.share({
+        message:
+          `${subject?.nickname ?? 'わたし'}の博物館「ワタシアター」です。ぜひ 見てください。\n` +
+          buildViewUrl(viewLink.slug),
+      });
+    } catch {
+      // ユーザーが共有をやめた等。エラー表示は不要
+    }
+  };
+
+  const handleStopLink = () => {
+    if (!viewLink) {
+      return;
+    }
+    Alert.alert('リンクを止めますか？', 'このリンクでは 見られなくなります。もういちど つくると、あたらしいリンクに なります。', [
+      { text: 'やめる', style: 'cancel' },
+      {
+        text: '止める',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            setLinkBusy(true);
+            setLinkError(null);
+            const result = await deactivateViewLink(viewLink.id);
+            setLinkBusy(false);
+            if (!result.ok) {
+              setLinkError(result.message ?? null);
+              return;
+            }
+            await refetch();
+          })();
+        },
+      },
+    ]);
   };
 
   return (
@@ -111,7 +172,45 @@ export default function ShareScreen() {
 
             <AppCard style={styles.card}>
               <AppText variant="cardTitle">見せる用リンクをつくる</AppText>
-              <AppText variant="caption">（閲覧URLはチケット17で実装）</AppText>
+              {viewLink ? (
+                <>
+                  <AppText>このリンクを おくると、とうろくなしで ブラウザから 見られます。</AppText>
+                  <AppText selectable style={styles.linkUrl}>
+                    {buildViewUrl(viewLink.slug)}
+                  </AppText>
+                  <AppText variant="caption">
+                    このリンクを知っている人は だれでも 見られます。
+                  </AppText>
+                  <SecondaryButton
+                    icon={Share2}
+                    label="LINEなどで おくる"
+                    onPress={() => void handleShareLink()}
+                  />
+                  <SecondaryButton
+                    icon={StopCircle}
+                    label={linkBusy ? '止めています…' : 'リンクを止める'}
+                    onPress={handleStopLink}
+                    disabled={linkBusy}
+                  />
+                </>
+              ) : (
+                <>
+                  <AppText>
+                    リンクを おくると、とうろくなしで ブラウザから 見てもらえます（LINEで
+                    おまごさんに おくる、など）。
+                  </AppText>
+                  <AppText variant="caption">
+                    このリンクを知っている人は だれでも 見られます。
+                  </AppText>
+                  <SecondaryButton
+                    icon={Link2}
+                    label={linkBusy ? 'つくっています…' : '見せる用リンクをつくる'}
+                    onPress={() => void handleCreateLink()}
+                    disabled={linkBusy}
+                  />
+                </>
+              )}
+              {linkError ? <AppText style={styles.errorText}>{linkError}</AppText> : null}
             </AppCard>
 
             <AppCard style={styles.card}>
@@ -175,6 +274,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.errorRed,
+  },
+  // URL は等幅でなくてよいが、1文字も欠けず選択・書き写しできるよう全文表示する
+  linkUrl: {
+    color: colors.stageNavy,
+    fontFamily: fonts.bodyMedium,
+    fontSize: fontSizes.body,
   },
   row: {
     gap: spacing.xs,

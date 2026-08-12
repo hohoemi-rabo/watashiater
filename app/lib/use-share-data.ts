@@ -1,6 +1,7 @@
 /**
- * みんなに見せる画面（書き手側）のデータ（チケット16）。
- * 有効な招待コード・家族一覧・みたよ一覧を、家風どおり並列フラットクエリ＋JS join で取る。
+ * みんなに見せる画面（書き手側）のデータ（チケット16・17）。
+ * 有効な招待コード・見せる用リンク・家族一覧・みたよ一覧を、家風どおり
+ * 並列フラットクエリ＋JS join で取る。
  * - みたよは最新30件（画面が際限なく伸びないように。REQUIREMENTS §7-7 はアプリ内一覧のみ）
  * - 写真が消えて対象を解決できない みたよ は行ごと出さない（「けされた写真」の文言を発明しない）
  * - どの段の失敗も単一のエラー state（use-board-photos と同じ方針）
@@ -11,6 +12,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { fetchActiveInviteCode, type InviteCode } from '@/lib/invite';
 import { supabase } from '@/lib/supabase';
+import { fetchActiveViewLink, type ViewLink } from '@/lib/view-link';
 
 export type FamilyRow = {
   id: string;
@@ -29,6 +31,7 @@ export type ReactionFeedRow = {
 
 type ShareDataState = {
   invite: InviteCode | null;
+  viewLink: ViewLink | null;
   family: FamilyRow[];
   reactions: ReactionFeedRow[];
   loading: boolean;
@@ -44,6 +47,7 @@ export function useShareData() {
   const subjectId = subject?.id ?? null;
   const [state, setState] = useState<ShareDataState>({
     invite: null,
+    viewLink: null,
     family: [],
     reactions: [],
     loading: subjectId !== null,
@@ -53,7 +57,14 @@ export function useShareData() {
 
   const refetch = useCallback(async () => {
     if (!subjectId) {
-      setState({ invite: null, family: [], reactions: [], loading: false, error: null });
+      setState({
+        invite: null,
+        viewLink: null,
+        family: [],
+        reactions: [],
+        loading: false,
+        error: null,
+      });
       return;
     }
     if (!hasLoadedRef.current) {
@@ -62,17 +73,25 @@ export function useShareData() {
     const fail = () => setState((prev) => ({ ...prev, loading: false, error: LOAD_ERROR_MESSAGE }));
 
     // お題タイトル解決は use-board-photos と同じ join（answers＋prompts を先に引いておく）
-    const [inviteResult, familyResult, answersResult, promptsResult] = await Promise.all([
-      fetchActiveInviteCode(subjectId),
-      supabase
-        .from('family_members')
-        .select('id, display_name, joined_at')
-        .eq('subject_id', subjectId)
-        .order('joined_at'),
-      supabase.from('answers').select('id, prompt_id, custom_title').eq('subject_id', subjectId),
-      supabase.from('prompts').select('id, title'),
-    ]);
-    if (!inviteResult.ok || familyResult.error || answersResult.error || promptsResult.error) {
+    const [inviteResult, viewLinkResult, familyResult, answersResult, promptsResult] =
+      await Promise.all([
+        fetchActiveInviteCode(subjectId),
+        fetchActiveViewLink(subjectId),
+        supabase
+          .from('family_members')
+          .select('id, display_name, joined_at')
+          .eq('subject_id', subjectId)
+          .order('joined_at'),
+        supabase.from('answers').select('id, prompt_id, custom_title').eq('subject_id', subjectId),
+        supabase.from('prompts').select('id, title'),
+      ]);
+    if (
+      !inviteResult.ok ||
+      !viewLinkResult.ok ||
+      familyResult.error ||
+      answersResult.error ||
+      promptsResult.error
+    ) {
       fail();
       return;
     }
@@ -144,7 +163,14 @@ export function useShareData() {
     }
 
     hasLoadedRef.current = true;
-    setState({ invite: inviteResult.invite, family, reactions, loading: false, error: null });
+    setState({
+      invite: inviteResult.invite,
+      viewLink: viewLinkResult.link,
+      family,
+      reactions,
+      loading: false,
+      error: null,
+    });
   }, [subjectId]);
 
   useFocusEffect(
