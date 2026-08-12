@@ -43,7 +43,7 @@ const lightTheme = {
 };
 
 function AuthGate({ children }: { children: ReactNode }) {
-  const { session, subject, loading, subjectError, refreshSubject } = useAuth();
+  const { session, subject, memberships, loading, subjectError, refreshSubject } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -57,10 +57,18 @@ function AuthGate({ children }: { children: ReactNode }) {
       }
       return;
     }
+    // subject が無くても居てよい画面（チケット16）：ニックネーム登録・招待コード入力・
+    // 家族の閲覧（/family 配下）・つかいかた。それ以外に居たら、家族登録があれば
+    // 家族ハブへ、無ければニックネーム登録へ誘導する
+    const familyAllowed =
+      pathname === '/nickname' ||
+      pathname === '/join' ||
+      pathname.startsWith('/family') ||
+      pathname === '/onboarding';
     // 取得失敗（subjectError）のときはリトライ画面を出すので誘導しない。
-    // 「subject なし」と確定した場合だけニックネーム登録へ
-    if (!subject && !subjectError && pathname !== '/nickname') {
-      router.replace('/nickname');
+    // 「subject なし」と確定した場合だけ誘導する
+    if (!subject && !subjectError && !familyAllowed) {
+      router.replace(memberships.length > 0 ? '/family' : '/nickname');
       return;
     }
     // 登録済みユーザーがニックネーム画面に居たらホームへ返す
@@ -68,7 +76,7 @@ function AuthGate({ children }: { children: ReactNode }) {
     if (subject && pathname === '/nickname') {
       router.replace('/');
     }
-  }, [loading, session, subject, subjectError, pathname, router]);
+  }, [loading, session, subject, memberships, subjectError, pathname, router]);
 
   // セッション復元が終わるまで何も出さない（スプラッシュが出続ける）
   if (loading) {

@@ -3,13 +3,14 @@
  * この INSERT が RLS（本人のみ作成可）の実地テストを兼ねる（チケット04）。
  */
 import { useRouter } from 'expo-router';
-import { Check } from 'lucide-react-native';
+import { Check, Users } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
 import { PrimaryButton } from '@/components/primary-button';
+import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, spacing } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
@@ -79,6 +80,13 @@ export default function NicknameScreen() {
             <AppText style={styles.error}>{errorMessage}</AppText>
           ) : null}
         </AppCard>
+
+        {/* 家族専用アカウント（自分の博物館を作らない人）の入口（チケット16） */}
+        <SecondaryButton
+          icon={Users}
+          label="かぞくに招待された方はこちら"
+          onPress={() => router.push('/join')}
+        />
       </View>
     </SkyBackground>
   );

@@ -4,7 +4,7 @@
  * 下部にギャラリーへの入り口（木目のミニプレビュー）。
  */
 import { useRouter } from 'expo-router';
-import { BookOpen, Images, ScrollText, Settings, Share2 } from 'lucide-react-native';
+import { BookOpen, Images, ScrollText, Settings, Share2, Users } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
@@ -21,7 +21,7 @@ const PROMPT_TOTAL = 10;
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { subject } = useAuth();
+  const { subject, memberships } = useAuth();
   const { answeredCount, loading, error } = usePrompts();
 
   return (
@@ -75,6 +75,15 @@ export default function HomeScreen() {
 
         <View style={styles.menu}>
           <SecondaryButton icon={Share2} label="みんなに見せる" onPress={() => router.push('/share')} />
+          {/* 自分も誰かの家族として登録しているときだけ出す（チケット16。純粋な書き手の
+              ホームを混み合わせない。未登録者の入口は settings の「かぞくの博物館」） */}
+          {memberships.length > 0 ? (
+            <SecondaryButton
+              icon={Users}
+              label="かぞくの博物館"
+              onPress={() => router.push('/family')}
+            />
+          ) : null}
           <SecondaryButton icon={Settings} label="せってい" onPress={() => router.push('/settings')} />
         </View>
       </ScrollView>

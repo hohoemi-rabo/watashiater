@@ -34,6 +34,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
 import { POLAROID_FRAME } from '@/components/board-polaroid';
+import { MitayoButton } from '@/components/mitayo-button';
 import { SecondaryButton } from '@/components/secondary-button';
 import { colors, shadows, spacing } from '@/constants/tokens';
 
@@ -59,6 +60,8 @@ type PhotoLightboxProps = {
   onClose: () => void;
   /** 音声よみこみ失敗 → 親の refetch（署名URLの取り直し） */
   onRetry: () => void;
+  /** 家族の閲覧時だけ渡す「みたよ」（チケット16）。書き手側は渡さない＝表示しない */
+  reaction?: { reacted: boolean; onReact: () => void };
 };
 
 export function PhotoLightbox({
@@ -70,6 +73,7 @@ export function PhotoLightbox({
   recordingUrl,
   onClose,
   onRetry,
+  reaction,
 }: PhotoLightboxProps) {
   const reduceMotion = useReducedMotion();
   const { width, height } = useWindowDimensions();
@@ -225,6 +229,9 @@ export function PhotoLightbox({
           ) : null}
         </View>
 
+        {reaction ? (
+          <MitayoButton reacted={reaction.reacted} onPress={reaction.onReact} />
+        ) : null}
         <SecondaryButton icon={X} label="とじる" onPress={onClose} />
       </Animated.View>
     </Animated.View>

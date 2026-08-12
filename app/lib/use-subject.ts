@@ -1,30 +1,27 @@
 /**
- * じぶん史（life_story 行。subject 毎に1本）を取得するフック（チケット12）。
- * use-recording.ts と同じ構造の単数版。画面フォーカス毎に再取得する。
+ * 対象 subject（博物館）1件を取得するフック（チケット16。家族の閲覧画面用）。
+ * use-life-story と同じ構造。家族に見えるかどうかは RLS（subjects_select）が決める：
+ * 書き手が家族登録を解除すると data が null になるので、画面は
+ * 「見られなくなりました」を出す（エラーとは区別する）。
  */
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
-import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import type { Tables } from '@/types/database.types';
 
-export type LifeStory = Tables<'life_story'>;
-
-type LifeStoryState = {
-  story: LifeStory | null;
+type SubjectState = {
+  subject: Tables<'subjects'> | null;
   loading: boolean;
   error: string | null;
 };
 
-const LOAD_ERROR_MESSAGE = 'じぶん史をよみこめませんでした。';
+const LOAD_ERROR_MESSAGE =
+  'よみこめませんでした。電波のよいところで、もういちどためしてください。';
 
-/** @param targetSubjectId 家族として見る対象の subject（チケット16）。省略時は自分の博物館 */
-export function useLifeStory(targetSubjectId?: string) {
-  const { subject } = useAuth();
-  const subjectId = targetSubjectId ?? subject?.id ?? null;
-  const [state, setState] = useState<LifeStoryState>({
-    story: null,
+export function useSubject(subjectId: string | null) {
+  const [state, setState] = useState<SubjectState>({
+    subject: null,
     loading: subjectId !== null,
     error: null,
   });
@@ -33,23 +30,23 @@ export function useLifeStory(targetSubjectId?: string) {
 
   const refetch = useCallback(async () => {
     if (!subjectId) {
-      setState({ story: null, loading: false, error: null });
+      setState({ subject: null, loading: false, error: null });
       return;
     }
     if (!hasLoadedRef.current) {
       setState((prev) => ({ ...prev, loading: true }));
     }
     const { data, error } = await supabase
-      .from('life_story')
+      .from('subjects')
       .select('*')
-      .eq('subject_id', subjectId)
+      .eq('id', subjectId)
       .maybeSingle();
     if (error) {
       setState((prev) => ({ ...prev, loading: false, error: LOAD_ERROR_MESSAGE }));
       return;
     }
     hasLoadedRef.current = true;
-    setState({ story: data, loading: false, error: null });
+    setState({ subject: data, loading: false, error: null });
   }, [subjectId]);
 
   useFocusEffect(

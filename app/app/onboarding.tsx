@@ -43,9 +43,9 @@ export default function OnboardingScreen() {
     const result = await signInWithGoogle();
     setBusy(false);
     if (result.status === 'success') {
-      // 遷移判定は必ず result.hasSubject を使う。context の subject を読むと
+      // 遷移判定は必ず result.hasSubject / hasMemberships を使う。context の state を読むと
       // ボタン押下時点の古い値（ログアウト直後＝null）を掴んで誤誘導する
-      router.replace(result.hasSubject ? '/' : '/nickname');
+      router.replace(result.hasSubject ? '/' : result.hasMemberships ? '/family' : '/nickname');
       return;
     }
     if (result.status === 'error') {

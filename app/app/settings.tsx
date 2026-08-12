@@ -4,7 +4,7 @@
  * チケット04で実装（破壊的操作なので確認ダイアログを挟む。REQUIREMENTS §4.1）。
  */
 import { useRouter } from 'expo-router';
-import { CircleHelp, LogOut } from 'lucide-react-native';
+import { CircleHelp, LogOut, Users } from 'lucide-react-native';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
@@ -48,6 +48,12 @@ export default function SettingsScreen() {
           icon={CircleHelp}
           label="つかいかたを見る"
           onPress={() => router.push('/onboarding')}
+        />
+        {/* 自分の博物館を持つ人が家族側（招待コード入力・閲覧）へ入る導線（チケット16） */}
+        <SecondaryButton
+          icon={Users}
+          label="かぞくの博物館"
+          onPress={() => router.push('/family')}
         />
         <SecondaryButton icon={LogOut} label="ログアウト" onPress={confirmSignOut} />
       </View>

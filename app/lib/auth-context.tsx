@@ -1,5 +1,5 @@
 /**
- * 認証状態（セッション＋自分の subject）をアプリ全体に配る Provider。
+ * 認証状態（セッション＋自分の subject＋家族としての登録）をアプリ全体に配る Provider。
  *
  * ログインはブラウザ経由の OAuth（Expo Go ではネイティブ Google Sign-In が使えない）：
  * signInWithOAuth で認可 URL をもらい WebBrowser で開く → 戻り URL のトークンで
@@ -26,6 +26,8 @@ WebBrowser.maybeCompleteAuthSession();
 const redirectTo = makeRedirectUri();
 
 export type Subject = Tables<'subjects'>;
+/** 自分が家族として登録されている博物館（チケット16。/family の導線判定と一覧に使う） */
+export type Membership = Pick<Tables<'family_members'>, 'id' | 'subject_id' | 'display_name'>;
 
 /** signInWithGoogle の結果。dismiss（ユーザーがブラウザを閉じた）はエラー扱いにしない */
 type SignInResult = {
@@ -36,6 +38,8 @@ type SignInResult = {
    * ログアウト→再ログインでニックネーム画面へ誤誘導するバグの原因になった）
    */
   hasSubject?: boolean;
+  /** success 時のみ。家族としての登録が1件以上あるか（hasSubject と同じ理由で戻り値） */
+  hasMemberships?: boolean;
   message?: string;
 };
 
@@ -44,9 +48,11 @@ type AuthContextValue = {
   session: Session | null;
   /** ログイン済みでも未登録なら null（→ ニックネーム登録へ） */
   subject: Subject | null;
+  /** 家族として登録されている博物館の一覧（無ければ空配列） */
+  memberships: Membership[];
   /** セッション復元と subject 取得が終わるまで true */
   loading: boolean;
-  /** subject の取得に失敗した場合のメッセージ（リトライ導線用） */
+  /** subject / memberships の取得に失敗した場合のメッセージ（リトライ導線用） */
   subjectError: string | null;
   signInWithGoogle: () => Promise<SignInResult>;
   signOut: () => Promise<void>;
@@ -77,26 +83,38 @@ async function createSessionFromUrl(url: string) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
+  const [memberships, setMemberships] = useState<Membership[]>([]);
   const [subjectError, setSubjectError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  /** state を更新しつつ、取得結果を戻り値でも返す（呼び出し直後の判定は戻り値を使う） */
+  /**
+   * subject（自分の博物館）と memberships（家族登録）を並列で取得する。
+   * state を更新しつつ、取得結果を戻り値でも返す（呼び出し直後の判定は戻り値を使う）。
+   * どちらか一方でも失敗したら subjectError（単一のエラー state。AuthGate のリトライ画面が引き受ける）
+   */
   const loadSubject = useCallback(
-    async (userId: string): Promise<{ ok: boolean; subject: Subject | null }> => {
-      const { data, error } = await supabase
-        .from('subjects')
-        .select('*')
-        .eq('owner_user_id', userId)
-        .maybeSingle();
-      if (error) {
+    async (
+      userId: string,
+    ): Promise<{ ok: boolean; subject: Subject | null; memberships: Membership[] }> => {
+      const [subjectResult, membershipsResult] = await Promise.all([
+        supabase.from('subjects').select('*').eq('owner_user_id', userId).maybeSingle(),
+        supabase
+          .from('family_members')
+          .select('id, subject_id, display_name')
+          .eq('member_user_id', userId),
+      ]);
+      if (subjectResult.error || membershipsResult.error) {
         setSubjectError(
           'データを よみこめませんでした。でんぱの よいところで もういちど ためしてください。',
         );
-        return { ok: false, subject: null };
+        return { ok: false, subject: null, memberships: [] };
       }
       setSubjectError(null);
-      setSubject(data);
-      return { ok: true, subject: data };
+      // memberships → subject の順で反映（AuthGate は subject を見て誘導するため、
+      // 家族専用アカウントが一瞬 /nickname に飛ぶ隙間を作らない）
+      setMemberships(membershipsResult.data);
+      setSubject(subjectResult.data);
+      return { ok: true, subject: subjectResult.data, memberships: membershipsResult.data };
     },
     [],
   );
@@ -122,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession);
       if (!nextSession) {
         setSubject(null);
+        setMemberships([]);
         setSubjectError(null);
       }
     });
@@ -160,7 +179,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const loaded = await loadSubject(newSession.user.id);
       // 取得に失敗したときは hasSubject: true を返してニックネーム登録へは送らない
       // （既存ユーザーの二重登録誘導を防ぐ。AuthGate のリトライ画面が引き受ける）
-      return { status: 'success', hasSubject: loaded.ok ? loaded.subject !== null : true };
+      return {
+        status: 'success',
+        hasSubject: loaded.ok ? loaded.subject !== null : true,
+        hasMemberships: loaded.ok ? loaded.memberships.length > 0 : false,
+      };
     } catch {
       return {
         status: 'error',
@@ -183,7 +206,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, subject, loading, subjectError, signInWithGoogle, signOut, refreshSubject }}>
+      value={{
+        session,
+        subject,
+        memberships,
+        loading,
+        subjectError,
+        signInWithGoogle,
+        signOut,
+        refreshSubject,
+      }}>
       {children}
     </AuthContext.Provider>
   );

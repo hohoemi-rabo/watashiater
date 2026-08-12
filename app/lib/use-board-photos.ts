@@ -35,9 +35,13 @@ type BoardPhotosState = {
 const LOAD_ERROR_MESSAGE =
   '写真をよみこめませんでした。電波のよいところで、もういちどためしてください。';
 
-export function useBoardPhotos() {
+/**
+ * @param targetSubjectId 家族として見る対象の subject（チケット16）。省略時は自分の博物館。
+ *   家族の SELECT は RLS が、署名URLは worker の canViewSubject が認可する
+ */
+export function useBoardPhotos(targetSubjectId?: string) {
   const { subject } = useAuth();
-  const subjectId = subject?.id ?? null;
+  const subjectId = targetSubjectId ?? subject?.id ?? null;
   const [state, setState] = useState<BoardPhotosState>({
     items: [],
     loading: subjectId !== null,
