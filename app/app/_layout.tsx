@@ -17,6 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import { RefreshCw } from 'lucide-react-native';
 import { useEffect, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { AppCard } from '@/components/app-card';
@@ -106,6 +107,9 @@ const styles = StyleSheet.create({
   errorCard: {
     gap: spacing.lg,
   },
+  root: {
+    flex: 1,
+  },
 });
 
 export default function RootLayout() {
@@ -128,13 +132,18 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={lightTheme}>
-      <AuthProvider>
-        <AuthGate>
-          <Stack screenOptions={{ headerShown: false }} />
-        </AuthGate>
-      </AuthProvider>
-      <StatusBar style="dark" />
-    </ThemeProvider>
+    // RNGH のジェスチャーはこのルートが必須（チケット14のならべかえ）。
+    // Android ではジェスチャー活性化時に ScrollView などのネイティブタッチを
+    // 取り消す役目もこのビューが担う
+    <GestureHandlerRootView style={styles.root}>
+      <ThemeProvider value={lightTheme}>
+        <AuthProvider>
+          <AuthGate>
+            <Stack screenOptions={{ headerShown: false }} />
+          </AuthGate>
+        </AuthProvider>
+        <StatusBar style="dark" />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

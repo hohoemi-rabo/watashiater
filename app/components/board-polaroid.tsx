@@ -30,6 +30,8 @@ type BoardPolaroidProps = {
   width: number;
   /** 度・時計回り（board-layout.ts の契約） */
   rotation: number;
+  /** ドラッグ中の浮き上がり（DESIGN §7。shadow-rest → shadow-lifted） */
+  lifted?: boolean;
 };
 
 export const BoardPolaroid = memo(function BoardPolaroid({
@@ -41,11 +43,13 @@ export const BoardPolaroid = memo(function BoardPolaroid({
   top,
   width,
   rotation,
+  lifted,
 }: BoardPolaroidProps) {
   return (
     <View
       style={[
         styles.polaroid,
+        lifted ? shadows.lifted : null,
         { left, top, width, transform: [{ rotate: `${rotation}deg` }] },
       ]}>
       <View>
