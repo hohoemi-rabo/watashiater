@@ -21,7 +21,10 @@ export function OfflineNote({ detail }: OfflineNoteProps) {
     <AppCard style={styles.card}>
       <View style={styles.heading}>
         <WifiOff color={colors.textSoft} size={22} strokeWidth={2} />
-        <AppText variant="cardTitle">インターネットに つながっていません</AppText>
+        {/* 横並びの中では flex を与えないと、折り返し幅がカードの外まで伸びる */}
+        <AppText variant="cardTitle" style={styles.headingText}>
+          インターネットに つながっていません
+        </AppText>
       </View>
       <AppText>前に見たものは そのまま見られます。書きこみは つながってから できます。</AppText>
       {detail ? <AppText variant="caption">{detail}</AppText> : null}
@@ -37,5 +40,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.sm,
+  },
+  headingText: {
+    flex: 1,
   },
 });
