@@ -28,16 +28,18 @@ function shade(hex: string, factor: number): string {
 
 /**
  * 机の縁：半透明の影だけでは木肌の上で見えない（実機フィードバック）ため、
- * 不透明の濃い木枠＋面取りのハイライト1本＋内側へ薄れる影、の3層で「木の額縁」にする
+ * 不透明の濃い木枠＋面取りのハイライト1本＋内側へ薄れる影、の3層で「木の額縁」にする。
+ * 8dp では細くて枠と認識されなかった（実機フィードバック2回目）ので、
+ * はっきり「机の縁」と分かる太さにし、影も stageNavy ではなく木の暗色にして馴染ませる
  */
-const RIM_WIDTH = 8;
-const RIM_COLOR = shade(colors.deskWood, 0.5); // 濃い枠木
+const RIM_WIDTH = 14;
+const RIM_COLOR = shade(colors.deskWood, 0.45); // 濃い枠木
 const RIM_HIGHLIGHT_WIDTH = 2;
 const RIM_HIGHLIGHT_COLOR = shade(colors.deskWood, 1.25); // 面取りに当たる光
 const EDGE_INSET = RIM_WIDTH + RIM_HIGHLIGHT_WIDTH;
-const EDGE_WIDTH = 24;
-const EDGE_COLOR_FROM = `${colors.stageNavy}40`; // α≈0.25
-const EDGE_COLOR_TO = `${colors.stageNavy}00`;
+const EDGE_WIDTH = 28;
+const EDGE_COLOR_FROM = `${shade(colors.deskWood, 0.35)}59`; // 木の暗色 α≈0.35
+const EDGE_COLOR_TO = `${shade(colors.deskWood, 0.35)}00`;
 
 /**
  * 木目レイヤー。ScrollView コンテンツの最初の子として置く（絶対配置で全高を覆う）。
