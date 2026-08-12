@@ -94,6 +94,14 @@ export async function getViewUrls(r2Keys: string[]): Promise<Record<string, stri
   return urls;
 }
 
+/**
+ * 自分の博物館の R2 オブジェクト全削除（チケット18。アカウント削除の第1段）。
+ * 必ず delete_own_account（DB削除）より先に呼ぶ（subject が消えると prefix を導出できない）
+ */
+export async function wipeMedia(): Promise<{ deleted: number }> {
+  return postJson<{ deleted: number }>('/media/wipe', {});
+}
+
 export type LifeStoryAnswer = { title: string; body: string };
 
 /**

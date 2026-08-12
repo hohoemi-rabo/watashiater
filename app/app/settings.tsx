@@ -1,23 +1,90 @@
 /**
- * せってい の骨格。ニックネーム変更・アカウント削除はチケット18で実装する。
- * 「つかいかたを見る」からオンボーディングへ。ログアウトは認証の最小機能として
- * チケット04で実装（破壊的操作なので確認ダイアログを挟む。REQUIREMENTS §4.1）。
+ * せってい（チケット04・18）。ニックネーム変更・つかいかた・かぞくの博物館・
+ * ログアウト・アカウント削除。
+ * - アカウント削除は二重確認（REQUIREMENTS §4.1 破壊的操作＋最重度なので2段）。
+ *   削除の順序と失敗時の再開は lib/account.ts の判断コメント参照
+ * - 削除ボタンは destructive（errorRed）。curtainRed は使わない（DESIGN §3）
  */
 import { useRouter } from 'expo-router';
-import { CircleHelp, LogOut, Users } from 'lucide-react-native';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Check, CircleHelp, LogOut, Trash2, Users } from 'lucide-react-native';
+import { useState } from 'react';
+import { Alert, StyleSheet, TextInput, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
 import { BackButton } from '@/components/back-button';
 import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
-import { spacing } from '@/constants/tokens';
+import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, spacing } from '@/constants/tokens';
+import { deleteAccount, updateNickname } from '@/lib/account';
 import { useAuth } from '@/lib/auth-context';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { subject, signOut } = useAuth();
+  const { subject, signOut, refreshSubject } = useAuth();
+
+  const [nickname, setNickname] = useState(subject?.nickname ?? '');
+  const [nicknameBusy, setNicknameBusy] = useState(false);
+  const [nicknameSaved, setNicknameSaved] = useState(false);
+  const [nicknameError, setNicknameError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const trimmed = nickname.trim();
+  const unchanged = trimmed === (subject?.nickname ?? '');
+
+  const handleSaveNickname = async () => {
+    if (!subject || !trimmed) {
+      return;
+    }
+    setNicknameBusy(true);
+    setNicknameError(null);
+    const result = await updateNickname(subject.id, trimmed);
+    if (!result.ok) {
+      setNicknameBusy(false);
+      setNicknameError(result.message);
+      return;
+    }
+    await refreshSubject();
+    setNicknameBusy(false);
+    setNicknameSaved(true);
+  };
+
+  const runDelete = async () => {
+    setDeleting(true);
+    const result = await deleteAccount(subject !== null);
+    setDeleting(false);
+    if (!result.ok) {
+      Alert.alert('削除できませんでした', result.message, [{ text: 'わかりました' }]);
+      return;
+    }
+    void signOut();
+    router.replace('/onboarding');
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'アカウントを削除しますか？',
+      '写真・声・じぶん史など、すべてのデータが消えます。もとにもどすことは できません。',
+      [
+        { text: 'やめる', style: 'cancel' },
+        {
+          text: '削除する',
+          style: 'destructive',
+          onPress: () => {
+            // 最重度の破壊的操作なので確認を2段にする
+            Alert.alert(
+              '本当に削除してよろしいですか？',
+              '削除すると、家族も この博物館を 見られなくなります。',
+              [
+                { text: 'やめる', style: 'cancel' },
+                { text: 'すべて削除する', style: 'destructive', onPress: () => void runDelete() },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  };
 
   const confirmSignOut = () => {
     Alert.alert('ログアウトしますか？', 'また Google でログインすれば、つづきから つかえます。', [
@@ -41,8 +108,26 @@ export default function SettingsScreen() {
         <AppText variant="screenTitle">せってい</AppText>
         <AppCard style={styles.card}>
           <AppText variant="cardTitle">ニックネーム</AppText>
-          <AppText>{subject?.nickname ?? '（みとうろく）'}</AppText>
-          <AppText variant="caption">（変更はチケット18で実装）</AppText>
+          <TextInput
+            accessibilityLabel="ニックネーム"
+            value={nickname}
+            onChangeText={(text) => {
+              setNickname(text);
+              setNicknameSaved(false);
+            }}
+            placeholder="れい：はなこ"
+            placeholderTextColor={colors.textSoft}
+            maxLength={20}
+            style={styles.input}
+          />
+          <SecondaryButton
+            icon={Check}
+            label={nicknameBusy ? 'ほぞんしています…' : '保存する'}
+            onPress={() => void handleSaveNickname()}
+            disabled={nicknameBusy || trimmed.length === 0 || unchanged}
+          />
+          {nicknameSaved ? <AppText variant="caption">ほぞんしました</AppText> : null}
+          {nicknameError ? <AppText style={styles.error}>{nicknameError}</AppText> : null}
         </AppCard>
         <SecondaryButton
           icon={CircleHelp}
@@ -56,6 +141,13 @@ export default function SettingsScreen() {
           onPress={() => router.push('/family')}
         />
         <SecondaryButton icon={LogOut} label="ログアウト" onPress={confirmSignOut} />
+        <SecondaryButton
+          destructive
+          icon={Trash2}
+          label={deleting ? '削除しています…' : 'アカウントを削除する'}
+          onPress={confirmDelete}
+          disabled={deleting}
+        />
       </View>
     </SkyBackground>
   );
@@ -68,5 +160,19 @@ const styles = StyleSheet.create({
   },
   card: {
     gap: spacing.md,
+  },
+  error: {
+    color: colors.errorRed,
+  },
+  input: {
+    borderColor: colors.textSoft,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    color: colors.stageNavy,
+    fontFamily: fonts.body,
+    fontSize: fontSizes.cardTitle,
+    minHeight: TAP_TARGET_MIN,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
 });

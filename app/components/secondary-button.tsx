@@ -1,5 +1,6 @@
 /**
  * 補助ボタン。白カード面＋stage-navy 文字。押下挙動は主役ボタンと同じ（DESIGN.md §5）。
+ * destructive は削除系の操作にだけ使う（errorRed 文字。curtainRed とは区別＝DESIGN §3）。
  */
 import type { LucideIcon } from 'lucide-react-native';
 import { Pressable, StyleSheet } from 'react-native';
@@ -12,9 +13,18 @@ type SecondaryButtonProps = {
   onPress: () => void;
   icon?: LucideIcon;
   disabled?: boolean;
+  /** 削除系（アカウント削除など）。ラベルとアイコンを errorRed にする */
+  destructive?: boolean;
 };
 
-export function SecondaryButton({ label, onPress, icon: Icon, disabled }: SecondaryButtonProps) {
+export function SecondaryButton({
+  label,
+  onPress,
+  icon: Icon,
+  disabled,
+  destructive,
+}: SecondaryButtonProps) {
+  const color = destructive ? colors.errorRed : colors.stageNavy;
   return (
     <Pressable
       accessibilityRole="button"
@@ -25,8 +35,8 @@ export function SecondaryButton({ label, onPress, icon: Icon, disabled }: Second
         pressed && styles.pressed,
         disabled && styles.disabled,
       ]}>
-      {Icon ? <Icon color={colors.stageNavy} size={22} strokeWidth={2} /> : null}
-      <AppText variant="cardTitle" style={styles.label}>
+      {Icon ? <Icon color={color} size={22} strokeWidth={2} /> : null}
+      <AppText variant="cardTitle" style={{ color }}>
         {label}
       </AppText>
     </Pressable>
@@ -53,8 +63,5 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
-  },
-  label: {
-    color: colors.stageNavy,
   },
 });
