@@ -70,6 +70,9 @@ export const fontSizes = {
   caption: 13,
   button: 16, // Bold
   storyBody: 18, // じぶん史ページは読み物なので例外で18pxまで上げてよい
+  // ポラロイドのキャプション（DESIGN §5「Zen Maru Gothic 14px」）。
+  // §4の「14px未満を本文に使わない」は本文の規定であり、キャプションは対象外
+  polaroidCaption: 14,
 } as const;
 
 /** DESIGN.md §4 行間（本文1.7。じぶん史ページは2.0） */
