@@ -2,7 +2,7 @@
  * Supabase スキーマから自動生成した型（チケット02）。手で編集しない。
  * スキーマ変更（supabase/migrations/ に SQL を追加して適用）のたびに、
  * supabase MCP の generate_typescript_types で再生成してこのファイルを上書きする。
- * 生成元プロジェクト: watashiater (shqkwdxpjnfnctatukqn) / 2026-08-09
+ * 生成元プロジェクト: watashiater (shqkwdxpjnfnctatukqn) / 2026-08-12
  */
 export type Json =
   | string
@@ -67,18 +67,21 @@ export type Database = {
       }
       family_members: {
         Row: {
+          display_name: string
           id: string
           joined_at: string
           member_user_id: string
           subject_id: string
         }
         Insert: {
+          display_name: string
           id?: string
           joined_at?: string
           member_user_id: string
           subject_id: string
         }
         Update: {
+          display_name?: string
           id?: string
           joined_at?: string
           member_user_id?: string
@@ -106,7 +109,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string
-          expires_at: string
+          expires_at?: string
           id?: string
           subject_id: string
           used_by?: string | null
@@ -362,7 +365,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      redeem_invite_code: {
+        Args: { p_code: string; p_display_name: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
