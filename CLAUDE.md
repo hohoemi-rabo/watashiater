@@ -123,6 +123,12 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 - **noindex は metadata で宣言**：ルートレイアウトの `metadata` に `robots: { index: false, follow: false }`（全ページ必須。REQUIREMENTS §3.6）
 - 同一リクエスト内で同じデータを `generateMetadata` とページ本体の両方で使う場合は、`cache: 'force-cache'` か React の `cache()` でメモ化して二重取得を避ける
 
+### 閲覧Webが使う既存の口（チケット17・08で実装済み）
+
+- **slug の実体**：`view_links`（`slug` unique・`is_active`・**有効リンクは subject に1本**の partial unique）。無効化は `is_active=false` にするだけ。RLS は本人のみなので、web は service role で読む
+- **メディアの署名URL**：`POST ${WORKER_URL}/media/view-urls` に `{ r2Keys, slug }` を投げる（**Authorization ヘッダーを付けないこと**。worker は「ヘッダーがあれば JWT 経路・無ければ slug 経路」で分岐し、フォールバックしない）。無効・存在しない slug は 403「リンクが無効になっています」。キーは1リクエスト1 subject・最大200件・有効期限1時間なのでキャッシュしない
+- 机の上の再現はアプリと同じ座標契約（`app/lib/board-layout.ts` のルール）に従う＝チケット21
+
 ---
 
 ## 環境変数の命名
@@ -147,9 +153,9 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 5. AI 呼び出し・R2 アクセスは必ず worker 経由。レート制限は 1日3回/ユーザー・JST 0時リセット
 6. 迷ったら判断基準は「シニアの書き手が一人で迷わず使えるか」。判断内容はコードコメントに残す
 
-## 実装で確立したパターン（チケット00〜14。詳細は各チケットのメモ）
+## 実装で確立したパターン（チケット00〜19。詳細は各チケットのメモ）
 
-- **認証**：`lib/auth-context.tsx` の `useAuth()`（session / subject / signInWithGoogle / signOut）。ルートガードは `app/_layout.tsx` の AuthGate。ログインは Expo Go 制約により**ブラウザ経由の `signInWithOAuth`**（Supabase の Redirect URLs に `exp://**` 登録済み。Android 用 OAuth クライアントはリリースビルドまで不要）
+- **認証**：`lib/auth-context.tsx` の `useAuth()`（session / subject / memberships / restoredFromCache / signInWithGoogle / signOut / refreshSubject）。ルートガードは `app/_layout.tsx` の AuthGate。ログインは Expo Go 制約により**ブラウザ経由の `signInWithOAuth`**（Supabase の Redirect URLs に `exp://**` 登録済み。Android 用 OAuth クライアントはリリースビルドまで不要）
 - **データ取得**：`lib/use-prompts.ts`（画面フォーカス毎に refetch。保存して戻ると一覧・進捗が自動追随）。「回答済み」＝answers に行が存在する
 - **共通UI**：`components/` の sky-background / app-text / app-card / prompt-card（演目札）/ primary・secondary-button / back-button / progress-dots。tokens.ts の spacing・radii は app 専用の実装規約（web と値一致必須の対象外）
 - **非同期処理直後の分岐は処理の戻り値で行う**。setState 直後に state を読まない（チケット04で実際に起きたバグの教訓）
@@ -162,6 +168,11 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 - **ならべかえ（チケット14）**：`components/draggable-polaroid.tsx`＋`lib/board-save.ts`。見た目＝基準位置＋offset 共有値で、ドロップはワークレット内で畳み込む（跳ね戻りゼロ）。長押し220msでつまむ（スクロールとの取り合いは activateAfterLongPress で解決）・最前面 zIndex はドラッグ中のみ・保存はドロップ毎4項目セット・失敗は revertSignal で元へ。`GestureHandlerRootView` は `_layout.tsx` に追加済み。共有値は `.get()/.set()`・コールバックに `'worklet'` 明示（詳細は docs/14 メモ）
 - **録音の検証済み事実**（チケット00）：AAC は `RecordingPresets.HIGH_QUALITY` のみ／`record({ forDuration })` は実機で有効／3分＝約2.78MB／`File.type` はアップロードの Content-Type に使わない（詳細は docs/00 検証結果）
 - **録音（チケット10）**：本番プリセットは HIGH_QUALITY ベースの 1ch/64kbps（3分≈1.4MB・耳確認済み）。1回答1録音＝`recordings` は upsert(`onConflict:'answer_id'`)。保存順序は「PUT → answers 行の用意 → upsert」（空行の失敗経路を作らない）。録音まわりの機微は `components/recording-box.tsx` 冒頭コメントと docs/10 メモ
+- **写真が語る（チケット15）**：`components/photo-lightbox.tsx`（画面内 absoluteFill オーバーレイ。Modal は使わない）。閉じる＝即アンマウント＝`useAudioPlayer` の解放で音が確実に止まる。背景は `DIMMED_SKY`（skyTop+stageNavy の混色。黒背景禁止）。音声読み込み失敗は10秒タイムアウトで検知（SDK 54 の AudioStatus に error が無い）
+- **家族・共有（チケット16）**：`public.redeem_invite_code` RPC が `family_members` への唯一の登録経路（INSERT ポリシーは意図的に無し）。**業務エラーは RAISE せず discriminated jsonb で返す**（`lib/family-join.ts` がパース）。家族の閲覧は専用 `/family/*` ルート（既存画面に readOnly フラグを差し込まない）。みたよは楽観更新＋23505 は成功扱い（`lib/use-my-reactions.ts`）。招待コードは7日・使い捨て・32文字アルファベット（`lib/invite.ts`）
+- **閲覧リンク（チケット17）**：`lib/view-link.ts`。有効リンクは subject に1本（partial unique）なので**再発行は「止める→作り直す」の2段階**。worker の slug 経路（`/media/view-urls` の `{slug}`）は実装・本番検証済み。**`EXPO_PUBLIC_WEB_URL` は暫定値 `https://watashiater.vercel.app`＝チケット20の Vercel デプロイで実ドメインに確定させること**
+- **アカウント削除（チケット18）**：順序は worker `POST /media/wipe`（R2 の `subjects/<id>/` を prefix 一括削除。孤児も回収）→ RPC `delete_own_account`（auth.users の DELETE で全カスケード）→ signOut。**逆順にすると prefix を導出できず孤児が残る**。`lib/account.ts` に集約。SecondaryButton の `destructive` prop は削除系専用（errorRed）
+- **オフライン（チケット19）**：`lib/offline-cache.ts`（AsyncStorage・`wt:v1:` 接頭辞）＋`lib/use-online.ts`（`useIsOnline()`。`isConnected === false` のときだけオフライン扱い）＋`components/offline-note.tsx`。**フックの契約＝error を立てるのは見せるものが何一つ無いときだけ**（キャッシュがあれば error は null のまま＝画面の `!error` ゲートを書き換えない）。キャッシュ水和は通信より先（postgrest の GET リトライ待ちを隠す）。**自分の博物館だけ**キャッシュ（家族分は残さない）。写真の閲覧URLは「署名URLをキャッシュしない」原則の唯一の例外（expo-image が `cacheKey` でディスクを引くため。声はオンライン前提）。書き込みは `useIsOnline()` で無効化＋案内。ログアウト・アカウント削除で全消し
 
 ## 技術検証を最初にやること
 
