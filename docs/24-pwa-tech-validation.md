@@ -27,15 +27,33 @@ PWA 化の前提となる3つの未知（録音形式・写真の選択と圧縮
 検証用 URL：**https://watashiater-app.vercel.app**（Vercel プロジェクト `watashiater-app`。
 閲覧Web の `watashiater` とは別プロジェクト）。検証画面は **`/web-check`**。
 
-1. 上の URL を開いて「Google でログイン」。ページごと Google へ飛んで戻ってくる
-2. `https://watashiater-app.vercel.app/web-check` を開く
-3. **開いた直後にマイクの許可ダイアログが出るかどうかを先に見る**（出たらそれ自体が結果）
-4. 画面のカードを上から順に押していく（A → B の録音、閲覧URL、回答への紐づけ、写真）
-5. いちばん下の「ログをコピー」で全文をコピーして貼り戻す
-6. 3分の自動停止は、録音を始めて放置して確かめる
-7. 回答に紐づけたら、閲覧Web `https://watashiater.vercel.app/w/<slug>` を開いて声が鳴るか確かめる
-8. 最後に主要画面（ホーム・お題一覧・回答・ギャラリー・じぶん史・共有・せってい）を
-   ひととおり触って、崩れ・操作できないところを控える
+**PC Chrome → iPhone Safari の順**で同じことを2回やる（形式はブラウザごとに違うため）。
+「ログ」は画面いちばん下のカードのこと（ブラウザの開発者ツールではない）。
+
+### 手順
+
+0. **開く**：`https://watashiater-app.vercel.app/web-check`
+   - ログイン画面になったら「Google でログイン」→ 戻ったらもう一度 `/web-check` を開く
+   - マイクの許可を聞かれたら「許可」。**どの時点で聞かれたかを控える**
+1. **録音A**：`A で録音をはじめる` → 3〜5秒しゃべる → `A をとめる（→ 計測＋PUT）`
+   - 止めたあと数秒待つ（アップロード中）。ログに `A:` の行が3〜4本増えたら次へ
+2. **録音B**：`B で録音をはじめる` → 3〜5秒しゃべる → `B をとめる（→ 計測＋PUT）`
+3. **再生**：`閲覧URLをとる` → `聞いてみる`（直前に上げた B が鳴る）
+4. **回答に紐づけ**：「6.」のカードで回答のボタンをどれか1つ押す
+5. **写真**：`写真をえらんで 圧縮＋PUT` → 1枚選ぶ → 下に写真が出るか
+6. **ログ**：いちばん下までスクロール → `ログをコピー` → 貼り戻す
+   （コピーできなければスクリーンショットでよい）
+
+途中でエラーが出ても止めずに最後まで進める（ログに残るほうが有益）。
+
+### 手順のあとに別途やること
+
+- **3分の自動停止**：`B で録音をはじめる` を押して3分放置し、勝手に止まるか・サイズはいくつか
+- **閲覧Web**：`https://watashiater.vercel.app/w/<slug>` を開いて、4で紐づけた声が鳴るか
+- **Android アプリ**：同じ回答を開いて声が鳴るか（形式互換の裏取り）＋
+  CORS 追加後もアプリが壊れていないか（写真をのせる／じぶん史をつくる）
+- **画面のチェック**：主要画面（ホーム・お題一覧・回答・ギャラリー・じぶん史・共有・せってい）を
+  ひととおり触って、崩れ・操作できないところを控える
 
 ### 検証のために先に入れたもの（本実装ではないもの／あるもの）
 
@@ -149,3 +167,55 @@ PC ブラウザで確認。表示される文言は
   差し替える。Blob を body にすれば Content-Length は自動で付く（worker の 411 を満たす）
 - 併せて、Web に無い API を呼んだときのエラーを「電波のせい」と読ませない扱いを検討する
   （native 側の文言は変えない）
+
+#### 録音の形式：**`audio/mp4;codecs=mp4a.40.2` を明示すれば AAC で録れる**
+
+PC Chrome 151（Windows）で計測。**worker の `.m4a`/`audio/mp4` 固定は変えなくてよい**。
+
+| ブラウザ | `audio/mp4` | `audio/mp4;codecs=mp4a.40.2` | `audio/aac` | `audio/webm` | `audio/webm;codecs=opus` | `audio/ogg;codecs=opus` |
+|---|---|---|---|---|---|---|
+| Chrome 151 / Windows | true | **true** | false | true | true | false |
+
+**指定は必ずコーデックまで書く。** ここが今回いちばん重要な発見：
+
+- `audio/mp4` とだけ指定すると Chrome は **`audio/mp4;codecs=opus`** を選ぶ（実測）。
+  コンテナは合っているのに中身が Opus なので、REQUIREMENTS §4.2 の「AAC」を満たさないし
+  Safari で鳴らない可能性が高い。**コンテナだけの指定は危険**
+- `audio/mp4;codecs=mp4a.40.2` は docs/24 の事前調査時点の Chromium では false だったが、
+  **Chrome 151 では true**。ブラウザ側が対応した（事前調査のメモはこの行で上書きされる）
+
+**経路A（expo-audio の Web recorder）で足りる**＝Web 専用の録音実装は要らない。ただし指定場所に罠がある：
+
+- `useAudioRecorder` は `createRecordingOptions()`（`utils/options.js`）を通してから
+  recorder を作り、その関数が **`options.web` をトップレベルへ展開する**。
+  よって `createMediaRecorder` が読む `options.mimeType` の実体は **`options.web.mimeType`**。
+  型どおり `web: { mimeType }` に置くのが正しく、トップレベルに置くと**黙って捨てられて
+  既定の `audio/webm` になる**（1回目の計測で webm が出たのはこれが原因）
+- `bitRate` はトップレベルのままでよい（web では `audioBitsPerSecond` になる）
+
+計測値（`numberOfChannels:1` / `bitRate:64000` 指定）：
+
+| 経路 | 実際の形式 | 長さ | サイズ | 実測ビットレート | 3分ぶんの見つもり |
+|---|---|---|---|---|---|
+| A（expo-audio） | `audio/mp4` | 5.03 秒 | 63,423 バイト | 約 101 kbps | 約 2.27 MB |
+| B（素の MediaRecorder） | `audio/mp4;codecs=mp4a.40.2` | 4.5 秒 | 54,981 バイト | 約 98 kbps | 約 2.20 MB |
+
+- `bitRate: 64000` を渡しても実測は約 100kbps。Chrome は指定をヒントとしか扱わない模様。
+  3分でも約 2.3MB で、worker の録音上限 10MB には余裕がある（Android 実測 1.4MB より重い程度）
+- A の blob.type はコーデック無しの `audio/mp4` に見えるが、要求は mp4a.40.2 で通っている
+  （blob: URL を fetch し直すとパラメータが落ちるため。B は生の blob なので付いたまま）
+
+#### 写真：無改造で規格を満たす
+
+PC Chrome で計測。`lib/photo-attach.ts` の `pickPhotos` / `compressPhoto` は Web 実装のまま動く。
+
+| 段階 | 寸法 | 形式 | サイズ |
+|---|---|---|---|
+| 元 | 4080x3072 | image/jpeg | 3,237,741 バイト（3.09 MB） |
+| 圧縮後 | （長辺1600px へ縮小） | image/jpeg | 242,933 バイト（0.23 MB） |
+
+#### アップロード：`fetch` の PUT で通る
+
+`fetch(uploadUrl, { method:'PUT', body: blob })` で 200。Blob を body にすると
+Content-Length が自動で付くので worker の 411 は出ない。CORS も通った
+（worker の allowlist に `https://watashiater-app.vercel.app` を登録ずみ）。
