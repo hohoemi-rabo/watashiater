@@ -15,6 +15,7 @@ export default defineWorkersConfig({
 						SUPABASE_SECRET_KEY: "sb_secret_test",
 						SIGNING_SECRET: "test-signing-secret",
 						GEMINI_API_KEY: "test-gemini-key",
+						ALLOWED_ORIGINS: "https://writer.test, https://writer-2.test",
 					},
 				},
 			},
