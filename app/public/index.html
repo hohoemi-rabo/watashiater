@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!--
+  書き手Web（PWA）の HTML シェル（チケット25）。
+
+  Expo 既定のテンプレート（@expo/cli/static/template/index.html）を土台にしている。
+  public/index.html があると Expo はこちらを使い、html の lang と title のプレースホルダーを
+  app.json の web.lang / web.name で置換し、バンドルの script タグを追記する。
+  **プレースホルダーと #root と expo-reset の style は消さないこと。**
+
+  注意：置換は素の String.replace（最初の1件だけ）なので、**プレースホルダーの綴りを
+  このコメントや他の場所に書いてはいけない**。書くとそちらが置換されて、
+  本来の lang / title が未置換のまま出荷される（実際に一度やった）。
+-->
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!--
+      viewport-fit=cover は付けない。付けないほうが iOS は standalone でも
+      コンテンツをセーフエリア内に収めてくれる。付けると全画面になり、
+      SkyBackground の SafeAreaView と二重に効いて余白が狂う
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>%WEB_TITLE%</title>
+
+    <!-- ホーム画面に追加したときのアプリ情報 -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="ワタシアター" />
+
+    <!-- 日本語3書体（DESIGN §4）。実体は gstatic にあり、unicode-range によって
+         画面に出る文字を含むスライスだけが読み込まれる（app/scripts/gen-web-fonts.mjs） -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="/fonts/fonts.css" />
+
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+      /*
+        iOS の standalone ではセーフエリアの外（上のノッチ帯・下のホームバー帯）に
+        この背景が出る。アプリの空グラデ（DESIGN §3 sky-top → sky-bottom）と
+        同じ色を敷いて、帯だけ白く浮かないようにする
+      */
+      html {
+        background: linear-gradient(#a8dcf0, #fdf6e8);
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+    <script>
+      // Service Worker（アプリの殻のキャッシュ。public/sw.js）。
+      // 読み込みが終わってから登録して、初回表示の邪魔をしない
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {
+            // 登録できなくてもアプリは普通に動く（オフラインで殻が出ないだけ）
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

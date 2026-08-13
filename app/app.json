@@ -23,7 +23,11 @@
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "ワタシアター",
+      "lang": "ja",
+      "description": "じぶんの博物館を つくりましょう",
+      "themeColor": "#A8DCF0"
     },
     "plugins": [
       "expo-router",
