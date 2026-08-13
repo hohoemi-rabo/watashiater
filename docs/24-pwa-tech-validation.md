@@ -175,6 +175,10 @@ PC Chrome 151（Windows）で計測。**worker の `.m4a`/`audio/mp4` 固定は�
 | ブラウザ | `audio/mp4` | `audio/mp4;codecs=mp4a.40.2` | `audio/aac` | `audio/webm` | `audio/webm;codecs=opus` | `audio/ogg;codecs=opus` |
 |---|---|---|---|---|---|---|
 | Chrome 151 / Windows | true | **true** | false | true | true | false |
+| Safari 26.6 / iOS 18.7（iPhone） | true | **true** | false | true | true | false |
+
+**iPhone Safari でも同じ指定がそのまま通る**（対応表は Chrome と完全に一致した）。
+webm まで true なのは意外だが、こちらは使わない。
 
 **指定は必ずコーデックまで書く。** ここが今回いちばん重要な発見：
 
@@ -195,13 +199,19 @@ PC Chrome 151（Windows）で計測。**worker の `.m4a`/`audio/mp4` 固定は�
 
 計測値（`numberOfChannels:1` / `bitRate:64000` 指定）：
 
-| 経路 | 実際の形式 | 長さ | サイズ | 実測ビットレート | 3分ぶんの見つもり |
-|---|---|---|---|---|---|
-| A（expo-audio） | `audio/mp4` | 5.03 秒 | 63,423 バイト | 約 101 kbps | 約 2.27 MB |
-| B（素の MediaRecorder） | `audio/mp4;codecs=mp4a.40.2` | 4.5 秒 | 54,981 バイト | 約 98 kbps | 約 2.20 MB |
+| ブラウザ | 経路 | 実際の形式 | 長さ | サイズ | 実測ビットレート | 3分ぶんの見つもり |
+|---|---|---|---|---|---|---|
+| Chrome 151 | A（expo-audio） | `audio/mp4` | 5.03 秒 | 63,423 バイト | 約 101 kbps | 約 2.27 MB |
+| Chrome 151 | B（素の MediaRecorder） | `audio/mp4;codecs=mp4a.40.2` | 4.5 秒 | 54,981 バイト | 約 98 kbps | 約 2.20 MB |
+| iOS Safari 26.6 | A（expo-audio） | `audio/mp4` | 4.52 秒 | 37,221 バイト | 約 66 kbps | 約 1.48 MB |
+| iOS Safari 26.6 | B（素の MediaRecorder） | `audio/mp4; codecs=mp4a.40.2` | 4.7 秒 | 39,297 バイト | 約 67 kbps | 約 1.50 MB |
 
-- `bitRate: 64000` を渡しても実測は約 100kbps。Chrome は指定をヒントとしか扱わない模様。
-  3分でも約 2.3MB で、worker の録音上限 10MB には余裕がある（Android 実測 1.4MB より重い程度）
+- **`bitRate` の扱いがブラウザで違う**。Safari は 64kbps 指定を守る（3分≈1.5MB＝Android 実測
+  1.4MB とほぼ同じ）が、Chrome はヒント扱いで約 100kbps になる（3分≈2.3MB）。
+  どちらも worker の録音上限 10MB には余裕がある
+- **Safari は mimeType を `audio/mp4; codecs=mp4a.40.2`（セミコロンのあとに空白）で返す**。
+  文字列の完全一致で判定すると外れる。チケット26 で形式を判定するなら
+  `startsWith('audio/mp4')` のような前方一致にするか、パラメータを落として比べること
 - A の blob.type はコーデック無しの `audio/mp4` に見えるが、要求は mp4a.40.2 で通っている
   （blob: URL を fetch し直すとパラメータが落ちるため。B は生の blob なので付いたまま）
 
@@ -221,12 +231,18 @@ DB・R2 を変えない」は**成立すると確認できた**（残るは iPho
 
 #### 写真：無改造で規格を満たす
 
-PC Chrome で計測。`lib/photo-attach.ts` の `pickPhotos` / `compressPhoto` は Web 実装のまま動く。
+`lib/photo-attach.ts` の `pickPhotos` / `compressPhoto` は Web 実装のまま動く（**変更不要**）。
 
-| 段階 | 寸法 | 形式 | サイズ |
-|---|---|---|---|
-| 元 | 4080x3072 | image/jpeg | 3,237,741 バイト（3.09 MB） |
-| 圧縮後 | （長辺1600px へ縮小） | image/jpeg | 242,933 バイト（0.23 MB） |
+| ブラウザ | 段階 | 寸法 | 形式 | サイズ |
+|---|---|---|---|---|
+| Chrome 151 | 元 | 4080x3072 | image/jpeg | 3,237,741 バイト（3.09 MB） |
+| Chrome 151 | 圧縮後 | （長辺1600px へ縮小） | image/jpeg | 242,933 バイト（0.23 MB） |
+| iOS Safari 26.6 | 元 | 5712x4284 | image/jpeg | 5,201,351 バイト（4.96 MB） |
+| iOS Safari 26.6 | 圧縮後 | **1600x1200** | image/jpeg | 623,674 バイト（0.59 MB） |
+
+- **iPhone の写真も `image/jpeg` で入ってくる**（HEIC のままにならない）。
+  `<input type="file">` 経由で Safari が変換するため、HEIC のデコード対策は要らない
+- 長辺が正確に 1600px になっており、REQUIREMENTS §4.2 の規格を満たしている
 
 #### アップロード：`fetch` の PUT で通る
 
