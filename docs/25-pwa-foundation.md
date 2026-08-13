@@ -16,9 +16,9 @@
 - [x] `<title>` を「ワタシアター」にする（いまは Expo 既定の `app`）
 - [x] アイコンを作る（Expo 既定の青いAマークのままだった。仮アイコン。本番は23）
 - [x] Vercel に**新規プロジェクト**としてデプロイ（閲覧Web `watashiater` とは別。Expo の静的出力）→ チケット24 で先行。`watashiater-app`（https://watashiater-app.vercel.app）。`app/vercel.json` に build/output と SPA rewrite
-- [x] `EXPO_PUBLIC_*` 環境変数のビルド時埋め込みを本番用に設定 → 24 で Production に4本登録ずみ。**Preview 環境は未登録**（CLI が対話を要求して入らなかった。GitHub 連携するときに入れる）
+- [x] `EXPO_PUBLIC_*` 環境変数のビルド時埋め込みを本番用に設定 → Production・Preview とも4本登録ずみ
 - [x] Supabase の Redirect URLs に本番 URL を追加（ユーザー作業）→ 24 で実施ずみ（ログインが通ることを実機で確認）
-- [ ] Vercel プロジェクトを GitHub 連携にする → **見送り**。CLI からの `vercel deploy --prod` で足りており、連携すると Preview 環境の環境変数も揃える必要が出る。必要になった時点で行う（`vercel git connect`）
+- [x] Vercel プロジェクトを GitHub 連携にする → 書き手Web・閲覧Web とも連携ずみ（main への push で自動デプロイ）。Preview の環境変数も登録ずみ
 
 ## 完了条件
 
@@ -85,6 +85,19 @@ gstatic もすべて別オリジンなので、この1行でまとめて対象�
 | manifest の `background_color`・`html` の背景下端 | `#FDF6E8` | sky-bottom |
 | アイコンの幕 | `#E0472F` | curtain-red |
 | アイコンのスポット光 | spot-yellow(`#F5B93C`) を明るく起こした `#FFECC2` | spot-yellow 由来 |
+
+### デプロイ（GitHub 連携）
+
+書き手Web `watashiater-app` / 閲覧Web `watashiater` とも、**GitHub 連携で main への push が
+そのまま本番デプロイ**になる（それまでは両方とも CLI からの手動デプロイだった）。
+
+- **Root Directory** は書き手Web = `app`、閲覧Web = `web`。1リポジトリに2プロジェクトを
+  ぶら下げているのでこれが要る。**`vercel` CLI では設定できない**ので、
+  ダッシュボードか REST API（`PATCH /v9/projects/{id}` の `rootDirectory`）で設定する
+- 連携は `vercel git connect <repo-url>`。`app/` や `web/` はリポジトリのルートではないので、
+  引数なしだと「No local Git repository found」になる。**URL を明示して渡すこと**
+- ビルド設定は `app/vercel.json`（build command・output・rewrites・headers）が持つ。
+  プロジェクト側の Build Command は未設定のままでよい
 
 ### 実機確認（2026-08-13）
 
