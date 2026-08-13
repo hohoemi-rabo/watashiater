@@ -131,3 +131,21 @@ Safari は Permissions API の microphone 自体に未対応なので、そち�
 - 許可を求めるのは「録音をはじめる」を押したときだけ＝ `getUserMedia` の成否で判定する
 - `blocked` 画面の `Linking.openSettings()` は Web で機能しないので、
   ブラウザのアドレスバーの鍵アイコンから直す案内に差し替える
+
+#### 本番の回答画面：録音はできるが「この声を のこす」で必ず失敗する
+
+PC ブラウザで確認。表示される文言は
+「つうしんに しっぱいしました。でんぱの よいところで もういちど ためしてください。」
+
+原因は電波ではなく、`lib/worker-api.ts` の `putObject()` が使っている
+`FileSystem.uploadAsync`（expo-file-system legacy）が **Web には存在しない**こと
+（`ExponentFileSystemShim` が全メソッドで throw する）。その例外を `putObject` の
+`catch` が `WorkerApiError('network', …)` に丸めるため、実装の穴が通信障害に化けて見える。
+
+- 逆に言うと、**expo-audio の Web recorder で録音そのものは成立している**
+  （回答画面は `RECORDING_OPTIONS` に `mimeType` を持たないので、この時点の形式は
+  ブラウザ既定＝Chrome なら webm のはず。形式の確定は `/web-check` の A/B で行う）
+- チケット26 では `putObject` を Web で `fetch(uploadUrl, { method:'PUT', body: blob })` に
+  差し替える。Blob を body にすれば Content-Length は自動で付く（worker の 411 を満たす）
+- 併せて、Web に無い API を呼んだときのエラーを「電波のせい」と読ませない扱いを検討する
+  （native 側の文言は変えない）
