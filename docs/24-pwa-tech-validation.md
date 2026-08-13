@@ -95,4 +95,39 @@ PWA 化の前提となる3つの未知（録音形式・写真の選択と圧縮
 
 ### 検証結果
 
-（実機で計測したら、docs/00 と同じ形式でここに書く）
+（2026-08-13。PC ブラウザから順に実施）
+
+#### ログイン（OAuth リダイレクト）
+
+**成立**。ただし Supabase 側の設定が2か所必要だった：
+
+- **Redirect URLs** に `https://watashiater-app.vercel.app`（**末尾スラッシュ無し**）を登録する。
+  アプリは `window.location.origin` を戻り先に渡すので、`/**` 付きだけでは足りない
+- **Site URL** が既定の `http://localhost:3000` のままだと、許可されない `redirect_to` が
+  黙って握りつぶされて Site URL に飛ぶ。症状は「このサイトにアクセスできません」で、
+  原因が読み取れない。書き手Web の URL に変えておくこと
+
+→ ページごとリダイレクトする方式（`auth-context.tsx` の web 分岐）で問題なし。
+`openAuthSessionAsync` のポップアップ方式は不要だった。
+
+#### マイク許可：**回答画面を開いただけでダイアログが出る**（要対処）
+
+PC ブラウザで「お題 → 回答画面（保存ずみの声を聞こうとしたところ）」でダイアログが出た。
+`components/recording-box.tsx` のマウント時 `refreshPermission()` →
+`AudioModule.getRecordingPermissionsAsync()` が犯人。Web 実装は
+
+```
+query('microphone') が granted/denied で確定しなければ → requestRecordingPermissionsAsync()
+                                                        → getUserMedia()（＝ダイアログ）
+```
+
+という作りなので、「まだ許可も拒否もしていない人」＝初めて開いた全員にダイアログが出る。
+Safari は Permissions API の microphone 自体に未対応なので、そちらでは常にこうなる。
+
+ネイティブでは意図どおり静かに状態だけ見られていた（docs/00・チケット10）ので、
+**この関数を Web で状態確認に使ってはいけない**。チケット26 の対処案：
+
+- Web では起動時の許可確認をしない（`phase` を `idle` 決め打ちにする）
+- 許可を求めるのは「録音をはじめる」を押したときだけ＝ `getUserMedia` の成否で判定する
+- `blocked` 画面の `Linking.openSettings()` は Web で機能しないので、
+  ブラウザのアドレスバーの鍵アイコンから直す案内に差し替える
