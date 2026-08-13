@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | ディレクトリ | 役割 | 技術 |
 |---|---|---|
-| `app/` | 書き手用アプリ（Android 先行） | Expo SDK 54 / expo-router / TypeScript。コードはプロジェクト直下（`app/`・`components/`・`constants/`）、エイリアス `@/*` → `./*` |
+| `app/` | 書き手用アプリ（Android 先行。iPhone 向けには**同一コードを Expo Web で PWA 出力**＝チケット24〜27・REQUIREMENTS §3.7） | Expo SDK 54 / expo-router / TypeScript。コードはプロジェクト直下（`app/`・`components/`・`constants/`）、エイリアス `@/*` → `./*` |
 | `web/` | 閲覧専用 Web（`/w/[slug]`。家族が URL で見るだけ） | Next.js 15.5.22 App Router / Tailwind CSS 3.4.17 |
 | `worker/` | AI 生成プロキシ＋R2 署名 URL 発行 | Cloudflare Workers / wrangler 4 / vitest |
 
@@ -175,6 +175,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 - **オフライン（チケット19）**：`lib/offline-cache.ts`（AsyncStorage・`wt:v1:` 接頭辞）＋`lib/use-online.ts`（`useIsOnline()`。`isConnected === false` のときだけオフライン扱い）＋`components/offline-note.tsx`。**フックの契約＝error を立てるのは見せるものが何一つ無いときだけ**（キャッシュがあれば error は null のまま＝画面の `!error` ゲートを書き換えない）。キャッシュ水和は通信より先（postgrest の GET リトライ待ちを隠す）。**自分の博物館だけ**キャッシュ（家族分は残さない）。写真の閲覧URLは「署名URLをキャッシュしない」原則の唯一の例外（expo-image が `cacheKey` でディスクを引くため。声はオンライン前提）。書き込みは `useIsOnline()` で無効化＋案内。ログアウト・アカウント削除で全消し
 - **閲覧Web基盤（チケット20）**：`web/lib/supabase-server.ts`（`server-only`＋素の PostgREST fetch。`@supabase/supabase-js` は使わない・secret キーは apikey ヘッダーのみ）＋`web/lib/museum.ts`（`getMuseumBySlug()`。**認可は `view_links?slug=…&is_active=is.true` の1行に集約**し、得た subject_id 以外は読まない。slug 形式は `/^[a-z2-7]{16}$/` で DB 照会前に検証。React `cache()` でメモ化するが**署名URLは含めない**）＋`web/lib/worker-api.ts`（Authorization なし・失敗しても `{}` を返して本文は読ませる）。写真は `next/image` を使わず素の `<img>`（署名URLは毎回変わる）。`/` はページを置かない＝404。404/エラーの受け皿は `app/not-found.tsx`・`app/error.tsx` で自前。next/font の `subsets` は**プリロード対象の選択にしか効かず**日本語グリフは自前ホストされる（`['latin']` でよい。docs/20 メモ）
 - **閲覧WebのUI（チケット21）**：`web/lib/board-layout.ts` は `app/lib/board-layout.ts` の**逐語コピー**（`diff` がヘッダーだけになる状態を保つ。片方を直したら必ず両方）。**座標契約は CSS だけで満たす**（JS で測らない）＝ボード `aspect-ratio: 1/H`・ポラロイド `width: 42%`・`left: x*100%` / `top: (y/H)*100%` ＋ `translate(-50%,-50%) rotate(Ndeg)`。配置計算はサーバー側で確定させてクライアントに数値だけ渡す。開幕（`components/curtain.tsx`）の非表示2経路（既読・reduced-motion）は**CSS だけ**で閉じ、既読判定は描画前のインラインスクリプトが `<html data-curtain>` を立てる（JS で後から消すと赤画面が1フレーム出る／`<html>` に `suppressHydrationWarning` が要る）。演目札の切り欠きは CSS マスク（影は外側の要素に持たせる）。**自動再生は拒否されうる**ので `play()` の reject を「声を聞く」ボタンに落とす。署名URL失効からの復帰は `router.refresh()`。本番は Vercel プロジェクト `watashiater`（Root Directory = `web/`。環境変数3つを Production/Preview に登録済み）
+- **書き手Web/PWA の下準備（2026-08-13。実装はチケット24〜27・仕様は REQUIREMENTS §3.7）**：方針＝**worker・DB・閲覧Web・Android の挙動は変えない**（Web で動くときだけ通る道を横に足す。差し替えは `.web.ts` を基本にネイティブ側ファイルを無傷に保つ）。確定事項：`app.json` は `web.output: "single"`（`"static"` は静的レンダリング時に Supabase 認証が Node 上で `window` を触って落ちる。戻さない）／フォントは**必ずウェイトのサブパスから import**（`@expo-google-fonts/noto-sans-jp/400Regular` 等。ルート import は全19ウェイト106MBがバンドルに入る。修正済み・実機確認済みで Android 出力は30MB）／`npx expo export --platform web` は成立し、オンボーディングはブラウザでエラーゼロ描画（事前調査）／Chromium の MediaRecorder は `audio/mp4` 対応だが **`audio/mp4;codecs=...` と指定すると false**（mimeType はコーデックなしで指定）／Web のフォントは TTF 4ウェイト23MB のままなのでチケット25で woff2 分岐必須。録音の実機確定（iPhone Safari→閲覧Webで再生）・写真・OAuth リダイレクトの検証はチケット24
 
 ## 技術検証を最初にやること
 
