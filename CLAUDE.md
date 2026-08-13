@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | ディレクトリ | 役割 | 技術 |
 |---|---|---|
-| `app/` | 書き手用アプリ（Android 先行。iPhone 向けには**同一コードを Expo Web で PWA 出力**＝チケット24〜27・REQUIREMENTS §3.7） | Expo SDK 54 / expo-router / TypeScript。コードはプロジェクト直下（`app/`・`components/`・`constants/`）、エイリアス `@/*` → `./*` |
+| `app/` | 書き手用アプリ（Android 先行。iPhone 向けには**同一コードを Expo Web で PWA 出力**＝チケット24〜27・REQUIREMENTS §3.7） | Expo SDK 54 / expo-router / TypeScript。コードはプロジェクト直下（`app/`・`components/`・`constants/`・`lib/`）、エイリアス `@/*` → `./*`。`public/` は Web 専用の静的ファイル（出力ルートへそのままコピーされる）、`scripts/` は生成スクリプト |
 | `web/` | 閲覧専用 Web（`/w/[slug]`。家族が URL で見るだけ） | Next.js 15.5.22 App Router / Tailwind CSS 3.4.17 |
 | `worker/` | AI 生成プロキシ＋R2 署名 URL 発行 | Cloudflare Workers / wrangler 4 / vitest |
 
@@ -27,11 +27,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # app/
 npm start                     # Expo 開発サーバー（npm run android で Android 起動）
+npm run web                   # ブラウザで開く（localhost:8081。マイクは secure context なので使える）
 npm run lint                  # expo lint
 npx tsc --noEmit              # 型チェック
 npx expo export --platform android --output-dir <一時dir> --clear
                               # バンドル検証＋typed routes 再生成。
                               # 新ルート追加後は tsc の前にこれを実行（.expo/types が古いと型エラーになる）
+npx expo export --platform web --output-dir <一時dir> --clear
+                              # Web 出力の検証（TTF が混入していないか・index.html が正しいか）
+node scripts/gen-web-fonts.mjs   # public/fonts/fonts.css を作り直す（生成物はコミットする）
+node scripts/gen-icons.mjs       # PWA アイコンを作り直す（同上）
 
 # web/
 npm run dev                   # 開発サーバー
@@ -47,7 +52,8 @@ npm run deploy                # wrangler deploy
 ```
 
 - app の型チェックには `expo-env.d.ts`（CSS モジュール等の型宣言。gitignore 対象）が必要。無ければ `expo start` を一度起動すると自動生成される
-- **動作検証は常に実機の Expo Go**（この開発機＝WSL2 に Android SDK・adb・エミュレータは無い）。ネイティブモジュール追加後は `npx expo start --clear`、QR がつながらないときは `--tunnel`。実機確認が要る変更はユーザーに依頼して結果を待つ
+- **ネイティブの動作検証は常に実機の Expo Go**（この開発機＝WSL2 に Android SDK・adb・エミュレータは無い）。ネイティブモジュール追加後は `npx expo start --clear`、QR がつながらないときは `--tunnel`。実機確認が要る変更はユーザーに依頼して結果を待つ
+- **Web の動作検証は本番URL**（`https://watashiater-app.vercel.app`。main への push で自動デプロイされる）。ブラウザは Claude から操作できないので、**確認手順を書いてユーザーに依頼し、結果を待つ**。ログを画面内に出して「コピーして貼る」形にすると往復が減る（チケット24 の `web-check.tsx` がその形）
 
 ---
 
@@ -153,7 +159,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 5. AI 呼び出し・R2 アクセスは必ず worker 経由。レート制限は 1日3回/ユーザー・JST 0時リセット
 6. 迷ったら判断基準は「シニアの書き手が一人で迷わず使えるか」。判断内容はコードコメントに残す
 
-## 実装で確立したパターン（チケット00〜21。詳細は各チケットのメモ）
+## 実装で確立したパターン（チケット00〜21・24・25。詳細は各チケットのメモ）
 
 - **認証**：`lib/auth-context.tsx` の `useAuth()`（session / subject / memberships / restoredFromCache / signInWithGoogle / signOut / refreshSubject）。ルートガードは `app/_layout.tsx` の AuthGate。ログインは Expo Go 制約により**ブラウザ経由の `signInWithOAuth`**（Supabase の Redirect URLs に `exp://**` 登録済み。Android 用 OAuth クライアントはリリースビルドまで不要）
 - **データ取得**：`lib/use-prompts.ts`（画面フォーカス毎に refetch。保存して戻ると一覧・進捗が自動追随）。「回答済み」＝answers に行が存在する
@@ -175,7 +181,12 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 - **オフライン（チケット19）**：`lib/offline-cache.ts`（AsyncStorage・`wt:v1:` 接頭辞）＋`lib/use-online.ts`（`useIsOnline()`。`isConnected === false` のときだけオフライン扱い）＋`components/offline-note.tsx`。**フックの契約＝error を立てるのは見せるものが何一つ無いときだけ**（キャッシュがあれば error は null のまま＝画面の `!error` ゲートを書き換えない）。キャッシュ水和は通信より先（postgrest の GET リトライ待ちを隠す）。**自分の博物館だけ**キャッシュ（家族分は残さない）。写真の閲覧URLは「署名URLをキャッシュしない」原則の唯一の例外（expo-image が `cacheKey` でディスクを引くため。声はオンライン前提）。書き込みは `useIsOnline()` で無効化＋案内。ログアウト・アカウント削除で全消し
 - **閲覧Web基盤（チケット20）**：`web/lib/supabase-server.ts`（`server-only`＋素の PostgREST fetch。`@supabase/supabase-js` は使わない・secret キーは apikey ヘッダーのみ）＋`web/lib/museum.ts`（`getMuseumBySlug()`。**認可は `view_links?slug=…&is_active=is.true` の1行に集約**し、得た subject_id 以外は読まない。slug 形式は `/^[a-z2-7]{16}$/` で DB 照会前に検証。React `cache()` でメモ化するが**署名URLは含めない**）＋`web/lib/worker-api.ts`（Authorization なし・失敗しても `{}` を返して本文は読ませる）。写真は `next/image` を使わず素の `<img>`（署名URLは毎回変わる）。`/` はページを置かない＝404。404/エラーの受け皿は `app/not-found.tsx`・`app/error.tsx` で自前。next/font の `subsets` は**プリロード対象の選択にしか効かず**日本語グリフは自前ホストされる（`['latin']` でよい。docs/20 メモ）
 - **閲覧WebのUI（チケット21）**：`web/lib/board-layout.ts` は `app/lib/board-layout.ts` の**逐語コピー**（`diff` がヘッダーだけになる状態を保つ。片方を直したら必ず両方）。**座標契約は CSS だけで満たす**（JS で測らない）＝ボード `aspect-ratio: 1/H`・ポラロイド `width: 42%`・`left: x*100%` / `top: (y/H)*100%` ＋ `translate(-50%,-50%) rotate(Ndeg)`。配置計算はサーバー側で確定させてクライアントに数値だけ渡す。開幕（`components/curtain.tsx`）の非表示2経路（既読・reduced-motion）は**CSS だけ**で閉じ、既読判定は描画前のインラインスクリプトが `<html data-curtain>` を立てる（JS で後から消すと赤画面が1フレーム出る／`<html>` に `suppressHydrationWarning` が要る）。演目札の切り欠きは CSS マスク（影は外側の要素に持たせる）。**自動再生は拒否されうる**ので `play()` の reject を「声を聞く」ボタンに落とす。署名URL失効からの復帰は `router.refresh()`。本番は Vercel プロジェクト `watashiater`（Root Directory = `web/`。環境変数3つを Production/Preview に登録済み）
-- **書き手Web/PWA（チケット24 完了。実装は25〜27・仕様は REQUIREMENTS §3.7）**：方針＝**worker・DB・閲覧Web・Android の挙動は変えない**（Web で動くときだけ通る道を横に足す）。分岐の形は「共通部分が支配的なファイルは `Platform.OS === 'web'`、Web 専用の実装に置き換わるものは `.web.ts`」（`auth-context.tsx` は前者。判断はコードコメントに残す）
+- **書き手Web/PWA（チケット24・25 完了。次は26・仕様は REQUIREMENTS §3.7）**：方針＝**worker・DB・閲覧Web・Android の挙動は変えない**（Web で動くときだけ通る道を横に足す）。プラットフォーム分岐の形は次の順で決める：
+  1. **読み込むモジュール自体が違うなら `.web.ts` でファイルごと分ける**（`Platform.OS` 分岐では import 文が残り、Metro が不要な資産を Web バンドルに入れてしまう。`lib/app-fonts.ts` / `.web.ts` が実例）
+  2. **共通部分が支配的で、分かれるのが処理の一部だけなら `Platform.OS === 'web'`**（`lib/auth-context.tsx` が実例。丸ごと複製すると片方だけ直る事故になる）
+  3. どちらの場合も**判断の理由をコードコメントに残す**
+  - **チケット26 の着手点**：Web の回答画面はいま「この声を のこす」で必ず失敗する（`lib/worker-api.ts` の `putObject` が使う `FileSystem.uploadAsync` が Web に無い）。マイク許可も画面を開いた瞬間に出る。どちらも下記の「Web で動かないもの」が原因で、直し方は docs/24 の結論と docs/26 の Todo にある。**24 の一時検証画面 `app/app/web-check.tsx` は 26 でファイルごと削除する**
+  - `app/scripts/` の生成物（`public/fonts/fonts.css`・`public/icons/*`・`assets/images/wood-tile.png`・`favicon.png`）は**コミットする**。ビルド時に再生成しない（外部サービスの都合でデプロイが落ちないようにするため）
   - **本番URL**：書き手Web = `https://watashiater-app.vercel.app`（Vercel プロジェクト `watashiater-app`。閲覧Web の `watashiater` とは**別プロジェクト**。Root Directory = `app`・設定は `app/vercel.json`）。**両プロジェクトとも GitHub 連携ずみ＝main への push が本番デプロイになる**（手動の `vercel deploy` は不要。Root Directory は CLI から設定できないのでダッシュボードか REST API で行う）。`web.output: "single"` なので **SPA rewrite（全パス→`/index.html`）が必須**。`app.json` の `"static"` には戻さない（Supabase 認証が Node 上で `window` を触って落ちる）
   - **録音形式は `audio/mp4;codecs=mp4a.40.2`（コーデックまで明示）**。Chrome 151・iOS Safari 26.6 の両方で `isTypeSupported` = true。**コンテナだけの `audio/mp4` を指定してはいけない**（Chrome が MP4 に Opus を入れる＝AAC 要件違反）。expo-audio の Web recorder をそのまま使えるが、指定場所は **`web: { mimeType }`**（`useAudioRecorder` は `createRecordingOptions()` で `options.web` をトップレベルへ展開するので、トップレベルに置くと黙って捨てられ既定の `audio/webm` になる）。Safari は type を `audio/mp4; codecs=…`（**空白入り**）で返すので完全一致で比べない
   - Web で動かないもの：`FileSystem.uploadAsync`（legacy は全 throw → `fetch` の PUT に差し替え。Blob body なら Content-Length は自動）／`AudioModule.getRecordingPermissionsAsync()`（**その場で `getUserMedia` を呼ぶ**＝画面を開いただけで許可ダイアログ。起動時の状態確認に使わない）／`RecorderState.metering`（波形が動かない）／`Linking.openSettings()`
