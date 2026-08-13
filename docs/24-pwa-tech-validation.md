@@ -205,6 +205,16 @@ PC Chrome 151（Windows）で計測。**worker の `.m4a`/`audio/mp4` 固定は�
 - A の blob.type はコーデック無しの `audio/mp4` に見えるが、要求は mp4a.40.2 で通っている
   （blob: URL を fetch し直すとパラメータが落ちるため。B は生の blob なので付いたまま）
 
+#### 再生：R2 往復・閲覧Web ともに鳴った
+
+PC Chrome で録った AAC について確認ずみ：
+
+- `/web-check` の「R2 から再生」（署名URL → `useAudioPlayer`）で鳴った
+- **閲覧Web `https://watashiater.vercel.app/w/<slug>` でも鳴った**
+  ＝ブラウザで録った声が、家族の見る側でそのまま再生できる
+
+→ **ブラウザ録音のために worker・DB・R2・閲覧Web を変える必要はない**（形式さえ揃っていればよい）。
+
 #### 写真：無改造で規格を満たす
 
 PC Chrome で計測。`lib/photo-attach.ts` の `pickPhotos` / `compressPhoto` は Web 実装のまま動く。
