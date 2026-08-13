@@ -1,6 +1,6 @@
 # 25. 書き手Web（PWA）：基盤（フォント・PWA・デプロイ）
 
-- ステータス: 進行中
+- ステータス: 完了
 - 参照: REQUIREMENTS.md §3.7 / DESIGN.md §3（テーマ色）・§12（トークン） / CLAUDE.md「アーキテクチャ」
 - 依存: 24
 
@@ -18,7 +18,7 @@
 - [x] Vercel に**新規プロジェクト**としてデプロイ（閲覧Web `watashiater` とは別。Expo の静的出力）→ チケット24 で先行。`watashiater-app`（https://watashiater-app.vercel.app）。`app/vercel.json` に build/output と SPA rewrite
 - [x] `EXPO_PUBLIC_*` 環境変数のビルド時埋め込みを本番用に設定 → 24 で Production に4本登録ずみ。**Preview 環境は未登録**（CLI が対話を要求して入らなかった。GitHub 連携するときに入れる）
 - [x] Supabase の Redirect URLs に本番 URL を追加（ユーザー作業）→ 24 で実施ずみ（ログインが通ることを実機で確認）
-- [ ] Vercel プロジェクトを GitHub 連携にする（24 は CLI からの直接デプロイ。main への push で自動デプロイにしたい）
+- [ ] Vercel プロジェクトを GitHub 連携にする → **見送り**。CLI からの `vercel deploy --prod` で足りており、連携すると Preview 環境の環境変数も揃える必要が出る。必要になった時点で行う（`vercel git connect`）
 
 ## 完了条件
 
@@ -85,6 +85,12 @@ gstatic もすべて別オリジンなので、この1行でまとめて対象�
 | manifest の `background_color`・`html` の背景下端 | `#FDF6E8` | sky-bottom |
 | アイコンの幕 | `#E0472F` | curtain-red |
 | アイコンのスポット光 | spot-yellow(`#F5B93C`) を明るく起こした `#FFECC2` | spot-yellow 由来 |
+
+### 実機確認（2026-08-13）
+
+iPhone で「ホーム画面に追加」→ アイコンと名前が出て、**standalone（アドレスバーなし）で起動**する
+ところまで確認ずみ＝完了条件を満たした。書体（見出しの丸ゴシック・本文・じぶん史の明朝）も
+Web の `@font-face` 経由で正しく出ている。
 
 ### アイコン
 
