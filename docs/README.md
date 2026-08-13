@@ -1,6 +1,8 @@
 # 実装チケット一覧
 
-**番号順＝実装順**（CLAUDE.md の着手順 app → worker → web に従う）。
+**番号順＝実装順**。ただし**書き手Web（24〜27）を 22・23 より先に実装する**
+（2026-08-13 ユーザー決定：iPhone の書き手向け PWA を先に用意する。Android のネイティブ版はそのまま）。
+残りの実装順：**24 → 25 → 26 → 27 → 22 → 23**。
 運用ルールは CLAUDE.md「チケット運用」を参照。
 
 | # | チケット | フェーズ |
@@ -29,3 +31,7 @@
 | 21 | [web：閲覧ページUI](./21-web-viewer-ui.md) | web |
 | 22 | [音声入力（音声認識）の実機検証・統合](./22-app-voice-input.md) | 実機検証 |
 | 23 | [リリース準備（Google Play）](./23-release-prep.md) | リリース |
+| 24 | [書き手Web：技術検証（録音・写真・ログイン）](./24-pwa-tech-validation.md) | 書き手Web（PWA） |
+| 25 | [書き手Web：基盤（フォント・PWA・デプロイ）](./25-pwa-foundation.md) | 書き手Web（PWA） |
+| 26 | [書き手Web：メディア実装の差し替え](./26-pwa-media.md) | 書き手Web（PWA） |
+| 27 | [書き手Web：iPhone 通し確認](./27-pwa-iphone-e2e.md) | 書き手Web（PWA） |
