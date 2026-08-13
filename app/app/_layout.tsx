@@ -2,17 +2,12 @@
  * ルートレイアウト。
  * - DESIGN.md の3書体を読み込み、読み終わるまでスプラッシュを保持する
  *   （Expo Go ではフォントのネイティブ埋め込みが使えないため useFonts の実行時ロード）
- * - **フォントは必ずウェイトのサブパスから import する**。@expo-google-fonts の
- *   パッケージ index は全ウェイトを require しているため、ルートから import すると
- *   使わない Thin〜Black まで全部バンドルに入る（日本語書体は1ウェイト 4〜8MB）
+ * - 読み込むものは `lib/app-fonts` が持つ。Web では空マップに差し替わり、
+ *   代わりに `public/fonts/fonts.css` の @font-face が効く（チケット25）
  * - テーマはライト固定（DESIGN.md §11「黒背景・夜の劇場化」禁止）
  * - 認証ガード：未ログイン → onboarding／subject 未登録 → nickname。
  *   ログイン済み＋登録済みは強制遷移しない（onboarding を「つかいかた」として開けるように）
  */
-import { NotoSansJP_400Regular } from '@expo-google-fonts/noto-sans-jp/400Regular';
-import { NotoSansJP_500Medium } from '@expo-google-fonts/noto-sans-jp/500Medium';
-import { ShipporiMincho_400Regular } from '@expo-google-fonts/shippori-mincho/400Regular';
-import { ZenMaruGothic_700Bold } from '@expo-google-fonts/zen-maru-gothic/700Bold';
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, usePathname, useRouter } from 'expo-router';
@@ -29,6 +24,7 @@ import { AppText } from '@/components/app-text';
 import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { colors, spacing } from '@/constants/tokens';
+import { appFonts } from '@/lib/app-fonts';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 
 void SplashScreen.preventAutoHideAsync();
@@ -130,12 +126,7 @@ const styles = StyleSheet.create({
 });
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    ZenMaruGothic_700Bold,
-    NotoSansJP_400Regular,
-    NotoSansJP_500Medium,
-    ShipporiMincho_400Regular,
-  });
+  const [fontsLoaded, fontError] = useFonts(appFonts);
 
   useEffect(() => {
     // フォントが読めない端末でも起動は止めない（エラー時もスプラッシュを閉じる）
