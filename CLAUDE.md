@@ -182,7 +182,10 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
   - Web でそのまま動くもの：`lib/photo-attach.ts`（`pickPhotos`・`compressPhoto`。iPhone の写真も JPEG で入り長辺1600pxになる）／`forDuration` の3分自動停止
   - **worker には CORS がある**（`worker/src/cors.ts`。チケット24 で追加）。許可オリジンは `wrangler.jsonc` の `vars.ALLOWED_ORIGINS` にカンマ区切り**完全一致**で列挙する。ブラウザから叩くオリジンを増やしたらここに足すこと（ワイルドカード非対応）
   - **Supabase の URL Configuration**：Redirect URLs に書き手Web の URL を**末尾スラッシュ無し**で登録する（アプリは `window.location.origin` を渡す）。Site URL を既定の `http://localhost:3000` のままにしない（許可外の `redirect_to` は黙ってここへ飛び、原因の読めない「アクセスできません」になる）
-  - フォントは**必ずウェイトのサブパスから import**（`@expo-google-fonts/noto-sans-jp/400Regular` 等。ルート import は全19ウェイト106MBがバンドルに入る）。Web は TTF 4ウェイト23MB のままなので**チケット25で woff2 分岐が必須**
+  - **フォント（チケット25 で確定）**：ネイティブは `lib/app-fonts.ts` が TTF を持ち、Web は `lib/app-fonts.web.ts`（空マップ）＋`public/fonts/fonts.css` の `@font-face`。**`.web.ts` でファイルごと分けること**（`Platform.OS` 分岐では import が残って Metro が TTF を Web バンドルに入れてしまう）。CSS は `scripts/gen-web-fonts.mjs` が Google Fonts の CSS から生成（書体名を `tokens.ts` に合わせるだけ・実体は gstatic・unicode-range で使う文字の分だけ落ちる）。ネイティブ側は**必ずウェイトのサブパスから import**（ルート import は全19ウェイト106MB）
+  - **`public/` が Web の静的ファイル置き場**（出力ルートへそのままコピーされる）：`index.html`（HTML シェル）・`manifest.json`・`sw.js`・`fonts/`・`icons/`。`public/index.html` は Expo の既定テンプレートを差し替え、html の lang と title のプレースホルダーが `app.json` の `web.lang` / `web.name` で置換される。**置換は最初の1件だけなので、プレースホルダーの綴りをコメント等に書かないこと**。`viewport-fit=cover` は付けない（iOS が自動でセーフエリア内に収める。付けると `SkyBackground` と二重になる）
+  - **Service Worker は殻だけ**。`url.origin !== self.location.origin` なら何もしない＝これが「署名URLをキャッシュしない」担保（URL の除外リストにしない）。画面の読み込みは network-first（cache-first だと新デプロイが反映されない）。`vercel.json` で `/sw.js` に `must-revalidate` を付ける（無いと SW を更新できない）。ユーザーデータのオフラインは `lib/offline-cache.ts` の担当
+  - アイコンは `scripts/gen-icons.mjs` の**仮アイコン**（依存なし・決定的生成）。本番アイコンとネイティブの `assets/images/icon.png` はチケット23
 
 ## 技術検証を最初にやること
 
