@@ -1,6 +1,6 @@
 # 21. web：閲覧ページUI
 
-- ステータス: 進行中（実装・ブラウザ検証は完了／実機スマホ確認と Vercel デプロイが残り）
+- ステータス: 進行中（実装・デプロイ・ブラウザ検証は完了／実機スマホでの通し確認が残り）
 - 参照: REQUIREMENTS.md §3.6（構成・レスポンシブ） / DESIGN.md §6.1（開幕演出） / §7（閲覧Web） / §4（Web 用サイズスケール）
 - 依存: 20
 
@@ -17,8 +17,8 @@
 - [x] じぶん史（Shippori Mincho・紙背景・本文18px・行間2.0）
 - [x] お題カード一覧（演目札の閲覧版）
 - [x] スマホ最優先のレスポンシブ確認
-- [ ] 実機スマホブラウザでの通し確認（完了条件。Vercel デプロイ後に行う）
-- [ ] Vercel デプロイ → `EXPO_PUBLIC_WEB_URL` を実ドメインに確定（チケット20からの申し送り）
+- [x] Vercel デプロイ → `EXPO_PUBLIC_WEB_URL` を実ドメインに確定（チケット20からの申し送り）
+- [ ] 実機スマホブラウザでの通し確認（完了条件）
 
 ## 完了条件
 
@@ -86,4 +86,18 @@
     `readyState:4`）。とじる → `<audio>` ごと消える＝音が止まる
   - コンソールエラー0件・失敗リクエスト0件
   - 横スクロール 0px（390px 幅・1280px 幅とも）
-- 残り：**実機スマホブラウザでの通し確認**（Vercel デプロイ後）
+- 本番（2026-08-13 デプロイ済み）でも同じ通し確認を実施：
+  タイトル・`noindex, nofollow`・ポラロイド7枚・演目札8枚・署名URLエラー0件、
+  無効slug／無効化済みslug／`/` はすべて404、音声の自動再生とじる動作・開幕の再訪非表示もローカルと同じ
+- 残り：**実機スマホブラウザでの通し確認**
+
+### デプロイ
+
+- Vercel プロジェクト **`watashiater`**（`rabohohoemi-6774s-projects`）。CLI から
+  `web/` をリンクして作成したので **Root Directory は `web/`**（モノレポのルートを指さない）
+- 環境変数 `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` / `WORKER_URL` を
+  Production・Preview に登録済み（Sensitive 扱い）
+- **本番エイリアスは `https://watashiater.vercel.app`**。2026-08-12 に暫定値として
+  app/.env に置いた URL がそのまま本番になったため、`EXPO_PUBLIC_WEB_URL` は変更不要だった
+- `web/.vercel/` は gitignore 済み。`vercel link` が `.env.local` に付け足す
+  `VERCEL_OIDC_TOKEN`（短命・開発用）もコミット対象外
