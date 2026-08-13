@@ -44,6 +44,10 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html
       lang="ja"
       className={`${zenMaruGothic.variable} ${notoSansJP.variable} ${shipporiMincho.variable}`}
+      // 開幕を「もう見た」かの判定は、描画前に走るスクリプトが data-curtain を立てる
+      // （components/curtain.tsx の判断）。サーバーHTMLには無い属性なので、ここだけ
+      // ハイドレーションの差分を許す
+      suppressHydrationWarning
     >
       <body>{children}</body>
     </html>

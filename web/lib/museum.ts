@@ -36,15 +36,23 @@ export type MuseumCard = {
   key: string
   title: string
   bodyText: string
+  /** 半券部に出すサムネイル（その回答の1枚目の写真）。無ければ null */
+  thumbnailR2Key: string | null
+  hasRecording: boolean
 }
 
 export type Museum = {
   subjectId: string
   slug: string
   nickname: string
-  /** 自動整列のばら撒きシード（チケット21で board-layout に渡す） */
+  /** 自動整列のばら撒きシード（board-layout.ts に渡す） */
   boardSeed: number
-  coverPhotoId: string | null
+  /**
+   * 表紙の代表写真（DESIGN §6.1「名前と代表写真」）。
+   * `subjects.cover_photo_id` を選ぶ導線はアプリに無く常に null なので、
+   * 無いときは机の上の1枚目（created_at 最古）で代える（2026-08-13 ユーザー判断）
+   */
+  coverPhoto: MuseumPhoto | null
   /** 演目札の閲覧版。回答済みだけを、固定お題（sort_order 順）→自由お題 の順で返す */
   cards: MuseumCard[]
   /** created_at → id 昇順。この全順序が board-layout.ts の「毎回同じ配置」の前提 */
@@ -153,6 +161,9 @@ export const getMuseumBySlug = cache(async (slug: string): Promise<Museum | null
       key: answer.prompt_id === null ? 'free' : String(answer.prompt_id),
       title: titleOfAnswer(answer),
       bodyText: answer.body_text,
+      // photoRows は created_at 昇順なので、最初に見つかった1枚がその回答の1枚目
+      thumbnailR2Key: photoRows.find((photo) => photo.answer_id === answer.id)?.r2_key ?? null,
+      hasRecording: recordingKeyByAnswerId.has(answer.id),
     }))
 
   const photos: MuseumPhoto[] = photoRows.map((photo) => {
@@ -175,7 +186,8 @@ export const getMuseumBySlug = cache(async (slug: string): Promise<Museum | null
     slug,
     nickname: subject.nickname,
     boardSeed: subject.board_seed,
-    coverPhotoId: subject.cover_photo_id,
+    coverPhoto:
+      photos.find((photo) => photo.id === subject.cover_photo_id) ?? photos[0] ?? null,
     cards,
     photos,
     lifeStoryBodyText: lifeStories[0]?.body_text ?? null,

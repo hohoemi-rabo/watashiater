@@ -15,4 +15,113 @@
   body {
     @apply min-h-screen bg-sky font-body text-stage-navy;
   }
+
+  :root {
+    /*
+     * トークンの混色から導く2色。app 側も tokens.ts には足さず、使う場所の定数として
+     * 持っている（app/components/app-card.tsx / photo-lightbox.tsx）。値は必ず一致させること。
+     */
+    /* cardWhite(#FFFFFF) 85% + skyBottom(#FDF6E8) 15%。白カードの紙色（DESIGN §5 質感） */
+    --paper-tint: #fffefc;
+    /* skyTop(#A8DCF0) 85% + stageNavy(#2B3A55) 15%。拡大表示の背景（DESIGN §7「空色を少し濃くする」） */
+    --dimmed-sky: #95c4d9;
+  }
+}
+
+@layer components {
+  /*
+   * 白カードの紙質（DESIGN §5）。ベタの白矩形にせず、地をわずかに生成りへ寄せて
+   * 上辺に 1px の純白ハイライトを重ねる。app/components/app-card.tsx の移植。
+   * ハイライトは角丸の直線部分にだけ引く（角の外へ直線がはみ出さないように左右を半径ぶん詰める）
+   */
+  .paper {
+    background-color: var(--paper-tint);
+  }
+
+  .paper-edge::before {
+    @apply absolute top-0 h-px bg-card-white content-[''];
+    left: theme('borderRadius.2xl');
+    right: theme('borderRadius.2xl');
+  }
+
+  /*
+   * 演目札の半券の切り欠き（DESIGN §6.2）。上下の半円を**本当に透過**させて背景の空グラデを透かす。
+   * カード高さが本文で伸びるので SVG の固定 viewBox ではなく CSS マスクで抜く。
+   * マスクは影も一緒に削るため、影は外側の要素に持たせ、このクラスは「紙の面」だけに当てる
+   * （切り欠き部分は影が直線のまま通るが、半径9px なので許容する＝app/components/prompt-card.tsx と同じ判断）
+   */
+  .ticket-notch {
+    --notch-r: 9px;
+    --stub-w: 64px;
+    -webkit-mask-image: radial-gradient(
+        circle var(--notch-r) at var(--stub-w) 0,
+        transparent calc(var(--notch-r) - 0.5px),
+        #000 var(--notch-r)
+      ),
+      radial-gradient(
+        circle var(--notch-r) at var(--stub-w) 100%,
+        transparent calc(var(--notch-r) - 0.5px),
+        #000 var(--notch-r)
+      );
+    mask-image: radial-gradient(
+        circle var(--notch-r) at var(--stub-w) 0,
+        transparent calc(var(--notch-r) - 0.5px),
+        #000 var(--notch-r)
+      ),
+      radial-gradient(
+        circle var(--notch-r) at var(--stub-w) 100%,
+        transparent calc(var(--notch-r) - 0.5px),
+        #000 var(--notch-r)
+      );
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+  }
+
+  /* 半券のミシン目。app は strokeDasharray="3 5"、CSS の dashed で近似する */
+  .ticket-perforation {
+    border-left: 1px dashed theme('colors.text-soft');
+    opacity: 0.6;
+  }
+
+  /*
+   * 机の上の木目（DESIGN §5）。app と同じタイル画像を 1:1 px で敷く
+   * （app は RN の resizeMode="repeat"＝タイル本来の大きさで繰り返し）。
+   * **机の縁（外周の内側シャドウ・木枠）は作らない**（DESIGN §5。チケット13でユーザーが削除を判断）
+   */
+  .desk-grain {
+    background-image: url('/wood-tile.png');
+    background-repeat: repeat;
+    background-size: 512px 1024px;
+  }
+
+  /*
+   * 開幕の緞帳（DESIGN §6.1）。朱色の幕が左右に開く・1.2秒・タップでスキップ。
+   * 「初回訪問だけ」と「モーション低減」の2つの非表示経路は **CSS だけ**で閉じる：
+   * JS で後から消すとハイドレーション前に赤画面が1フレーム出るため、
+   * 描画前に走るインラインスクリプトが立てた data 属性を CSS が見る（components/curtain.tsx）
+   */
+  .curtain-panel {
+    @apply absolute inset-y-0 bg-curtain-red;
+    /* 切り上げ＋1px 相当。中央に隙間を作らない（app/components/curtain-overlay.tsx と同じ） */
+    width: calc(50% + 1px);
+    transition: transform 1200ms ease-in-out;
+  }
+
+  .curtain[data-state='opening'] .curtain-panel-left {
+    transform: translateX(-100%);
+  }
+
+  .curtain[data-state='opening'] .curtain-panel-right {
+    transform: translateX(100%);
+  }
+
+  html[data-curtain='seen'] .curtain {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .curtain {
+      display: none;
+    }
+  }
 }

@@ -1,6 +1,11 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { Curtain } from '@/components/curtain'
+import { DeskBoard, type BoardItem } from '@/components/desk-board'
+import { Polaroid } from '@/components/polaroid'
+import { TicketCard } from '@/components/ticket-card'
+import { BOARD, resolveBoardPlacements } from '@/lib/board-layout'
 import { getMuseumBySlug } from '@/lib/museum'
 import { getViewUrls } from '@/lib/worker-api'
 
@@ -22,7 +27,7 @@ export default async function ViewPage({ params }: PageProps<'/w/[slug]'>) {
     notFound()
   }
 
-  // 写真と録音の署名URLは1バッチで取る（タップしてから声が出るまでの無音を作らない。チケット15と同じ）。
+  // 写真と録音の署名URLは1バッチで取る（タップしてから声が出るまでの無音を作らない。docs/15 と同じ）。
   // 失敗しても {} が返るだけで、文章は読める（lib/worker-api.ts の契約）
   const r2Keys = [
     ...museum.photos.map((photo) => photo.r2Key),
@@ -30,73 +35,115 @@ export default async function ViewPage({ params }: PageProps<'/w/[slug]'>) {
   ]
   const viewUrls = await getViewUrls(r2Keys, slug)
 
+  // 配置はサーバー側で確定させる（board-layout.ts をクライアントバンドルに入れない）。
+  // 入力は DB 行と同じ形（snake_case）＝アプリとまったく同じ関数に同じ値を渡すための契約
+  const { placements, boardHeightFraction } = resolveBoardPlacements(
+    museum.photos.map((photo) => ({
+      id: photo.id,
+      board_x: photo.boardX,
+      board_y: photo.boardY,
+      board_rotation: photo.boardRotation,
+      board_z: photo.boardZ,
+    })),
+    museum.boardSeed,
+  )
+
+  // 重なりは z 昇順の描画順で表す（同値は作成順。app/app/gallery.tsx と同じ並べ替え）
+  const boardItems: BoardItem[] = museum.photos
+    .map((photo, index) => ({ photo, placement: placements[index], index }))
+    .sort((a, b) => a.placement.z - b.placement.z || a.index - b.index)
+    .map(({ photo, placement }) => ({
+      photo: {
+        id: photo.id,
+        url: viewUrls[photo.r2Key],
+        caption: photo.caption,
+        bodyText: photo.bodyText,
+        hasRecording: photo.recordingR2Key !== null,
+        recordingUrl: photo.recordingR2Key ? viewUrls[photo.recordingR2Key] : undefined,
+      },
+      x: placement.x,
+      y: placement.y,
+      rotation: placement.rotation,
+    }))
+
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-10 px-5 py-10">
-      {/* ── 表紙（チケット21で開幕演出＋代表写真を載せる） ── */}
-      <header>
-        <h1 className="font-heading text-screen-title">{museum.nickname}の はくぶつかん</h1>
-      </header>
+    <>
+      {/*
+       * 開幕を「もう見た」かどうかは、幕が描かれる前に決めないと赤画面が1フレーム出る。
+       * このスクリプトは HTML の解析中＝下の <Curtain> の markup より先に実行される。
+       * slug は /^[a-z2-7]{16}$/ を通ったものだけなので、そのまま埋め込んで安全
+       */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `try{if(localStorage.getItem('wt:curtain:${slug}'))document.documentElement.dataset.curtain='seen'}catch(e){}`,
+        }}
+      />
+      <Curtain slug={slug} />
 
-      {/* ── 机の上（チケット21で board-layout の座標どおりに並べる） ── */}
-      <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-card-title">しゃしん（{museum.photos.length}まい）</h2>
-        {museum.photos.map((photo) => {
-          const photoUrl = viewUrls[photo.r2Key]
-          const recordingUrl = photo.recordingR2Key ? viewUrls[photo.recordingR2Key] : undefined
-          return (
-            <figure key={photo.id} className="rounded-2xl bg-card-white p-4 shadow-rest">
-              {photoUrl ? (
-                // next/image を使わない：署名URLは毎回変わり1時間で失効するため、
-                // URL をキーにする画像最適化キャッシュとは相性が悪い（毎回ミス＋課金）
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={photoUrl} alt={photo.caption} className="w-full rounded-lg" />
-              ) : (
-                <p className="text-caption text-text-soft">写真をよみこめませんでした。</p>
-              )}
-              <figcaption className="mt-3 font-heading">{photo.caption}</figcaption>
-              {photo.bodyText !== '' && <p className="mt-2 text-body">{photo.bodyText}</p>}
-              {photo.recordingR2Key !== null &&
-                (recordingUrl ? (
-                  <audio controls src={recordingUrl} className="mt-3 w-full" />
-                ) : (
-                  <p className="mt-3 text-caption text-text-soft">声をよみこめませんでした。</p>
-                ))}
-              {/* 生データ確認用（チケット20の完了条件）。チケット21のボード実装で消す */}
-              <p className="mt-3 text-caption text-text-soft">
-                board: x={String(photo.boardX)} y={String(photo.boardY)} rot=
-                {String(photo.boardRotation)} z={String(photo.boardZ)}
-              </p>
-            </figure>
-          )
-        })}
-      </section>
+      <main className="mx-auto max-w-[520px] pb-16">
+        {/* ── 表紙（DESIGN §6.1：幕が開くと名前と代表写真が現れる） ── */}
+        <header className="flex flex-col items-center gap-5 px-5 pb-10 pt-12">
+          <p className="font-heading text-card-title text-curtain-red">ワタシアター</p>
+          <h1 className="text-center font-heading text-screen-title">
+            {museum.nickname}の はくぶつかん
+          </h1>
+          {museum.coverPhoto ? (
+            // 完全な水平垂直を疑う（DESIGN §2）。机の上の傾きと同じ ±3°の範囲に収める
+            <div className="w-2/3 -rotate-2">
+              <Polaroid
+                caption={museum.coverPhoto.caption}
+                hasRecording={false}
+                url={viewUrls[museum.coverPhoto.r2Key]}
+              />
+            </div>
+          ) : null}
+        </header>
 
-      {/* ── じぶん史（チケット21で紙背景＋明朝の読み物にする） ── */}
-      <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-card-title">じぶん史</h2>
+        {/* ── 机の上（配置・傾き・重なりをアプリと同じに再現） ── */}
+        {boardItems.length > 0 ? (
+          <section>
+            <h2 className="px-5 pb-4 font-heading text-card-title">机の上</h2>
+            <DeskBoard
+              heightFraction={boardHeightFraction}
+              items={boardItems}
+              polaroidWidthFraction={BOARD.POLAROID_W}
+            />
+            <p className="px-5 pt-3 text-caption text-text-soft">
+              写真をおすと、大きくなります。声のある写真は聞けます。
+            </p>
+          </section>
+        ) : null}
+
+        {/* ── じぶん史（DESIGN §4：ここだけ生成りの紙質＋明朝で「一冊の本」の空気） ── */}
         {museum.lifeStoryBodyText !== null ? (
-          <div className="whitespace-pre-wrap rounded-2xl bg-story-paper p-5 font-story text-story-body shadow-rest">
-            {museum.lifeStoryBodyText}
-          </div>
-        ) : (
-          <p className="text-body text-text-soft">まだ ありません。</p>
-        )}
-      </section>
+          <section className="px-5 pt-12">
+            <h2 className="pb-4 font-heading text-card-title">じぶん史</h2>
+            <div className="rounded-2xl bg-story-paper px-6 py-8 shadow-rest">
+              <p className="whitespace-pre-wrap font-story text-story-body">
+                {museum.lifeStoryBodyText}
+              </p>
+            </div>
+          </section>
+        ) : null}
 
-      {/* ── 演目札一覧（チケット21で半券のカードにする） ── */}
-      <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-card-title">お題</h2>
-        {museum.cards.map((card) => (
-          <article key={card.key} className="rounded-2xl bg-card-white p-5 shadow-rest">
-            <h3 className="font-heading text-card-title">{card.title}</h3>
-            {card.bodyText !== '' ? (
-              <p className="mt-2 whitespace-pre-wrap text-body">{card.bodyText}</p>
-            ) : (
-              <p className="mt-2 text-caption text-text-soft">声で こたえています。</p>
-            )}
-          </article>
-        ))}
-      </section>
-    </main>
+        {/* ── 演目札一覧 ── */}
+        {museum.cards.length > 0 ? (
+          <section className="px-5 pt-12">
+            <h2 className="pb-4 font-heading text-card-title">お題</h2>
+            <div className="flex flex-col gap-4">
+              {museum.cards.map((card) => (
+                <TicketCard
+                  bodyText={card.bodyText}
+                  hasRecording={card.hasRecording}
+                  key={card.key}
+                  thumbnailUrl={card.thumbnailR2Key ? viewUrls[card.thumbnailR2Key] : undefined}
+                  title={card.title}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </main>
+    </>
   )
 }
