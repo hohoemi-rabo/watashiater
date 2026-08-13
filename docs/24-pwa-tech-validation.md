@@ -212,8 +212,12 @@ PC Chrome で録った AAC について確認ずみ：
 - `/web-check` の「R2 から再生」（署名URL → `useAudioPlayer`）で鳴った
 - **閲覧Web `https://watashiater.vercel.app/w/<slug>` でも鳴った**
   ＝ブラウザで録った声が、家族の見る側でそのまま再生できる
+- **Android アプリ（Expo Go）でも鳴った**＝ブラウザ録音とネイティブ録音は相互に互換
 
-→ **ブラウザ録音のために worker・DB・R2・閲覧Web を変える必要はない**（形式さえ揃っていればよい）。
+→ **ブラウザ録音のために worker・DB・R2・閲覧Web・Android を変える必要はない**
+（形式さえ `audio/mp4;codecs=mp4a.40.2` で揃っていればよい）。
+これで REQUIREMENTS §3.7 の「録音は audio/mp4 に統一し、Worker の `.m4a`/`audio/mp4` 固定・
+DB・R2 を変えない」は**成立すると確認できた**（残るは iPhone Safari での確認）。
 
 #### 写真：無改造で規格を満たす
 
