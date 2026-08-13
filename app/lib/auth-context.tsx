@@ -5,6 +5,12 @@
  * signInWithOAuth で認可 URL をもらい WebBrowser で開く → 戻り URL のトークンで
  * setSession する（Supabase 公式の createSessionFromUrl パターン）。
  *
+ * 書き手Web（PWA・チケット24）はこのページ自体がブラウザなので、別窓ではなく
+ * ページごと Google へ遷移して戻ってくる。分岐は Platform.OS で、ファイル単位の
+ * `.web.tsx` 差し替えにはしない：この Provider は大半が共通で、丸ごと複製すると
+ * オフライン復元やキャッシュ方針の変更が片方だけ直る事故になる。
+ * （差し替えの原則は `.web.ts` だが、共通部分が支配的なファイルはこちらを採る）
+ *
  * オフライン時のふるまい（チケット19）：最後に取れた subject / memberships を端末に
  * 残し、通信できないときはそこから戻す（restoredFromCache）。機内モードで開き直しても
  * ログイン画面に飛ばさないため。
@@ -23,6 +29,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { Platform } from 'react-native';
 
 import { cacheKeys, clearOfflineCache, readCache, writeCache } from '@/lib/offline-cache';
 import { supabase } from '@/lib/supabase';
@@ -94,6 +101,25 @@ async function createSessionFromUrl(url: string) {
   return data.session;
 }
 
+/**
+ * Web の OAuth 戻り先（`#access_token=…`）をセッションに変える（チケット24）。
+ * getQueryParams はハッシュも読むので createSessionFromUrl をそのまま使える。
+ * 取り込んだらハッシュを消す：アドレスバーにトークンを残さないためと、
+ * リロードで期限切れのトークンを再適用させないため
+ */
+async function consumeWebAuthRedirect(): Promise<void> {
+  if (!window.location.hash.includes('access_token')) {
+    return;
+  }
+  try {
+    await createSessionFromUrl(window.location.href);
+  } catch {
+    // 取り込めなくてもここでは何も出さない。セッションが無いままなら AuthGate が
+    // onboarding に戻し、ユーザーはもう一度ログインを押せる
+  }
+  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
@@ -159,6 +185,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     void (async () => {
+      // Web は Google からページ遷移で戻ってくるので、URL のトークンを先に
+      // セッションへ変える。あとにすると getSession が null を返し、
+      // ログインできた直後の人が onboarding に弾き返される
+      if (Platform.OS === 'web') {
+        await consumeWebAuthRedirect();
+      }
       const { data } = await supabase.auth.getSession();
       if (cancelled) {
         return;
@@ -211,6 +243,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async (): Promise<SignInResult> => {
     try {
+      if (Platform.OS === 'web') {
+        // このページごと Google へ遷移させる（skipBrowserRedirect を付けない）。
+        // WebBrowser.openAuthSessionAsync の別窓方式にしないのは、iPhone Safari の
+        // ポップアップブロックに当たると「押しても何も起きない」になり、
+        // シニアの書き手には原因も対処も分からないため
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: window.location.origin },
+        });
+        if (error) {
+          return {
+            status: 'error',
+            message: 'ログインの じゅんびが できませんでした。もういちど ためしてください。',
+          };
+        }
+        // ここから先はページが遷移する。戻り値は使われないので dismissed 扱い
+        // （呼び出し側は dismissed で何も表示しない）
+        return { status: 'dismissed' };
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo, skipBrowserRedirect: true },
