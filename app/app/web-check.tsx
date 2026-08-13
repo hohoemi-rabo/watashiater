@@ -53,22 +53,53 @@ const MIME_CANDIDATES = [
 const TARGET_MIME = 'audio/mp4';
 
 /**
- * 経路A のオプション。expo-audio の Web 実装（AudioModule.web.js の createMediaRecorder）は
- * 型に定義された `options.web.mimeType` ではなく **トップレベルの `options.mimeType`** を読む。
- * 型に無い項目なのでキャストで渡し、「これで audio/mp4 を強制できるか」をこの画面で確かめる。
- * 既定のままだと HIGH_QUALITY.web.mimeType = 'audio/webm' が使われる＝Chrome で webm になる
+ * 録りたい形式の優先順。**コーデックまで書く**のが要点：
+ * `audio/mp4` とだけ指定すると Chrome は MP4 コンテナに **Opus** を入れる
+ * （実測: recorder.mimeType = 'audio/mp4;codecs=opus'）。REQUIREMENTS §4.2 は AAC 指定だし、
+ * Safari は MP4 in Opus を再生できない見込みなので、AAC（mp4a.40.2）を先に要求する。
+ * なお docs/24 の事前調査時点の Chromium は mp4a.40.2 が false だったが、
+ * Chrome 151 では true になっている（＝ブラウザ側が追いついた）
  */
-const RECORDER_A_OPTIONS = {
+const MIME_PREFERENCE = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4'];
+
+/** このブラウザで実際に使える録音形式。どれも使えなければ null（＝録音させない） */
+function pickMimeType(): string | null {
+  if (typeof MediaRecorder === 'undefined') {
+    return null;
+  }
+  return MIME_PREFERENCE.find((mime) => MediaRecorder.isTypeSupported(mime)) ?? null;
+}
+
+/**
+ * 経路A のオプション。`web: { mimeType }` が正しい指定場所：
+ * `useAudioRecorder` は `createRecordingOptions()`（utils/options.js）を通してから
+ * recorder を作り、その関数が **`options.web` をトップレベルへ展開する**。
+ * だから `createMediaRecorder` が読む `options.mimeType` の実体は `options.web.mimeType` で、
+ * トップレベルに直接置いた mimeType は展開の対象外なので捨てられる。
+ * 既定のままだと HIGH_QUALITY.web.mimeType = 'audio/webm' が使われる＝Chrome で webm になる
+ * （実測ずみ）。bitRate はトップレベルに残す（web では audioBitsPerSecond になる）
+ */
+const RECORDER_A_OPTIONS: RecordingOptions = {
   ...RecordingPresets.HIGH_QUALITY,
   numberOfChannels: 1,
   bitRate: 64000,
-  mimeType: TARGET_MIME,
-} as RecordingOptions;
+  web: { mimeType: pickMimeType() ?? undefined },
+};
 
 type AnswerRow = { id: string; custom_title: string | null; body_text: string };
 
 function formatBytes(bytes: number): string {
   return `${bytes.toLocaleString()} バイト（${(bytes / 1024 / 1024).toFixed(2)} MB）`;
+}
+
+/** blob: URL の画像の実寸を測る（compressPhoto は寸法を返さないので長辺1600px の確認用） */
+function measureImage(uri: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const image = new window.Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => resolve({ width: 0, height: 0 });
+    image.src = uri;
+  });
 }
 
 export default function WebCheckScreen() {
@@ -141,6 +172,7 @@ function WebProbes() {
     for (const mime of MIME_CANDIDATES) {
       append(`isTypeSupported(${mime}) = ${MediaRecorder.isTypeSupported(mime)}`);
     }
+    append(`このブラウザで使う形式 = ${pickMimeType() ?? 'なし（録音させない）'}`);
     // 「画面を開いただけ」でマイク許可を求めていないことを、この行が出た時点で目視確認する
     append('--- ここまでは許可ダイアログを出していない ---');
   }, [append]);
@@ -182,7 +214,9 @@ function WebProbes() {
     try {
       await recorderA.prepareToRecordAsync();
       recorderA.record({ forDuration: RECORDING_MAX_SEC });
-      append(`A: 録音開始（forDuration=${RECORDING_MAX_SEC}秒）`);
+      append(
+        `A: 録音開始（web.mimeType=${RECORDER_A_OPTIONS.web?.mimeType ?? 'なし'} / forDuration=${RECORDING_MAX_SEC}秒）`,
+      );
     } catch (error) {
       append(`A: 録音を開始できない: ${String(error)}`);
     }
@@ -215,10 +249,10 @@ function WebProbes() {
   const startB = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // コーデックまで書くと Chromium が弾く（docs/24 事前調査）ので mimeType はコンテナまで
-      const supported = MediaRecorder.isTypeSupported(TARGET_MIME);
+      // コーデックまで指定する。コンテナだけだと Chrome が MP4 に Opus を入れてしまう
+      const chosen = pickMimeType();
       const recorder = new MediaRecorder(stream, {
-        ...(supported ? { mimeType: TARGET_MIME } : {}),
+        ...(chosen ? { mimeType: chosen } : {}),
         audioBitsPerSecond: 64000,
       });
       chunksRef.current = [];
@@ -239,7 +273,7 @@ function WebProbes() {
       startedAtRef.current = Date.now();
       recorder.start();
       setRecordingB(true);
-      append(`B: 録音開始（mimeType 指定=${supported ? TARGET_MIME : 'ブラウザ既定にまかせた'}）`);
+      append(`B: 録音開始（mimeType 指定=${chosen ?? 'なし＝ブラウザ既定にまかせた'}）`);
       // 3分上限。native の forDuration に相当する保険
       window.setTimeout(() => {
         if (mediaRecorderRef.current?.state === 'recording') {
@@ -299,7 +333,11 @@ function WebProbes() {
 
       const compressed = await compressPhoto(original);
       const blob = await (await fetch(compressed.uri)).blob();
-      append(`写真: 圧縮後 ${blob.type} / ${formatBytes(blob.size)}`);
+      const size = await measureImage(compressed.uri);
+      // REQUIREMENTS §4.2 の規格は「長辺1600px・JPEG品質80」。長辺が 1600 を超えていたら圧縮が効いていない
+      append(
+        `写真: 圧縮後 ${size.width}x${size.height} / ${blob.type} / ${formatBytes(blob.size)}（長辺=${Math.max(size.width, size.height)}）`,
+      );
       if (blob.type !== 'image/jpeg') {
         append('写真: JPEG になっていない（worker は image/jpeg 固定で配信するので要対処）');
       }
