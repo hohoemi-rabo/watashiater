@@ -21,6 +21,9 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# Vercel（書き手Web のデプロイ。ローカルのリンク情報なのでコミットしない）
+.vercel
+
 # debug
 npm-debug.*
 yarn-debug.*

@@ -35,9 +35,10 @@
 		"SUPABASE_URL": "https://shqkwdxpjnfnctatukqn.supabase.co",
 		// CORS の許可オリジン（カンマ区切り・完全一致。チケット24。設計は src/cors.ts）。
 		// 書き手Web（PWA）だけがブラウザから直接この worker を叩く。
-		// localhost:8081 は Expo Web の開発サーバー。プレビューデプロイを使うときは
-		// そのオリジンもここに足すこと（ワイルドカードは実装していない）
-		"ALLOWED_ORIGINS": "http://localhost:8081"
+		// localhost:8081 は Expo Web の開発サーバー、watashiater-app は書き手Web の本番
+		// （Vercel プロジェクト watashiater-app。閲覧Web の watashiater とは別）。
+		// プレビューデプロイを使うときはそのオリジンもここに足すこと（ワイルドカードは実装していない）
+		"ALLOWED_ORIGINS": "http://localhost:8081,https://watashiater-app.vercel.app"
 	}
 	/**
 	 * Smart Placement
