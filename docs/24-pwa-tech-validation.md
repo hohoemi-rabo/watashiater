@@ -1,6 +1,6 @@
 # 24. 書き手Web（PWA）：技術検証（録音・写真・ログイン）
 
-- ステータス: 進行中（検証の足場は用意ずみ。実機での計測待ち）
+- ステータス: 完了
 - 参照: REQUIREMENTS.md §3.7 / §4.2（写真圧縮規格） / docs/00（検証チケットのやり方）
 - 依存: 21（録音の再生確認に閲覧Webを使う）
 
@@ -11,11 +11,11 @@ PWA 化の前提となる3つの未知（録音形式・写真の選択と圧縮
 
 ## Todo
 
-- [ ] 録音：`MediaRecorder`（`audio/mp4`）で録音 → worker の署名URLへ PUT → 閲覧Web `/w/[slug]` で再生、を **PC Chrome と iPhone Safari の両方**で通す。worker の `.m4a`/`audio/mp4` 固定を変えずに済むかを確定する
-- [ ] 録音の3分上限（`forDuration` 相当の自動停止）と、3分録ったときのサイズ感を確認
-- [ ] 写真：`expo-image-picker` / `expo-image-manipulator` が Web でどこまで動くか確認。不足なら `<input type="file">`＋Canvas（長辺1600px / JPEG品質80）の方式を確定
-- [ ] ログイン：`signInWithOAuth` を Web のリダイレクト（`http://localhost:8081` → 本番 `https://`）で通す（Supabase の Redirect URLs 追加はユーザー作業。該当箇所に来たら依頼する）
-- [ ] 主要画面（ホーム・お題一覧・回答・ギャラリー・じぶん史・共有・せってい）の RN Web 描画をざっと確認し、崩れ・操作不能の箇所を洗い出してメモに列挙する
+- [x] 録音：`MediaRecorder`（`audio/mp4`）で録音 → worker の署名URLへ PUT → 閲覧Web `/w/[slug]` で再生、を **PC Chrome と iPhone Safari の両方**で通す。worker の `.m4a`/`audio/mp4` 固定を変えずに済むかを確定する
+- [x] 録音の3分上限（`forDuration` 相当の自動停止）と、3分録ったときのサイズ感を確認
+- [x] 写真：`expo-image-picker` / `expo-image-manipulator` が Web でどこまで動くか確認。不足なら `<input type="file">`＋Canvas（長辺1600px / JPEG品質80）の方式を確定
+- [x] ログイン：`signInWithOAuth` を Web のリダイレクト（`http://localhost:8081` → 本番 `https://`）で通す（Supabase の Redirect URLs 追加はユーザー作業。該当箇所に来たら依頼する）
+- [x] 主要画面（ホーム・お題一覧・回答・ギャラリー・じぶん史・共有・せってい）の RN Web 描画をざっと確認し、崩れ・操作不能の箇所を洗い出してメモに列挙する
 
 ## 完了条件
 
@@ -249,3 +249,39 @@ DB・R2 を変えない」は**成立すると確認できた**（残るは iPho
 `fetch(uploadUrl, { method:'PUT', body: blob })` で 200。Blob を body にすると
 Content-Length が自動で付くので worker の 411 は出ない。CORS も通った
 （worker の allowlist に `https://watashiater-app.vercel.app` を登録ずみ）。
+
+#### 3分の自動停止・画面の描画
+
+- **3分の自動停止は効く**（iPhone Safari で確認）。Web の `forDuration` は setTimeout 実装で、
+  ネイティブの `record({ forDuration })` と同じ書き方のまま動く
+- 3分ぶんのサイズは短時間サンプルからの外挿：**iOS Safari 約 1.5MB / Chrome 約 2.3MB**。
+  docs/00 で「短時間サンプルの外挿は3分実測と 0.5% 以内で一致する」ことを確認しているので、
+  この見積もりで足りる（worker の上限 10MB に対して十分な余裕）
+- **主要画面の RN Web 描画に崩れ・操作不能は見つからなかった**（PC Chrome・iPhone Safari）。
+  ホーム／お題一覧／回答／ギャラリー（ならべかえ含む）／じぶん史／みんなに見せる／せってい。
+  reanimated・gesture-handler・react-native-svg も込みで動いている
+
+#### iPhone のマイク許可ダイアログのタイミング（未計測。ただし結論は変わらない）
+
+iPhone では出たタイミングを控えられなかったが、**追加の計測は不要**と判断した：
+
+- PC で「回答画面を開いた瞬間に出る」ことは確認ずみ
+- Safari は Permissions API の `microphone` に未対応なので、`getRecordingPermissionsAsync()` は
+  **必ず** `requestRecordingPermissionsAsync()`＝`getUserMedia` に落ちる（コード上、例外がない）
+- どちらの経路でも 26 の対処は同じ（起動時に許可を確認しない）
+
+## 結論（25・26 への申し送り）
+
+| 決めたこと | 内容 |
+|---|---|
+| 録音形式 | **`audio/mp4;codecs=mp4a.40.2`（コーデックまで明示）**。Chrome 151・iOS Safari 26.6 の両方で true。コンテナだけの指定は Chrome が Opus を選ぶので**禁止** |
+| 録音の実装 | **expo-audio の Web recorder をそのまま使う**（Web 専用の録音実装は作らない）。指定は `web: { mimeType }` に置く |
+| 写真 | **`lib/photo-attach.ts` は変更不要**。iPhone も JPEG で入り、長辺1600px になる |
+| アップロード | `putObject` を Web で `fetch(uploadUrl, { method:'PUT', body: blob })` に差し替える（`FileSystem.uploadAsync` は Web に無い） |
+| ログイン | ページごとリダイレクト。24 で実装ずみ（`auth-context.tsx`） |
+| マイク許可 | 起動時に確認しない形へ作り直す（26） |
+| 波形 | Web に `metering` が無い。代替を 26 で判断する |
+| worker / DB / R2 / 閲覧Web / Android | **すべて変更不要**（CORS だけは 24 で追加ずみ） |
+
+REQUIREMENTS §3.7 の前提「録音は audio/mp4 に統一し、Worker の `.m4a`/`audio/mp4` 固定・
+DB・R2 を変えない」は**成立する**ことが実機で確認できた。
