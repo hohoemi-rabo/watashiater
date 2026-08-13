@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /*
+   * DESIGN.md §3：背景は常に sky-top → sky-bottom の縦グラデーション（全画面共通・閲覧Webも同じ）。
+   * DESIGN.md §4：本文は Noto Sans JP、文字色は stage-navy（真っ黒 #000 は使わない）。
+   * 色・フォントの実体は tailwind.config.js のトークンから引く（生値のハードコード禁止）。
+   */
+  html {
+    @apply bg-sky-bottom;
+  }
+
+  body {
+    @apply min-h-screen bg-sky font-body text-stage-navy;
+  }
+}
