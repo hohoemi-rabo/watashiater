@@ -197,7 +197,11 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
   - **フォント（チケット25 で確定）**：ネイティブは `lib/app-fonts.ts` が TTF を持ち、Web は `lib/app-fonts.web.ts`（空マップ）＋`public/fonts/fonts.css` の `@font-face`。**`.web.ts` でファイルごと分けること**（`Platform.OS` 分岐では import が残って Metro が TTF を Web バンドルに入れてしまう）。CSS は `scripts/gen-web-fonts.mjs` が Google Fonts の CSS から生成（書体名を `tokens.ts` に合わせるだけ・実体は gstatic・unicode-range で使う文字の分だけ落ちる）。ネイティブ側は**必ずウェイトのサブパスから import**（ルート import は全19ウェイト106MB）
   - **`public/` が Web の静的ファイル置き場**（出力ルートへそのままコピーされる）：`index.html`（HTML シェル）・`manifest.json`・`sw.js`・`fonts/`・`icons/`。`public/index.html` は Expo の既定テンプレートを差し替え、html の lang と title のプレースホルダーが `app.json` の `web.lang` / `web.name` で置換される。**置換は最初の1件だけなので、プレースホルダーの綴りをコメント等に書かないこと**。`viewport-fit=cover` は付けない（iOS が自動でセーフエリア内に収める。付けると `SkyBackground` と二重になる）
   - **Service Worker は殻だけ**。`url.origin !== self.location.origin` なら何もしない＝これが「署名URLをキャッシュしない」担保（URL の除外リストにしない）。画面の読み込みは network-first（cache-first だと新デプロイが反映されない）。`vercel.json` で `/sw.js` に `must-revalidate` を付ける（無いと SW を更新できない）。ユーザーデータのオフラインは `lib/offline-cache.ts` の担当
-  - アイコンは `scripts/gen-icons.mjs` の**仮アイコン**（依存なし・決定的生成）。本番アイコンとネイティブの `assets/images/icon.png` はチケット23
+  - アイコンは `scripts/gen-icons.mjs` の**仮アイコン**（依存なし・決定的生成。チケット28で「幕の開いた舞台」構図＋新パレットに刷新済み）。本番アイコンとネイティブの `assets/images/icon.png` はチケット23
+- **チケット23（Google Play リリース準備）＝最後の未完了チケットの着手点**：
+  - **本番アイコン・スプラッシュはチケット28の新パレット**（桜〜ラベンダー〜空色の空・ローズ→紫の幕。DESIGN v1.1）で作る。仮アイコンの `scripts/gen-icons.mjs` は SIZES に 1024 を足せばそのまま流用できる（スクリプト冒頭コメント参照）。**未差し替えの Expo テンプレ生成物**＝`assets/images/icon.png`・`android-icon-foreground/background/monochrome.png`・`splash-icon.png`（`app.json` の adaptiveIcon backgroundColor は #FFE4F1 に更新済み）
+  - **リリースビルドで初めて必要になるもの**：Google OAuth の **Android 用クライアント**（Expo Go 開発では不要のまま来た。上の「認証」参照）／Expo Go では最終確認にならなかった項目の実機確認（マイク許可の文言＝config plugin・`Linking.openSettings()`。docs/00 メモ）
+  - ビルドは **EAS Build**（この開発機＝WSL2 に Android SDK なし）。ストア掲載文は REQUIREMENTS §1.1 の**禁止語彙（葬送系）**に注意。Google Play Console の操作はユーザーに依頼して結果を待つ
 
 ## 音声入力の方針（チケット22で確定・再検討しない）
 
