@@ -61,7 +61,7 @@ npm run deploy                # wrangler deploy
 
 実装は `docs/` の連番チケットに沿って進める。**番号順＝実装順**（一覧は docs/README.md）。
 
-- **セッション開始時**：docs/README.md と各チケット冒頭のステータス行で現在地を確認し、番号が最小の未完了チケットから着手する（**README に実装順の例外が書かれていればそちらを優先**。現在は 24〜27（書き手Web/PWA）を 22・23 より先に実装する）
+- **セッション開始時**：docs/README.md と各チケット冒頭のステータス行で現在地を確認し、番号が最小の未完了チケットから着手する（**README に実装順の例外が書かれていればそちらを優先**。書き手Web/PWA（24〜27）は完了済みで、残りは 22 → 23 の番号順）
 - 着手前に、チケットの「参照」が指す REQUIREMENTS.md / DESIGN.md の該当節を必ず読む
 - 各チケットの Todo は `- [ ]` で管理し、**完了したら `- [x]` に書き換える**。ファイル冒頭のステータス行（未着手／進行中／完了）も随時更新する
 - 仕様をチケットに書き写さない。REQUIREMENTS.md / DESIGN.md が唯一の情報源（チケットは参照＋Todo＋完了条件のみ）
@@ -181,7 +181,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 - **オフライン（チケット19）**：`lib/offline-cache.ts`（AsyncStorage・`wt:v1:` 接頭辞）＋`lib/use-online.ts`（`useIsOnline()`。`isConnected === false` のときだけオフライン扱い）＋`components/offline-note.tsx`。**フックの契約＝error を立てるのは見せるものが何一つ無いときだけ**（キャッシュがあれば error は null のまま＝画面の `!error` ゲートを書き換えない）。キャッシュ水和は通信より先（postgrest の GET リトライ待ちを隠す）。**自分の博物館だけ**キャッシュ（家族分は残さない）。写真の閲覧URLは「署名URLをキャッシュしない」原則の唯一の例外（expo-image が `cacheKey` でディスクを引くため。声はオンライン前提）。書き込みは `useIsOnline()` で無効化＋案内。ログアウト・アカウント削除で全消し
 - **閲覧Web基盤（チケット20）**：`web/lib/supabase-server.ts`（`server-only`＋素の PostgREST fetch。`@supabase/supabase-js` は使わない・secret キーは apikey ヘッダーのみ）＋`web/lib/museum.ts`（`getMuseumBySlug()`。**認可は `view_links?slug=…&is_active=is.true` の1行に集約**し、得た subject_id 以外は読まない。slug 形式は `/^[a-z2-7]{16}$/` で DB 照会前に検証。React `cache()` でメモ化するが**署名URLは含めない**）＋`web/lib/worker-api.ts`（Authorization なし・失敗しても `{}` を返して本文は読ませる）。写真は `next/image` を使わず素の `<img>`（署名URLは毎回変わる）。`/` はページを置かない＝404。404/エラーの受け皿は `app/not-found.tsx`・`app/error.tsx` で自前。next/font の `subsets` は**プリロード対象の選択にしか効かず**日本語グリフは自前ホストされる（`['latin']` でよい。docs/20 メモ）
 - **閲覧WebのUI（チケット21）**：`web/lib/board-layout.ts` は `app/lib/board-layout.ts` の**逐語コピー**（`diff` がヘッダーだけになる状態を保つ。片方を直したら必ず両方）。**座標契約は CSS だけで満たす**（JS で測らない）＝ボード `aspect-ratio: 1/H`・ポラロイド `width: 42%`・`left: x*100%` / `top: (y/H)*100%` ＋ `translate(-50%,-50%) rotate(Ndeg)`。配置計算はサーバー側で確定させてクライアントに数値だけ渡す。開幕（`components/curtain.tsx`）の非表示2経路（既読・reduced-motion）は**CSS だけ**で閉じ、既読判定は描画前のインラインスクリプトが `<html data-curtain>` を立てる（JS で後から消すと赤画面が1フレーム出る／`<html>` に `suppressHydrationWarning` が要る）。演目札の切り欠きは CSS マスク（影は外側の要素に持たせる）。**自動再生は拒否されうる**ので `play()` の reject を「声を聞く」ボタンに落とす。署名URL失効からの復帰は `router.refresh()`。本番は Vercel プロジェクト `watashiater`（Root Directory = `web/`。環境変数3つを Production/Preview に登録済み）
-- **書き手Web/PWA（チケット24〜26 完了。次は27＝iPhone 通し確認。仕様は REQUIREMENTS §3.7）**：方針＝**worker・DB・閲覧Web・Android の挙動は変えない**（Web で動くときだけ通る道を横に足す）。プラットフォーム分岐の形は次の順で決める：
+- **書き手Web/PWA（チケット24〜27 完了。仕様は REQUIREMENTS §3.7）**：方針＝**worker・DB・閲覧Web・Android の挙動は変えない**（Web で動くときだけ通る道を横に足す）。プラットフォーム分岐の形は次の順で決める：
   1. **読み込むモジュール自体が違うなら `.web.ts` でファイルごと分ける**（`Platform.OS` 分岐では import 文が残り、Metro が不要な資産を Web バンドルに入れてしまう。`lib/app-fonts.ts` / `.web.ts` が実例）
   2. **共通部分が支配的で、分かれるのが処理の一部だけなら `Platform.OS === 'web'`**（`lib/auth-context.tsx` が実例。丸ごと複製すると片方だけ直る事故になる）
   3. どちらの場合も**判断の理由をコードコメントに残す**
@@ -193,6 +193,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
   - Web でそのまま動くもの：`lib/photo-attach.ts`（`pickPhotos`・`compressPhoto`。iPhone の写真も JPEG で入り長辺1600pxになる）／`forDuration` の3分自動停止
   - **worker には CORS がある**（`worker/src/cors.ts`。チケット24 で追加）。許可オリジンは `wrangler.jsonc` の `vars.ALLOWED_ORIGINS` にカンマ区切り**完全一致**で列挙する。ブラウザから叩くオリジンを増やしたらここに足すこと（ワイルドカード非対応）
   - **Supabase の URL Configuration**：Redirect URLs に書き手Web の URL を**末尾スラッシュ無し**で登録する（アプリは `window.location.origin` を渡す）。Site URL を既定の `http://localhost:3000` のままにしない（許可外の `redirect_to` は黙ってここへ飛び、原因の読めない「アクセスできません」になる）
+  - **iOS の standalone（ホーム画面から起動）は Safari とログインセッション・マイク許可を共有しない**（チケット27 実機検証）：初回だけ再ログインが要り、以後は再起動してもログイン維持。「ホーム画面に追加」の案内は `components/add-to-home-guide.tsx`（native は null スタブ）/ `.web.tsx`（iPhone Safari のみ表示・standalone では非表示。再ログインの一文入り）で onboarding に表示
   - **フォント（チケット25 で確定）**：ネイティブは `lib/app-fonts.ts` が TTF を持ち、Web は `lib/app-fonts.web.ts`（空マップ）＋`public/fonts/fonts.css` の `@font-face`。**`.web.ts` でファイルごと分けること**（`Platform.OS` 分岐では import が残って Metro が TTF を Web バンドルに入れてしまう）。CSS は `scripts/gen-web-fonts.mjs` が Google Fonts の CSS から生成（書体名を `tokens.ts` に合わせるだけ・実体は gstatic・unicode-range で使う文字の分だけ落ちる）。ネイティブ側は**必ずウェイトのサブパスから import**（ルート import は全19ウェイト106MB）
   - **`public/` が Web の静的ファイル置き場**（出力ルートへそのままコピーされる）：`index.html`（HTML シェル）・`manifest.json`・`sw.js`・`fonts/`・`icons/`。`public/index.html` は Expo の既定テンプレートを差し替え、html の lang と title のプレースホルダーが `app.json` の `web.lang` / `web.name` で置換される。**置換は最初の1件だけなので、プレースホルダーの綴りをコメント等に書かないこと**。`viewport-fit=cover` は付けない（iOS が自動でセーフエリア内に収める。付けると `SkyBackground` と二重になる）
   - **Service Worker は殻だけ**。`url.origin !== self.location.origin` なら何もしない＝これが「署名URLをキャッシュしない」担保（URL の除外リストにしない）。画面の読み込みは network-first（cache-first だと新デプロイが反映されない）。`vercel.json` で `/sw.js` に `must-revalidate` を付ける（無いと SW を更新できない）。ユーザーデータのオフラインは `lib/offline-cache.ts` の担当
