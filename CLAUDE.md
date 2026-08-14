@@ -61,7 +61,7 @@ npm run deploy                # wrangler deploy
 
 実装は `docs/` の連番チケットに沿って進める。**番号順＝実装順**（一覧は docs/README.md）。
 
-- **セッション開始時**：docs/README.md と各チケット冒頭のステータス行で現在地を確認し、番号が最小の未完了チケットから着手する（**README に実装順の例外が書かれていればそちらを優先**。書き手Web/PWA（24〜27）と 22 は完了済みで、残りは 23＝Google Play リリース準備のみ）
+- **セッション開始時**：docs/README.md と各チケット冒頭のステータス行で現在地を確認し、番号が最小の未完了チケットから着手する（**README に実装順の例外が書かれていればそちらを優先**。28＝デザイン刷新まで完了済みで、残りは 23＝Google Play リリース準備のみ）
 - 着手前に、チケットの「参照」が指す REQUIREMENTS.md / DESIGN.md の該当節を必ず読む
 - 各チケットの Todo は `- [ ]` で管理し、**完了したら `- [x]` に書き換える**。ファイル冒頭のステータス行（未着手／進行中／完了）も随時更新する
 - 仕様をチケットに書き写さない。REQUIREMENTS.md / DESIGN.md が唯一の情報源（チケットは参照＋Todo＋完了条件のみ）
@@ -113,7 +113,7 @@ npm run deploy                # wrangler deploy
 - app: `app/constants/tokens.ts`
 - web: `web/tailwind.config.js` の `theme.extend`
 
-DESIGN.md の色8・影3・フォント3・サイズ表を定数化してある。生値のハードコード禁止。片方を変えたら必ずもう片方も合わせる（フォントサイズのスケールだけは DESIGN.md §4 の指定でアプリと Web が意図的に別）。
+DESIGN.md の色（チケット28で桜〜ラベンダー〜空色の3色背景＋影の紫に刷新。基本9色＋補助）・影3・フォント3・サイズ表を定数化してある。生値のハードコード禁止。片方を変えたら必ずもう片方も合わせる（フォントサイズのスケールだけは DESIGN.md §4 の指定でアプリと Web が意図的に別）。背景グラデの実体は app が `components/sky-background.tsx`（`SKY_GRADIENT` を export。story 画面が幕演出の都合で直接使う）、web が `tailwind.config.js` の `backgroundImage.sky`。
 
 ---
 
