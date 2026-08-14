@@ -18,3 +18,6 @@ node_modules/
 
 # MCP設定（SUPABASE_ACCESS_TOKEN が平文で含まれるためコミット禁止）
 .mcp.json
+
+# デザイン参考資料（ローカル専用・コミットしない。docs/28）
+design/
