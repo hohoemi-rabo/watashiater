@@ -11,6 +11,10 @@
  *
  * 色の規律：curtain-red はこの画面ではフッターの保存ボタン専用なのでカード内は白ボタンのみ。
  * 波形の spot-yellow は DESIGN §7 の指定（metering 実データ駆動＝装飾の常時ループに該当しない）
+ *
+ * Web 対応（チケット26）は Platform.OS 分岐（CLAUDE.md の分岐基準2）：このファイルの大半は
+ * プラットフォーム共通で、違うのは許可の取り方・波形のレベル源・blocked 画面だけ。
+ * ファイルごと複製すると停止3経路などの機微が片方だけ直る事故になるため、差分を分岐で埋める
  */
 import {
   AudioModule,
@@ -24,13 +28,22 @@ import {
 } from 'expo-audio';
 import { Check, Mic, Pause, Play, RotateCcw, Square, Trash2 } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Linking, Pressable, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  AppState,
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
 import { SecondaryButton } from '@/components/secondary-button';
 import { colors, spacing } from '@/constants/tokens';
+import { micLevelMeter } from '@/lib/mic-level';
 import {
   RECORDING_HARD_CAP_SEC,
   RECORDING_MAX_SEC,
@@ -52,6 +65,15 @@ const RECORDING_OPTIONS = {
   numberOfChannels: 1,
   bitRate: 64000,
   isMeteringEnabled: true,
+  // Web の録音形式（チケット26。docs/24 で Chrome 151・iOS Safari 26.6 実測）。
+  // - web: に置く理由：useAudioRecorder は createRecordingOptions() で options.web を
+  //   トップレベルへ展開する。トップレベルに書くと黙って捨てられ既定の audio/webm になる
+  // - コーデックまで明示する理由：'audio/mp4' だけだと Chrome が Opus を選び
+  //   AAC 要件（REQUIREMENTS §4.2）に反する
+  // - bitsPerSecond を書かない理由：web.bitsPerSecond はトップレベルの bitRate より
+  //   優先される。プリセットの web（audio/webm・128kbps）をこのオブジェクトごと潰し、
+  //   bitRate: 64000 を効かせる（1ch/64kbps は docs/24 の実測済み構成）
+  web: { mimeType: 'audio/mp4;codecs=mp4a.40.2' },
 };
 
 /** 残り時間表示と波形の更新間隔（ms）。useAudioRecorderState はマウント時の値で固定される */
@@ -123,7 +145,10 @@ export function RecordingBox({
   onPhaseChange,
   offline,
 }: RecordingBoxProps) {
-  const [phase, setPhase] = useState<RecordingBoxPhase>('checking');
+  // Web は 'idle' 始まり：許可状態を静かに確認する手段が無い（refreshPermission 参照）
+  const [phase, setPhase] = useState<RecordingBoxPhase>(
+    Platform.OS === 'web' ? 'idle' : 'checking',
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [localUri, setLocalUri] = useState<string | null>(null);
@@ -181,6 +206,8 @@ export function RecordingBox({
       } catch {
         // native が forDuration で自動停止済みの場合 stop() は失敗しうる。url があれば続行する
       }
+      // 波形のレベル取得を終了（Web のみ実体あり。native は no-op）
+      micLevelMeter.detach();
       // uri は stop() の await 後にしか確定しない
       uri = uri ?? recorder.uri;
 
@@ -213,6 +240,13 @@ export function RecordingBox({
   }, [finalize]);
 
   const refreshPermission = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      // Web の getRecordingPermissionsAsync は許可状態が確定していないと即 getUserMedia を
+      // 呼ぶ（Safari は Permissions API 未対応で常に）＝画面を開いただけで許可ダイアログが
+      // 出てしまう。Web に「静かに状態を見る」手段は無いので、マウント時（下の effect）と
+      // AppState 復帰時は何もしない。許可は録音ボタン押下時（ensurePermission）だけ求める
+      return;
+    }
     const status = await AudioModule.getRecordingPermissionsAsync();
     // 拒否が固定されている（もう聞けない）ときだけ設定アプリへ誘導する。
     // 未許可でも「もう一度きける」なら録音ボタンを出し、タップ時に許可を求める
@@ -239,9 +273,10 @@ export function RecordingBox({
     return () => subscription.remove();
   }, [refreshPermission]);
 
-  // カードを離れるときに録音モードを戻す
+  // カードを離れるときに録音モードを戻す（波形のレベル取得も道連れにする）
   useEffect(() => {
     return () => {
+      micLevelMeter.detach();
       void setAudioModeAsync({ allowsRecording: false });
     };
   }, []);
@@ -257,25 +292,46 @@ export function RecordingBox({
     }
   }, [phase, recorderState.durationMillis, finalize]);
 
-  // 波形。実データ（metering）で高さが決まるので、装飾の常時ループアニメにはしない（DESIGN §8）
+  // 波形。実データ（native: metering / web: AnalyserNode）で高さが決まるので、
+  // 装飾の常時ループアニメにはしない（DESIGN §8）。Web のレベルは render 中に読まず
+  // この effect で state に落とす（reactCompiler の下で外部可変オブジェクトを読まない規律）。
+  // 更新は useAudioRecorderState の 100ms ポーリングに相乗りする（追加タイマーを作らない）
   useEffect(() => {
     if (phase !== 'recording') {
       return;
     }
     const at = recorderState.durationMillis;
-    const level = toLevel(recorderState.metering);
+    const level = Platform.OS === 'web' ? micLevelMeter.read() : toLevel(recorderState.metering);
+    if (level === undefined) {
+      // Web で expo-audio 内部のストリームに届かなかったとき（mic-level.web.ts 参照）。
+      // バーを積まず波形領域ごと出さない（フラットな偽バーを「壊れた」と読ませない）
+      return;
+    }
     setLevels((prev) =>
       prev.at(-1)?.at === at ? prev : [...prev, { at, level }].slice(-WAVEFORM_BAR_COUNT),
     );
   }, [phase, recorderState.durationMillis, recorderState.metering]);
 
   const ensurePermission = useCallback(async () => {
-    const current = await AudioModule.getRecordingPermissionsAsync();
-    if (current.granted) {
-      return true;
+    if (Platform.OS !== 'web') {
+      const current = await AudioModule.getRecordingPermissionsAsync();
+      if (current.granted) {
+        return true;
+      }
     }
+    // Web は get を飛ばして request（=getUserMedia）1回だけにする：get は prompt 状態だと
+    // 内部で request へ落ちるため、続けて request すると1回の押下でダイアログが2回出うる。
+    // 許可済みなら getUserMedia はダイアログなしで解決するので、request 直行で困らない
     const next = await AudioModule.requestRecordingPermissionsAsync();
     if (!next.granted) {
+      if (Platform.OS === 'web') {
+        // Web の canAskAgain は成功・失敗とも true のハードコード（expo-audio の Web 実装を
+        // 実読して確認）で判定材料にならない。拒否＝ブラウザがブロックを記憶した可能性が
+        // 高いので、鍵マークからの解除案内（blocked 画面の Web 版）へ落とす
+        setPhase('blocked');
+        setErrorMessage(null);
+        return false;
+      }
       setPhase(next.canAskAgain ? 'idle' : 'blocked');
       setErrorMessage(
         next.canAskAgain
@@ -294,6 +350,9 @@ export function RecordingBox({
     if (!requireFreeTitle()) {
       return;
     }
+    // Web の波形用 AudioContext はユーザージェスチャの同期スタック内で作る必要がある
+    // （await の後だと Safari が suspended のまま戻さないことがある）。native は no-op
+    micLevelMeter.prime();
     setErrorMessage(null);
     setUploadError(null);
     const allowed = await ensurePermission();
@@ -305,6 +364,8 @@ export function RecordingBox({
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
       // stop() で MediaRecorder がリセットされるため、録音のたびに毎回よびだす
       await recorder.prepareToRecordAsync();
+      // 内部の MediaRecorder（と MediaStream）は prepare 後にしか存在しない。native は no-op
+      micLevelMeter.attach(recorder);
       finalizingRef.current = false;
       lastDurationMsRef.current = 0;
       setLevels([]);
@@ -367,7 +428,11 @@ export function RecordingBox({
     0,
     RECORDING_MAX_SEC - Math.floor(recorderState.durationMillis / 1000),
   );
-  const currentLevel = toLevel(recorderState.metering);
+  // レベル源は levels に一本化（native: metering / web: AnalyserNode。上の effect 参照）
+  const currentLevel = levels.at(-1)?.level ?? 0;
+  // Web でレベルが取れないとき（levels が空のまま）は波形領域を出さない。
+  // native は従来どおり常に出す（metering が来ない端末でも高さ最小のバーが流れる）
+  const showLevelDisplay = Platform.OS !== 'web' || levels.length > 0;
   const playing = playerStatus.playing;
 
   return (
@@ -391,13 +456,32 @@ export function RecordingBox({
           {phase === 'checking' ? <AppText>じゅんびちゅう…</AppText> : null}
 
           {phase === 'blocked' ? (
-            <>
-              <AppText variant="cardTitle">マイクが使えません</AppText>
-              <AppText>
-                スマホの設定で、このアプリの「マイク」をオンにしてください。下のボタンから設定をひらけます。
-              </AppText>
-              <SecondaryButton label="設定をひらく" onPress={() => void Linking.openSettings()} />
-            </>
+            Platform.OS === 'web' ? (
+              // Web 版：Linking.openSettings() はブラウザで機能しないので鍵マーク案内に差し替え。
+              // Web は AppState 復帰の自動回復（refreshPermission）も無いため、
+              // 「もういちど ためす」が回復経路（Safari は再試行で許可ダイアログが出なおす）
+              <>
+                <AppText variant="cardTitle">マイクが使えません</AppText>
+                <AppText>
+                  ブラウザにマイクの使用が止められています。アドレスバーの鍵マーク（iPhone
+                  は「ぁあ」→「Webサイトの設定」）からマイクを「許可」にして、もういちど
+                  ためしてください。
+                </AppText>
+                <SecondaryButton
+                  icon={Mic}
+                  label="もういちど ためす"
+                  onPress={() => void startRecording()}
+                />
+              </>
+            ) : (
+              <>
+                <AppText variant="cardTitle">マイクが使えません</AppText>
+                <AppText>
+                  スマホの設定で、このアプリの「マイク」をオンにしてください。下のボタンから設定をひらけます。
+                </AppText>
+                <SecondaryButton label="設定をひらく" onPress={() => void Linking.openSettings()} />
+              </>
+            )
           ) : null}
 
           {phase === 'idle' && !recording ? (
@@ -463,7 +547,7 @@ export function RecordingBox({
                 あと {formatDuration(remainingSec)}
               </AppText>
 
-              {reduceMotion ? (
+              {!showLevelDisplay ? null : reduceMotion ? (
                 <View style={styles.meterTrack}>
                   <View
                     style={[styles.meterFill, { width: `${Math.round(currentLevel * 100)}%` }]}
