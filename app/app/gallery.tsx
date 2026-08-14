@@ -17,7 +17,6 @@ import { Check, Hand, Undo2 } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   View,
@@ -36,6 +35,7 @@ import { PhotoLightbox } from '@/components/photo-lightbox';
 import { SecondaryButton } from '@/components/secondary-button';
 import { BOARD, resolveBoardPlacements, type BoardPlacement } from '@/lib/board-layout';
 import { colors, spacing } from '@/constants/tokens';
+import { showAlert } from '@/lib/app-alert';
 import { useAuth } from '@/lib/auth-context';
 import { resetBoardPlacements, saveBoardPlacement } from '@/lib/board-save';
 import { useBoardPhotos } from '@/lib/use-board-photos';
@@ -158,7 +158,7 @@ export default function GalleryScreen() {
   };
 
   const handleReset = () => {
-    Alert.alert('ならびを もとにもどしますか？', 'じぶんでならべた配置は もどせません。', [
+    showAlert('ならびを もとにもどしますか？', 'じぶんでならべた配置は もどせません。', [
       { text: 'やめる', style: 'cancel' },
       {
         text: 'もとにもどす',

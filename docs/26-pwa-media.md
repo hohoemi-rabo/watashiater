@@ -75,3 +75,16 @@ reduced-motion 経路の流用は**不可**だった：あちらのメーター�
 - blocked 画面の Web 版は「もういちど ためす」（→ `startRecording`）が回復経路。
   Web には AppState 復帰の自動回復（`refreshPermission`）が無い（そもそも Web では
   `refreshPermission` を early return させている＝「静かに状態を見る」手段が無いため）
+
+### 確認ダイアログが Web で出ない（本番検証で発覚 → 修正済み）
+
+- react-native-web の `Alert.alert` は **no-op**。確認が出ないままナビゲーションだけが
+  差し止められ、回答画面の離脱ガード（`usePreventRemove`）から出られなくなっていた
+  （PC Chrome で実測：録音を保存しない限り「もどる」が効かない）
+- `lib/app-alert.ts` / `.web.ts` の `showAlert`（`Alert.alert` と同シグネチャ）へ**全画面で**
+  差し替えた（answer / story / settings / family / share / gallery の6ファイル。
+  離脱ガードだけでなく、写真・声・アカウントの削除確認なども Web では全部死んでいた）。
+  Web 実装は `window.confirm` / `window.alert`。ボタン文言が OK/キャンセル固定になるため、
+  元の文言を「OK＝〜 ／ キャンセル＝〜」として本文末尾に添える
+- 契約：ボタンは最大2つ・`style:'cancel'` は1つまで。2段確認は onPress の中で
+  `showAlert` を重ねる（settings のアカウント削除が実例。Web は同期なのでそのまま動く）

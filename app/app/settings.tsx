@@ -8,7 +8,7 @@
 import { useRouter } from 'expo-router';
 import { Check, CircleHelp, LogOut, Trash2, Users } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
@@ -17,6 +17,7 @@ import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, spacing } from '@/constants/tokens';
 import { deleteAccount, updateNickname } from '@/lib/account';
+import { showAlert } from '@/lib/app-alert';
 import { useAuth } from '@/lib/auth-context';
 import { useIsOnline } from '@/lib/use-online';
 
@@ -56,7 +57,7 @@ export default function SettingsScreen() {
     const result = await deleteAccount(subject !== null);
     setDeleting(false);
     if (!result.ok) {
-      Alert.alert('削除できませんでした', result.message, [{ text: 'わかりました' }]);
+      showAlert('削除できませんでした', result.message, [{ text: 'わかりました' }]);
       return;
     }
     void signOut();
@@ -64,7 +65,7 @@ export default function SettingsScreen() {
   };
 
   const confirmDelete = () => {
-    Alert.alert(
+    showAlert(
       'アカウントを削除しますか？',
       '写真・声・じぶん史など、すべてのデータが消えます。もとにもどすことは できません。',
       [
@@ -74,7 +75,7 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: () => {
             // 最重度の破壊的操作なので確認を2段にする
-            Alert.alert(
+            showAlert(
               '本当に削除してよろしいですか？',
               '削除すると、家族も この博物館を 見られなくなります。',
               [
@@ -89,7 +90,7 @@ export default function SettingsScreen() {
   };
 
   const confirmSignOut = () => {
-    Alert.alert('ログアウトしますか？', 'また Google でログインすれば、つづきから つかえます。', [
+    showAlert('ログアウトしますか？', 'また Google でログインすれば、つづきから つかえます。', [
       { text: 'やめる', style: 'cancel' },
       {
         text: 'ログアウトする',

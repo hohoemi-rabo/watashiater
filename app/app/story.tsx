@@ -19,7 +19,6 @@ import { Check, Pencil, RotateCcw, ScrollText } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -41,6 +40,7 @@ import { OfflineNote } from '@/components/offline-note';
 import { PrimaryButton } from '@/components/primary-button';
 import { SecondaryButton } from '@/components/secondary-button';
 import { colors, fonts, fontSizes, radii, spacing } from '@/constants/tokens';
+import { showAlert } from '@/lib/app-alert';
 import { useAuth } from '@/lib/auth-context';
 import { buildLifeStoryAnswers, saveLifeStory, saveManualEdit } from '@/lib/life-story';
 import { useIsOnline } from '@/lib/use-online';
@@ -114,13 +114,13 @@ export default function StoryScreen() {
   // 離脱ガード：生成中・編集の書きかけ・未保存の生成本文があるときは「もどる」を差し止める
   usePreventRemove(generating || editDirty || unsavedBody !== null, ({ data }) => {
     if (generating) {
-      Alert.alert('じぶん史をつくっています', 'できあがるまで少しおまちください。', [
+      showAlert('じぶん史をつくっています', 'できあがるまで少しおまちください。', [
         { text: 'わかりました', style: 'cancel' },
       ]);
       return;
     }
     if (unsavedBody !== null && mode === 'view') {
-      Alert.alert('できあがったじぶん史がほぞんされていません', 'もどると消えてしまいます。', [
+      showAlert('できあがったじぶん史がほぞんされていません', 'もどると消えてしまいます。', [
         { text: 'やめる', style: 'cancel' },
         {
           text: 'ほぞんしないで もどる',
@@ -130,7 +130,7 @@ export default function StoryScreen() {
       ]);
       return;
     }
-    Alert.alert('書きなおした文章がほぞんされていません', 'もどると消えてしまいます。', [
+    showAlert('書きなおした文章がほぞんされていません', 'もどると消えてしまいます。', [
       { text: 'やめる', style: 'cancel' },
       {
         text: 'ほぞんしないで もどる',
@@ -198,7 +198,7 @@ export default function StoryScreen() {
 
   const handleRegenerate = () => {
     if (story?.edited_by_user) {
-      Alert.alert('つくりなおしますか？', '書きなおした文章は消えて、あたらしい文章に置きかわります。', [
+      showAlert('つくりなおしますか？', '書きなおした文章は消えて、あたらしい文章に置きかわります。', [
         { text: 'やめる', style: 'cancel' },
         { text: 'つくりなおす', style: 'destructive', onPress: () => void handleGenerate() },
       ]);
@@ -254,7 +254,7 @@ export default function StoryScreen() {
 
   const handleCancelEdit = () => {
     if (draft !== editInitialRef.current) {
-      Alert.alert('書きなおした文章がほぞんされていません', 'やめると消えてしまいます。', [
+      showAlert('書きなおした文章がほぞんされていません', 'やめると消えてしまいます。', [
         { text: 'かきつづける', style: 'cancel' },
         { text: 'ほぞんしないでやめる', style: 'destructive', onPress: () => setMode('view') },
       ]);

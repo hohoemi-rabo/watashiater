@@ -9,7 +9,7 @@
  */
 import { Link2, Share2, StopCircle } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
@@ -18,6 +18,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { colors, fonts, fontSizes, spacing } from '@/constants/tokens';
+import { showAlert } from '@/lib/app-alert';
 import { useAuth } from '@/lib/auth-context';
 import { createInviteCode } from '@/lib/invite';
 import { useIsOnline } from '@/lib/use-online';
@@ -103,7 +104,7 @@ export default function ShareScreen() {
     if (!viewLink) {
       return;
     }
-    Alert.alert('リンクを止めますか？', 'このリンクでは 見られなくなります。もういちど つくると、あたらしいリンクに なります。', [
+    showAlert('リンクを止めますか？', 'このリンクでは 見られなくなります。もういちど つくると、あたらしいリンクに なります。', [
       { text: 'やめる', style: 'cancel' },
       {
         text: '止める',

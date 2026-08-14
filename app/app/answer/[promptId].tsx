@@ -28,7 +28,6 @@ import { Check, Keyboard, Mic } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -46,6 +45,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { RecordingBox, type RecordingBoxPhase } from '@/components/recording-box';
 import { SkyBackground } from '@/components/sky-background';
 import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, shadows, spacing } from '@/constants/tokens';
+import { showAlert } from '@/lib/app-alert';
 import { useAuth } from '@/lib/auth-context';
 import {
   PHOTO_MAX_PER_ANSWER,
@@ -153,25 +153,25 @@ export default function AnswerScreen() {
   // 書きかけ保護：未保存の変更・各アップロード・録音中は「もどる」を差し止める
   usePreventRemove(dirty || uploading || recBusy, ({ data }) => {
     if (recPhase === 'recording') {
-      Alert.alert('録音しています', '「とめる」を おしてから おもどりください。', [
+      showAlert('録音しています', '「とめる」を おしてから おもどりください。', [
         { text: 'わかりました', style: 'cancel' },
       ]);
       return;
     }
     if (recPhase === 'uploading') {
-      Alert.alert('声を のこしています', 'おわるまで すこし おまちください。', [
+      showAlert('声を のこしています', 'おわるまで すこし おまちください。', [
         { text: 'わかりました', style: 'cancel' },
       ]);
       return;
     }
     if (uploading) {
-      Alert.alert('写真をのせています', 'おわるまで すこし おまちください。', [
+      showAlert('写真をのせています', 'おわるまで すこし おまちください。', [
         { text: 'わかりました', style: 'cancel' },
       ]);
       return;
     }
     if (recPhase === 'preview') {
-      Alert.alert('ろくおんした声を まだ のこしていません', 'もどると きえてしまいます。', [
+      showAlert('ろくおんした声を まだ のこしていません', 'もどると きえてしまいます。', [
         { text: 'やめる', style: 'cancel' },
         {
           text: 'のこさないで もどる',
@@ -181,7 +181,7 @@ export default function AnswerScreen() {
       ]);
       return;
     }
-    Alert.alert('かきかけの ぶんしょうが ほぞんされていません', 'もどると きえてしまいます。', [
+    showAlert('かきかけの ぶんしょうが ほぞんされていません', 'もどると きえてしまいます。', [
       { text: 'やめる', style: 'cancel' },
       {
         text: 'ほぞんしないで もどる',
@@ -211,7 +211,7 @@ export default function AnswerScreen() {
     if (!isFree || answerId !== null || trimmedTitle.length > 0) {
       return true;
     }
-    Alert.alert(
+    showAlert(
       'さきに お題のなまえを かいてください',
       kind === 'photo'
         ? 'いちばん上の「お題の なまえ」を うめると、写真をのせられます。'
@@ -436,7 +436,7 @@ export default function AnswerScreen() {
       return;
     }
     // 破壊的操作は必ず確認ダイアログ（REQUIREMENTS §4.1）
-    Alert.alert('この写真を けしますか？', 'けした写真は もどせません。', [
+    showAlert('この写真を けしますか？', 'けした写真は もどせません。', [
       { text: 'やめる', style: 'cancel' },
       {
         text: 'けす',
@@ -448,7 +448,7 @@ export default function AnswerScreen() {
               .delete()
               .eq('id', photo.id);
             if (deleteError) {
-              Alert.alert(
+              showAlert(
                 'けせませんでした',
                 'でんぱの よいところで もういちど ためしてください。',
               );
@@ -477,7 +477,7 @@ export default function AnswerScreen() {
       return;
     }
     // 破壊的操作は必ず確認ダイアログ（REQUIREMENTS §4.1）
-    Alert.alert('この声を けしますか？', 'けした声は もどせません。', [
+    showAlert('この声を けしますか？', 'けした声は もどせません。', [
       { text: 'やめる', style: 'cancel' },
       {
         text: 'けす',
@@ -486,7 +486,7 @@ export default function AnswerScreen() {
           void (async () => {
             const deleted = await deleteRecording(target.id);
             if (!deleted) {
-              Alert.alert(
+              showAlert(
                 'けせませんでした',
                 'でんぱの よいところで もういちど ためしてください。',
               );

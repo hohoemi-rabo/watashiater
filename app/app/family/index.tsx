@@ -7,7 +7,7 @@
 import { useRouter } from 'expo-router';
 import { DoorOpen, KeyRound, LogOut, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
@@ -16,6 +16,7 @@ import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { colors, spacing } from '@/constants/tokens';
 import { deleteAccount } from '@/lib/account';
+import { showAlert } from '@/lib/app-alert';
 import { useAuth } from '@/lib/auth-context';
 import { useFamilyMuseums } from '@/lib/use-family-museums';
 
@@ -31,7 +32,7 @@ export default function FamilyHubScreen() {
     const result = await deleteAccount(false);
     setDeleting(false);
     if (!result.ok) {
-      Alert.alert('削除できませんでした', result.message, [{ text: 'わかりました' }]);
+      showAlert('削除できませんでした', result.message, [{ text: 'わかりました' }]);
       return;
     }
     void signOut();
@@ -39,7 +40,7 @@ export default function FamilyHubScreen() {
   };
 
   const confirmDelete = () => {
-    Alert.alert(
+    showAlert(
       'アカウントを削除しますか？',
       'もとにもどすことは できません。',
       [
@@ -49,7 +50,7 @@ export default function FamilyHubScreen() {
           style: 'destructive',
           onPress: () => {
             // 最重度の破壊的操作なので確認を2段にする（settings と同じ）
-            Alert.alert(
+            showAlert(
               '本当に削除してよろしいですか？',
               '登録した家族の博物館は 見られなくなります。',
               [
@@ -64,7 +65,7 @@ export default function FamilyHubScreen() {
   };
 
   const confirmSignOut = () => {
-    Alert.alert('ログアウトしますか？', 'また Google でログインすれば、つづきから つかえます。', [
+    showAlert('ログアウトしますか？', 'また Google でログインすれば、つづきから つかえます。', [
       { text: 'やめる', style: 'cancel' },
       {
         text: 'ログアウトする',
