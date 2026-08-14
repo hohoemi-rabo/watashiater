@@ -3,7 +3,7 @@
  * 写真タップで拡大表示し、録音があれば本人の声を自動再生する（体験の核3）。
  *
  * 実装の判断：
- * - 背景は DIMMED_SKY＝skyTop 85% + stageNavy 15% の混色。DESIGN §7「空色を少し濃くする」・
+ * - 背景は DIMMED_SKY＝skyTop 85% + stageNavy 15% の混色。DESIGN §7「背景色を少し濃くする」・
  *   §11-4「黒背景・夜の劇場化禁止」。app-card.tsx の PAPER_TINT と同じトークン由来混色方式
  * - 閉じる＝即アンマウント（退場アニメなし）。CSS アニメには完了コールバックが無く
  *   （curtain-overlay.tsx の判断記録）、「閉じたら音声が即止まる」が完了条件そのもの。
@@ -38,8 +38,8 @@ import { MitayoButton } from '@/components/mitayo-button';
 import { SecondaryButton } from '@/components/secondary-button';
 import { colors, shadows, spacing } from '@/constants/tokens';
 
-/** skyTop(#A8DCF0) 85% + stageNavy(#2B3A55) 15% の混色（DESIGN §7「空色を少し濃くする」） */
-export const DIMMED_SKY = '#95C4D9';
+/** skyTop(#FFD6E8) 85% + stageNavy(#2B3A55) 15% の混色（DESIGN §7「背景色を少し濃くする」） */
+export const DIMMED_SKY = '#DFBFD2';
 /** 開くアニメの所要（DESIGN §8 の基準 200ms） */
 const OPEN_MS = 200;
 /** 音声読み込みの見切り（AudioStatus に error が無いための代替検知） */

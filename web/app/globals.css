@@ -4,7 +4,7 @@
 
 @layer base {
   /*
-   * DESIGN.md §3：背景は常に sky-top → sky-bottom の縦グラデーション（全画面共通・閲覧Webも同じ）。
+   * DESIGN.md §3：背景は常に sky-top → sky-mid(60%) → sky-bottom の縦グラデーション（全画面共通・閲覧Webも同じ）。
    * DESIGN.md §4：本文は Noto Sans JP、文字色は stage-navy（真っ黒 #000 は使わない）。
    * 色・フォントの実体は tailwind.config.js のトークンから引く（生値のハードコード禁止）。
    */
@@ -21,10 +21,11 @@
      * トークンの混色から導く2色。app 側も tokens.ts には足さず、使う場所の定数として
      * 持っている（app/components/app-card.tsx / photo-lightbox.tsx）。値は必ず一致させること。
      */
-    /* cardWhite(#FFFFFF) 85% + skyBottom(#FDF6E8) 15%。白カードの紙色（DESIGN §5 質感） */
-    --paper-tint: #fffefc;
-    /* skyTop(#A8DCF0) 85% + stageNavy(#2B3A55) 15%。拡大表示の背景（DESIGN §7「空色を少し濃くする」） */
-    --dimmed-sky: #95c4d9;
+    /* cardWhite(#FFFFFF) 85% + skyTop(#FFD6E8) 15%。白カードの紙色（DESIGN §5 質感。
+       チケット28で混色元を skyBottom→skyTop に変更＝紙の暖かさは桜色から取る） */
+    --paper-tint: #fff9fc;
+    /* skyTop(#FFD6E8) 85% + stageNavy(#2B3A55) 15%。拡大表示の背景（DESIGN §7「背景色を少し濃くする」） */
+    --dimmed-sky: #dfbfd2;
   }
 }
 

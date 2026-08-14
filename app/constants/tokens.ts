@@ -4,10 +4,11 @@
  * 生値のハードコード禁止。UIの色・影・フォント・サイズは必ずここから参照する。
  */
 
-/** DESIGN.md §3 カラーパレット（基本トークン8色＋規定の補助色2つ） */
+/** DESIGN.md §3 カラーパレット（基本トークン9色＋規定の補助色3つ。チケット28で刷新） */
 export const colors = {
-  skyTop: '#A8DCF0', // 背景グラデ上端（昼の空）
-  skyBottom: '#FDF6E8', // 背景グラデ下端（光のクリーム色）
+  skyTop: '#FFD6E8', // 背景グラデ上端（桜色）
+  skyMid: '#E0D4FF', // 背景グラデ中間 60%（ラベンダー）
+  skyBottom: '#C4E8FF', // 背景グラデ下端（淡い空色）
   cardWhite: '#FFFFFF', // カード面
   curtainRed: '#E0472F', // 幕の朱色。各画面で最も重要なアクション1つにだけ使う
   spotYellow: '#F5B93C', // スポットライトの黄。みたよ・達成・ハイライト（エラーには使わない）
@@ -16,6 +17,7 @@ export const colors = {
   textSoft: '#6B7280', // 補助テキスト
   errorRed: '#C0392B', // エラー・削除系（curtain-red と区別する。DESIGN.md §3）
   storyPaper: '#FBF7EF', // じぶん史ページの紙背景（DESIGN.md §4）
+  shadowPlum: '#8C3CB4', // 影専用の紫（桜系背景に青い影は濁るため。DESIGN.md §5）
 } as const;
 
 /**
@@ -26,7 +28,7 @@ export const colors = {
 export const shadows = {
   /** 置かれているカード・写真（CSS: y=2 blur=8 α=0.12） */
   rest: {
-    shadowColor: colors.stageNavy,
+    shadowColor: colors.shadowPlum,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     shadowOpacity: 0.12,
@@ -34,7 +36,7 @@ export const shadows = {
   },
   /** ボタン・タップ可能カード（CSS: y=4 blur=14 α=0.16） */
   raised: {
-    shadowColor: colors.stageNavy,
+    shadowColor: colors.shadowPlum,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 14,
     shadowOpacity: 0.16,
@@ -42,7 +44,7 @@ export const shadows = {
   },
   /** ドラッグ中の写真・モーダル（CSS: y=10 blur=28 α=0.24） */
   lifted: {
-    shadowColor: colors.stageNavy,
+    shadowColor: colors.shadowPlum,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 28,
     shadowOpacity: 0.24,

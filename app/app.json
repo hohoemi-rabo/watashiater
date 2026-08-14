@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FFE4F1",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -27,7 +27,7 @@
       "name": "ワタシアター",
       "lang": "ja",
       "description": "じぶんの博物館を つくりましょう",
-      "themeColor": "#A8DCF0"
+      "themeColor": "#FFD6E8"
     },
     "plugins": [
       "expo-router",

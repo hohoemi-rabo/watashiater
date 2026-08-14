@@ -2,9 +2,10 @@
  * 浮いている白カード（DESIGN.md §2 原則1「すべてのカードは浮いている」・§5）。
  * 「白カードには 1px の極薄ハイライト（上辺）を入れ、紙のエッジを感じさせる。
  * ベタの白矩形にしない」（§5 質感）を、
- *   1) カード地を cardWhite からごくわずかに skyBottom 側へ寄せた紙色にし、
+ *   1) カード地を cardWhite からごくわずかに skyTop（桜色）側へ寄せた紙色にし、
  *   2) 上辺に 1px の純白（cardWhite）ラインを重ねる
- * ことで実装する。紙色はトークンの混色（cardWhite 85% + skyBottom 15%）で、
+ * ことで実装する。紙色はトークンの混色（cardWhite 85% + skyTop 15%。チケット28で
+ * 混色元を skyBottom から変更＝新パレットの下端は青系なので、紙の暖かさは桜色から取る）で、
  * 生値ではなくトークン由来（DESIGN.md §12 の判断記録）。
  */
 import type { ReactNode } from 'react';
@@ -12,8 +13,8 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, radii, shadows, spacing } from '@/constants/tokens';
 
-/** cardWhite(#FFFFFF) 85% + skyBottom(#FDF6E8) 15% の混色。演目札（prompt-card）と共有 */
-export const PAPER_TINT = '#FFFEFC';
+/** cardWhite(#FFFFFF) 85% + skyTop(#FFD6E8) 15% の混色。演目札（prompt-card）と共有 */
+export const PAPER_TINT = '#FFF9FC';
 
 type AppCardProps = {
   children: ReactNode;

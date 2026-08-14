@@ -9,9 +9,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // DESIGN.md §3 基本トークン（8色）
-        'sky-top': '#A8DCF0', // 背景グラデ上端（昼の空）
-        'sky-bottom': '#FDF6E8', // 背景グラデ下端（光のクリーム色）
+        // DESIGN.md §3 基本トークン（9色。チケット28で背景を桜〜ラベンダー〜空色に刷新）
+        'sky-top': '#FFD6E8', // 背景グラデ上端（桜色）
+        'sky-mid': '#E0D4FF', // 背景グラデ中間 60%（ラベンダー）
+        'sky-bottom': '#C4E8FF', // 背景グラデ下端（淡い空色）
         'card-white': '#FFFFFF', // カード面
         'curtain-red': '#E0472F', // 幕の朱色。各画面で最も重要なアクション1つにだけ使う
         'spot-yellow': '#F5B93C', // スポットライトの黄。みたよ・達成・ハイライト（エラーには使わない）
@@ -25,9 +26,10 @@ module.exports = {
       },
       boxShadow: {
         // DESIGN.md §5 影スケール（3段階。これ以外の影を発明しない）
-        rest: '0 2px 8px rgba(43, 58, 85, 0.12)', // 置かれているカード・写真
-        raised: '0 4px 14px rgba(43, 58, 85, 0.16)', // ボタン・タップ可能カード
-        lifted: '0 10px 28px rgba(43, 58, 85, 0.24)', // ドラッグ中の写真・モーダル
+        // 影色は shadow-plum #8C3CB4（チケット28。桜系背景に青い影は濁って見えるため）
+        rest: '0 2px 8px rgba(140, 60, 180, 0.12)', // 置かれているカード・写真
+        raised: '0 4px 14px rgba(140, 60, 180, 0.16)', // ボタン・タップ可能カード
+        lifted: '0 10px 28px rgba(140, 60, 180, 0.24)', // ドラッグ中の写真・モーダル
       },
       fontFamily: {
         // DESIGN.md §4 フォント3種（next/font で読み込み、CSS変数で受け渡す想定）
@@ -45,8 +47,8 @@ module.exports = {
         'story-body': ['18px', { lineHeight: '2.0' }], // じぶん史ページの行間は 2.0
       },
       backgroundImage: ({ theme }) => ({
-        // DESIGN.md §3：背景は常に sky-top → sky-bottom の縦グラデーション（全画面共通）
-        sky: `linear-gradient(to bottom, ${theme('colors.sky-top')}, ${theme('colors.sky-bottom')})`,
+        // DESIGN.md §3：背景は常に sky-top → sky-mid(60%) → sky-bottom の縦グラデーション（全画面共通）
+        sky: `linear-gradient(to bottom, ${theme('colors.sky-top')}, ${theme('colors.sky-mid')} 60%, ${theme('colors.sky-bottom')})`,
       }),
     },
   },
