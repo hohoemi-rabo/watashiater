@@ -8,6 +8,7 @@ import { LogIn } from 'lucide-react-native';
 import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
+import { AddToHomeGuide } from '@/components/add-to-home-guide';
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
 import { BackButton } from '@/components/back-button';
@@ -72,6 +73,10 @@ export default function OnboardingScreen() {
             <AppText>{card.body}</AppText>
           </AppCard>
         ))}
+
+        {/* iPhone Safari のときだけ出る「ホーム画面に追加」の手順（チケット27）。
+            ログイン前の初見でも、せってい「つかいかたを見る」の再訪でも見える位置に置く */}
+        <AddToHomeGuide />
 
         {session ? null : (
           <>
