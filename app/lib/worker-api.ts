@@ -4,9 +4,8 @@
  * - 認証は Supabase のアクセストークン（worker 側が公開 JWKS で検証する）
  * - worker のエラー応答は日本語 message を持つので、そのまま画面に出せる WorkerApiError にして投げる
  */
-import * as FileSystem from 'expo-file-system/legacy';
-
 import { supabase } from '@/lib/supabase';
+import { uploadBinary, type UploadBinaryResult } from '@/lib/upload-binary';
 
 const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
 
@@ -117,18 +116,14 @@ export async function generateLifeStory(
 }
 
 /**
- * 署名URLへファイル本体を PUT する。
- * legacy の uploadAsync を使う判断（チケット09）：native スタックが既知長ファイルを
- * 送るため、worker が必須にしている Content-Length が確実に付く。SDK 54 の expo/fetch は
- * File body 時の Content-Length 送出が docs に明記されていないため採らなかった
+ * 署名URLへファイル本体を PUT する。転送はプラットフォーム別の uploadBinary
+ * （native: legacy uploadAsync / web: fetch PUT。lib/upload-binary 参照。チケット26）に任せ、
+ * ここではエラーの意味づけ（WorkerApiError への変換）だけを行う
  */
 export async function putObject(uploadUrl: string, fileUri: string): Promise<void> {
-  let result: FileSystem.FileSystemUploadResult;
+  let result: UploadBinaryResult;
   try {
-    result = await FileSystem.uploadAsync(uploadUrl, fileUri, {
-      httpMethod: 'PUT',
-      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-    });
+    result = await uploadBinary(uploadUrl, fileUri);
   } catch {
     throw new WorkerApiError('network', GENERIC_ERROR_MESSAGE);
   }
