@@ -58,6 +58,8 @@ export type Museum = {
   /** created_at → id 昇順。この全順序が board-layout.ts の「毎回同じ配置」の前提 */
   photos: MuseumPhoto[]
   lifeStoryBodyText: string | null
+  /** じぶん史の奥付（作成日）。本文が無いときは null */
+  lifeStoryGeneratedAt: string | null
 }
 
 type ViewLinkRow = { subject_id: string }
@@ -79,7 +81,7 @@ type PhotoRow = {
   board_z: number | null
 }
 type RecordingRow = { answer_id: string; r2_key: string }
-type LifeStoryRow = { body_text: string }
+type LifeStoryRow = { body_text: string; generated_at: string }
 
 /**
  * 有効な閲覧スラッグが指す博物館を丸ごと読む。無効・失効・存在しない slug は null。
@@ -112,7 +114,7 @@ export const getMuseumBySlug = cache(async (slug: string): Promise<Museum | null
     sbSelect<AnswerRow>(
       `answers?subject_id=eq.${subjectId}&select=id,prompt_id,custom_title,body_text`,
     ),
-    sbSelect<LifeStoryRow>(`life_story?subject_id=eq.${subjectId}&select=body_text`),
+    sbSelect<LifeStoryRow>(`life_story?subject_id=eq.${subjectId}&select=body_text,generated_at`),
   ])
   const subject = subjects[0]
   if (!subject) {
@@ -191,5 +193,6 @@ export const getMuseumBySlug = cache(async (slug: string): Promise<Museum | null
     cards,
     photos,
     lifeStoryBodyText: lifeStories[0]?.body_text ?? null,
+    lifeStoryGeneratedAt: lifeStories[0]?.generated_at ?? null,
   }
 })

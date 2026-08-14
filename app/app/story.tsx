@@ -1,7 +1,9 @@
 /**
- * じぶん史（チケット12：生成・閲覧・編集・再生成）。
- * この画面だけ背景を生成りの紙質（story-paper）にし、本文を Shippori Mincho にする
- * （DESIGN.md §4「一冊の本」の空気）。幕演出（CurtainOverlay）を使ってよい唯一の場面（同 §7）。
+ * じぶん史（チケット12：生成・閲覧・編集・再生成。チケット28で「空に浮かぶ本のページ」に改装）。
+ * 背景は他画面と同じ空グラデに戻し、本文は生成り（story-paper）の「本のページ」カード
+ * （扉＝中央の題字と飾り罫・全角1字下げの段落・末尾に奥付）へ載せる。本文は Shippori Mincho
+ * （DESIGN.md §4「一冊の本」の空気・§2「すべてのカードは浮いている」）。
+ * 幕演出（CurtainOverlay）を使ってよい唯一の場面（同 §7）。
  *
  * 生成のきまり：
  * - 回答カードの本文は書き換えない。生成されるのは独立した life_story 1本のみ（REQUIREMENTS §3.3）
@@ -14,6 +16,7 @@
  * - 保存成功の判定・遷移は保存処理の戻り値で行う（チケット04の教訓：state を読まない）
  */
 import { usePreventRemove } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from 'expo-router';
 import { Check, Pencil, RotateCcw, ScrollText } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
@@ -39,6 +42,7 @@ import {
 import { OfflineNote } from '@/components/offline-note';
 import { PrimaryButton } from '@/components/primary-button';
 import { SecondaryButton } from '@/components/secondary-button';
+import { SKY_GRADIENT } from '@/components/sky-background';
 import { colors, fonts, fontSizes, radii, spacing } from '@/constants/tokens';
 import { showAlert } from '@/lib/app-alert';
 import { useAuth } from '@/lib/auth-context';
@@ -108,6 +112,15 @@ export default function StoryScreen() {
   const trimmedDraft = draft.trim();
   // 未保存の生成本文があれば、保存済みの本文より優先して見せる
   const bodyToShow = unsavedBody ?? story?.body_text ?? null;
+  // 段落ごとに全角1字下げで組む（チケット28）。RN に text-indent は無いので
+  // 行頭へ全角スペースを足す。空行は段落区切りとして畳む
+  const paragraphs =
+    bodyToShow === null
+      ? []
+      : bodyToShow
+          .split(/\n+/)
+          .map((paragraph) => paragraph.trim())
+          .filter((paragraph) => paragraph.length > 0);
   const loading = storyLoading || promptsLoading;
   const loadError = storyError ?? promptsError;
 
@@ -264,8 +277,12 @@ export default function StoryScreen() {
   };
 
   return (
-    // じぶん史は全画面共通の空グラデではなく紙色ベタ（DESIGN.md §4 の例外指定）
-    <View style={styles.paper}>
+    // 背景は他画面と同じ空グラデ（チケット28で紙色ベタから変更）。SkyBackground を使わないのは
+    // 幕（CurtainOverlay）を SafeArea の外＝全画面に重ねる必要があるため（グラデ値は共有）
+    <LinearGradient
+      colors={SKY_GRADIENT.colors}
+      locations={SKY_GRADIENT.locations}
+      style={styles.root}>
       <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
         {mode === 'edit' ? (
           <View style={styles.safeArea}>
@@ -304,7 +321,8 @@ export default function StoryScreen() {
         ) : (
           <ScrollView contentContainerStyle={styles.content}>
             <BackButton />
-            <AppText variant="screenTitle">じぶん史</AppText>
+            {/* 本文があるときは扉（ページ内の題字）が画面タイトルを兼ねる。二重に出さない */}
+            {bodyToShow === null ? <AppText variant="screenTitle">じぶん史</AppText> : null}
 
             {!isOnline ? <OfflineNote detail="じぶん史づくりは つながってから できます。" /> : null}
 
@@ -351,13 +369,39 @@ export default function StoryScreen() {
 
             {bodyToShow !== null ? (
               <>
-                {story && unsavedBody === null ? (
-                  <AppText variant="caption" style={styles.dateCaption}>
-                    {formatJaDate(story.generated_at)}につくりました
-                    {story.edited_by_user ? '（じぶんで書きなおしました）' : ''}
-                  </AppText>
-                ) : null}
-                <AppText variant="story">{bodyToShow}</AppText>
+                {/* 本のページ（チケット28）：空の上に浮かぶ生成りの紙。AppCard の紙ハイライトを
+                    活かしつつ地色だけ story-paper に差し替え、内側に木色の細い枠罫を引く */}
+                <AppCard shadow="rest" style={styles.pageCard}>
+                  <View style={styles.pageFrame}>
+                    {/* 扉：書籍の扉ページの体裁（中央の題字＋飾り罫。◆は絵文字ではなく記号グリフ） */}
+                    <View style={styles.titleBlock}>
+                      {subject ? (
+                        <AppText variant="caption" style={styles.titleName}>
+                          {subject.nickname}
+                        </AppText>
+                      ) : null}
+                      <AppText style={styles.titleText}>じぶん史</AppText>
+                      <View style={styles.ruleRow}>
+                        <View style={styles.rule} />
+                        <AppText style={styles.ruleDiamond}>◆</AppText>
+                        <View style={styles.rule} />
+                      </View>
+                    </View>
+                    {paragraphs.map((paragraph, index) => (
+                      <AppText variant="story" key={`${index}-${paragraph.slice(0, 8)}`}>
+                        {'　'}
+                        {paragraph}
+                      </AppText>
+                    ))}
+                    {story && unsavedBody === null ? (
+                      // 奥付：日付は本文の末尾に右寄せで（本の奥付の位置）
+                      <AppText variant="caption" style={styles.colophon}>
+                        {formatJaDate(story.generated_at)}につくりました
+                        {story.edited_by_user ? '（じぶんで書きなおしました）' : ''}
+                      </AppText>
+                    ) : null}
+                  </View>
+                </AppCard>
                 {unsavedBody === null && story ? (
                   <View style={styles.actions}>
                     <SecondaryButton
@@ -426,13 +470,60 @@ export default function StoryScreen() {
 
       {/* 幕は SafeArea の外＝ステータスバーまで含む全画面を覆う */}
       {genPhase !== null ? <CurtainOverlay phase={genPhase} /> : null}
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   actions: {
     gap: spacing.md,
+  },
+  colophon: {
+    color: colors.textSoft,
+    marginTop: spacing.md,
+    textAlign: 'right',
+  },
+  pageCard: {
+    // AppCard の紙ハイライトはそのまま、地色だけ本のページ（story-paper）へ
+    backgroundColor: colors.storyPaper,
+  },
+  pageFrame: {
+    borderColor: colors.deskWood,
+    borderRadius: radii.button,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: spacing.md,
+    padding: spacing.lg,
+  },
+  rule: {
+    backgroundColor: colors.deskWood,
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  ruleDiamond: {
+    color: colors.deskWood,
+    fontSize: fontSizes.caption,
+    lineHeight: fontSizes.caption,
+  },
+  ruleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  titleBlock: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  titleName: {
+    color: colors.textSoft,
+  },
+  titleText: {
+    color: colors.stageNavy,
+    fontFamily: fonts.story,
+    fontSize: fontSizes.screenTitle,
+    // 題字らしく字間を開ける（扉の体裁。この画面だけの装飾判断）
+    letterSpacing: 8,
   },
   content: {
     gap: spacing.xxl,
@@ -470,8 +561,7 @@ const styles = StyleSheet.create({
   gapCard: {
     gap: spacing.md,
   },
-  paper: {
-    backgroundColor: colors.storyPaper,
+  root: {
     flex: 1,
   },
   safeArea: {
