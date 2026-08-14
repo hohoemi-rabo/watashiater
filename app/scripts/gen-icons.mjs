@@ -3,10 +3,12 @@
 // - 依存なし（Node 組み込み zlib で PNG エンコード）。gen-wood-tile.mjs と同じ方式
 // - 生成物はコミットする（ビルド時に再生成しない）
 //
-// 絵柄は DESIGN §1「マチネ（昼公演）」＋§6.1 の緞帳：
-//   空グラデの地に curtain-red の緞帳（上の房飾り＋左右の垂れ幕）が開いていて、
-//   中央の舞台に spot-yellow のスポット光が落ちている。
+// 絵柄は DESIGN §1「マチネ（昼公演）」＋§6.1 の緞帳（チケット28で新パレットに全面刷新）：
+//   桜色→ラベンダー→淡い空色の3色グラデの地に、ローズ→紫のグラデの緞帳
+//   （上の房飾り＋左右の垂れ幕）が開いていて、中央の舞台にスポット光が落ちている。
 //   §1 の決別点どおり、夜の劇場（黒・金）にも葬送の気配にもしない。
+//   幕をアプリ内アクセントの curtain-red にしない判断（28）：朱色は桜色の地と
+//   彩度がぶつかって濁るため、アイコンだけ背景と同系のローズ→紫で揃える。
 //
 // これは**仮アイコン**。本番アイコンはチケット23（リリース準備）で差し替える。
 // 23 で Android 用の 1024 が要るときは SIZES に足せばよい。
@@ -18,11 +20,16 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-// DESIGN §3 のカラートークン（constants/tokens.ts と同じ値）
-const SKY_TOP = [0xa8, 0xdc, 0xf0];
-const SKY_BOTTOM = [0xfd, 0xf6, 0xe8];
-const CURTAIN_RED = [0xe0, 0x47, 0x2f];
-// スポット光。spot-yellow(#F5B93C) をそのまま重ねると空色と混ざって濁るので、
+// 空。トークン（#FFD6E8/#E0D4FF/#C4E8FF）そのままだと開口部が白飛びして
+// 空に見えない（アイコンは幕との対比が強く、淡いパステルが飛ぶ）ため、
+// 同じ色相のまま彩度を上げた「アイコン用の濃いめトーン」を使う（チケット28の判断）
+const SKY_TOP = [0xff, 0x9e, 0xc9];
+const SKY_MID = [0xb3, 0x9d, 0xff];
+const SKY_BOTTOM = [0x8f, 0xd0, 0xff];
+// 幕はローズ→紫の縦グラデ（アイコン専用色。ヘッダーコメントの判断参照）
+const CURTAIN_ROSE = [0xff, 0x4d, 0x8a];
+const CURTAIN_PURPLE = [0x8a, 0x4d, 0xff];
+// スポット光。spot-yellow(#F5B93C) をそのまま重ねると地と混ざって濁るので、
 // その色みを保ったまま明るく起こした「光の色」を使う（DESIGN §3 の組み合わせの範囲）
 const SPOT_LIGHT = [0xff, 0xec, 0xc2];
 
@@ -64,8 +71,9 @@ function panelInnerEdge(y) {
 
 /** 単位座標 (0..1) の色。content 座標が枠外なら幕もスポットも描かない（maskable 用） */
 function shade(x, y, inset) {
-  // 地：空のグラデ（DESIGN §3「背景は常に sky-top → sky-bottom」）
-  let color = mix(SKY_TOP, SKY_BOTTOM, y);
+  // 地：空のグラデ（DESIGN §3「背景は常に sky-top → sky-mid(60%) → sky-bottom」）
+  let color =
+    y < 0.6 ? mix(SKY_TOP, SKY_MID, y / 0.6) : mix(SKY_MID, SKY_BOTTOM, (y - 0.6) / 0.4);
 
   const cx = 0.5 + (x - 0.5) / inset;
   const cy = 0.5 + (y - 0.5) / inset;
@@ -79,7 +87,9 @@ function shade(x, y, inset) {
     const halfWidth = 0.05 + (cy - apexY) * 0.62;
     const across = Math.abs(cx - 0.5) / halfWidth;
     if (across < 1) {
-      const alpha = 0.62 * (1 - across) ** 1.4 * smoothstep(0.2, 0.42, cy);
+      // 0.62→0.35（チケット28）：新しい地は桜色で明るく、強い光だと開口部が
+      // 白飛びして空が見えなくなるため、光は「うっすら差す」程度に抑える
+      const alpha = 0.35 * (1 - across) ** 1.4 * smoothstep(0.2, 0.42, cy);
       color = mix(color, SPOT_LIGHT, alpha);
     }
   }
@@ -99,7 +109,8 @@ function shade(x, y, inset) {
     const fold = 0.9 + 0.14 * (0.5 + 0.5 * Math.cos(cx * Math.PI * 14));
     // 裾を少し落として奥行きを出す
     const depth = 1 - 0.12 * smoothstep(0.55, 1, cy);
-    const cloth = CURTAIN_RED.map((c) => c * fold * depth);
+    // 布地はローズ→紫の縦グラデ（上の房飾りはローズ寄り・裾に向かって紫へ）
+    const cloth = mix(CURTAIN_ROSE, CURTAIN_PURPLE, clamp01(cy)).map((c) => c * fold * depth);
     color = mix(color, cloth, coverage);
   } else {
     // 房飾りのすぐ下に落ちる影（DESIGN §1「浮かんでいる」）
