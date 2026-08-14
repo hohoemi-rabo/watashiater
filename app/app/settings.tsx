@@ -6,7 +6,7 @@
  * - 削除ボタンは destructive（errorRed）。curtainRed は使わない（DESIGN §3）
  */
 import { useRouter } from 'expo-router';
-import { Check, CircleHelp, LogOut, Mic, Trash2, Users } from 'lucide-react-native';
+import { Check, CircleHelp, LogOut, Trash2, Users } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
@@ -145,12 +145,6 @@ export default function SettingsScreen() {
           icon={Users}
           label="かぞくの博物館"
           onPress={() => router.push('/family')}
-        />
-        {/* 一時ボタン（チケット22）：voice-check の検証が終わったら画面ごと削除する */}
-        <SecondaryButton
-          icon={Mic}
-          label="音声入力の検証（一時）"
-          onPress={() => router.push('/voice-check')}
         />
         {/* オフラインでログアウトすると再ログインできず、キャッシュした博物館への
             入口を自分で閉じてしまう（チケット19） */}

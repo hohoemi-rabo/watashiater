@@ -20,7 +20,9 @@
  * - 「声で話す」モードは RecordingBox（録音 → プレビュー → のこす）。録音の保存順序は
  *   「R2 へ PUT → answers 行の用意 → recordings upsert」（空行が残る失敗経路を作らない）
  * - 録音中・プレビュー・声のアップロード中はモード切替と保存を無効にし、離脱もガードする
- * - 文字起こしはしない（音声認識はチケット22。テキストは手動入力のまま）
+ * - 音声入力（テキスト化）はキーボードの音声認識に任せる（チケット22で確定）：録音が
+ *   マイクを保持している間は端末の音声認識がマイクを取れず同時動作は不可（実機検証済み。
+ *   docs/22）。録音とテキストは別モードのまま、テキスト側にマイクの案内だけを出す
  */
 import { usePreventRemove } from '@react-navigation/native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
@@ -635,6 +637,13 @@ export default function AnswerScreen() {
                   textAlignVertical="top"
                   style={styles.bodyInput}
                 />
+                {/* 音声入力の導線（チケット22）。話して書く＝キーボードの音声認識に任せる。
+                    録音との同時動作は実機検証で不可と確定（録音がマイクを保持している間、
+                    Gboard は「音声を受信できません」で失敗する。docs/22 検証結果）ため、
+                    モードを分けたまま案内だけを出す */}
+                <AppText variant="caption">
+                  キーボードの マイクのしるしを おすと、話した ことばが 文字に なります。
+                </AppText>
               </AppCard>
             ) : (
               /* 音声カード（チケット10）。録音〜のこすの流れは RecordingBox がまとめる */
