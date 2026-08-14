@@ -52,22 +52,28 @@ const smoothstep = (edge0, edge1, v) => {
   return t * t * (3 - 2 * t);
 };
 
-/** 房飾り（上の幕）の下端。弧が下にふくらむ。開口部に2つ半ほど見える数にする
- *  （少ないと「角が2本」に見えてドレープに見えない） */
+/** 房飾り（上の幕）の下端。弧が下にふくらむ。数を絞って1つ1つを大きく
+ *  （小さいアイコンでもドレープに見えるように。チケット28で 7→5） */
 function valanceBottom(x) {
-  const scallops = 7;
+  const scallops = 5;
   const f = x * scallops - Math.floor(x * scallops);
-  return 0.2 + 0.065 * Math.sin(Math.PI * f);
+  return 0.18 + 0.075 * Math.sin(Math.PI * f);
 }
 
 /**
  * 左の垂れ幕の内側の端（右はこれを左右反転）。
- * 上から裾へゆるく細くなる台形＝舞台が下に向かって広がって見える形。
- * 弧を描かせると開口部が卵型になって「劇場」に見えなくなる（試して却下）
+ * 裾に向かって弧を描いて大きく開く＝「幕が左右に寄せられている」シルエット。
+ * 旧版の直線的な台形は開口部が塔のように見えた（チケット28の目視で判明）ため曲線に変更
  */
 function panelInnerEdge(y) {
-  return 0.32 - 0.09 * clamp01(y);
+  return 0.34 - 0.24 * clamp01(y) ** 1.6;
 }
+
+/** 舞台の床の上端。ここから下は木の床＝「舞台」が一目で分かる要素（チケット28で追加） */
+const FLOOR_Y = 0.74;
+// 床は desk-wood トークンの木色（DESIGN §3。アプリの「机の上」と同じ素材感）
+const WOOD = [0xc9, 0x9a, 0x68];
+const WOOD_DARK = [0x8f, 0x66, 0x3f];
 
 /** 単位座標 (0..1) の色。content 座標が枠外なら幕もスポットも描かない（maskable 用） */
 function shade(x, y, inset) {
@@ -81,16 +87,33 @@ function shade(x, y, inset) {
     return color;
   }
 
-  // スポット光：房飾りの真下から舞台へ落ちる円錐
-  const apexY = 0.2;
+  // 舞台の床：奥（上）が明るく手前（下）へ沈む木色
+  if (cy > FLOOR_Y) {
+    color = mix(WOOD, WOOD_DARK, ((cy - FLOOR_Y) / (1 - FLOOR_Y)) * 0.7);
+  }
+  // 床と空のさかい目にうっすら暗い線（舞台の輪郭を立たせる）
+  const horizonBand = Math.abs(cy - FLOOR_Y);
+  if (horizonBand < 0.008) {
+    color = color.map((c) => c * (1 - 0.2 * (1 - horizonBand / 0.008)));
+  }
+
+  // スポット光：房飾りの陰から床へ落ちる円錐と、床の上の光だまり（楕円）
+  const apexY = 0.16;
+  const poolY = 0.86;
   if (cy > apexY) {
-    const halfWidth = 0.05 + (cy - apexY) * 0.62;
+    const halfWidth = 0.05 + (cy - apexY) * 0.3;
     const across = Math.abs(cx - 0.5) / halfWidth;
     if (across < 1) {
-      // 0.62→0.35（チケット28）：新しい地は桜色で明るく、強い光だと開口部が
-      // 白飛びして空が見えなくなるため、光は「うっすら差す」程度に抑える
-      const alpha = 0.35 * (1 - across) ** 1.4 * smoothstep(0.2, 0.42, cy);
+      const alpha = 0.3 * (1 - across) ** 1.4 * smoothstep(0.18, 0.4, cy);
       color = mix(color, SPOT_LIGHT, alpha);
+    }
+  }
+  if (cy > FLOOR_Y) {
+    const dx = (cx - 0.5) / 0.26;
+    const dy = (cy - poolY) / 0.09;
+    const pool = dx * dx + dy * dy;
+    if (pool < 1) {
+      color = mix(color, SPOT_LIGHT, 0.55 * (1 - pool));
     }
   }
 
@@ -110,7 +133,10 @@ function shade(x, y, inset) {
     // 裾を少し落として奥行きを出す
     const depth = 1 - 0.12 * smoothstep(0.55, 1, cy);
     // 布地はローズ→紫の縦グラデ（上の房飾りはローズ寄り・裾に向かって紫へ）
-    const cloth = mix(CURTAIN_ROSE, CURTAIN_PURPLE, clamp01(cy)).map((c) => c * fold * depth);
+    let cloth = mix(CURTAIN_ROSE, CURTAIN_PURPLE, clamp01(cy)).map((c) => c * fold * depth);
+    // 内側の縁に淡い桜色の縁取り＝幕のシルエットを小さいサイズでも読ませる（チケット28）
+    const rim = 1 - smoothstep(0.004, 0.03, curtain);
+    cloth = mix(cloth, [0xff, 0xd6, 0xe8], rim * 0.5);
     color = mix(color, cloth, coverage);
   } else {
     // 房飾りのすぐ下に落ちる影（DESIGN §1「浮かんでいる」）
