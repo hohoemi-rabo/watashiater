@@ -37,6 +37,12 @@ export function AddToHomeGuide() {
         </AppText>
       ))}
       <AppText>つぎからは ホーム画面の「ワタシアター」を おすだけで ひらけます。</AppText>
+      {/* standalone は Safari とログインセッションを共有しない（docs/27 実機検証）。
+          初回の再ログインで驚かせないための一文 */}
+      <AppText variant="caption">
+        ホーム画面から さいしょに ひらいたときは、もういちど ログインが ひつようです。一度
+        ログインすれば、つぎからは そのまま つかえます。
+      </AppText>
     </AppCard>
   );
 }
