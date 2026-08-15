@@ -57,7 +57,8 @@
         {
           "photosPermission": "思い出の写真を選ぶために写真フォルダーを使います。"
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
