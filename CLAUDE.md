@@ -3,7 +3,9 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 このリポジトリは「ワタシアター」（60〜80代シニアが自分の博物館を作るアプリ）のモノレポ。
-仕様は **REQUIREMENTS.md**、見た目は **DESIGN.md** に従うこと。両方を必ず先に読むこと。
+仕様は **REQUIREMENTS.md**、見た目は **DESIGN.md**（v1.2）に従うこと。両方を必ず先に読むこと。
+Phase 2（**上映会**＝写真＋本人の声のスライド動画）の要件は **REQUIREMENTS-PHASE2.md** に確定済み。
+着手は**チケット23完了後**。MVP 同様、Phase 2 に向けた先回り実装・抽象化をしないこと。
 
 ---
 
@@ -174,7 +176,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 - **ならべかえ（チケット14）**：`components/draggable-polaroid.tsx`＋`lib/board-save.ts`。見た目＝基準位置＋offset 共有値で、ドロップはワークレット内で畳み込む（跳ね戻りゼロ）。長押し220msでつまむ（スクロールとの取り合いは activateAfterLongPress で解決）・最前面 zIndex はドラッグ中のみ・保存はドロップ毎4項目セット・失敗は revertSignal で元へ。`GestureHandlerRootView` は `_layout.tsx` に追加済み。共有値は `.get()/.set()`・コールバックに `'worklet'` 明示（詳細は docs/14 メモ）
 - **録音の検証済み事実**（チケット00）：AAC は `RecordingPresets.HIGH_QUALITY` のみ／`record({ forDuration })` は実機で有効／3分＝約2.78MB／`File.type` はアップロードの Content-Type に使わない（詳細は docs/00 検証結果）
 - **録音（チケット10）**：本番プリセットは HIGH_QUALITY ベースの 1ch/64kbps（3分≈1.4MB・耳確認済み）。1回答1録音＝`recordings` は upsert(`onConflict:'answer_id'`)。保存順序は「PUT → answers 行の用意 → upsert」（空行の失敗経路を作らない）。録音まわりの機微は `components/recording-box.tsx` 冒頭コメントと docs/10 メモ
-- **写真が語る（チケット15）**：`components/photo-lightbox.tsx`（画面内 absoluteFill オーバーレイ。Modal は使わない）。閉じる＝即アンマウント＝`useAudioPlayer` の解放で音が確実に止まる。背景は `DIMMED_SKY`（skyTop+stageNavy の混色。黒背景禁止）。音声読み込み失敗は10秒タイムアウトで検知（SDK 54 の AudioStatus に error が無い）
+- **写真が語る（チケット15）**：`components/photo-lightbox.tsx`（画面内 absoluteFill オーバーレイ。Modal は使わない）。閉じる＝即アンマウント＝`useAudioPlayer` の解放で音が確実に止まる。背景は `DIMMED_SKY`（skyTop+stageNavy の混色。黒背景禁止）。音声読み込み失敗は10秒タイムアウトで検知（SDK 54 の AudioStatus に error が無い）。**拡大表示は写真を切り抜かない**（onLoad の実寸で枠を実比率に合わせる。正方形 cover はボード・回答プレビューのみ。閲覧Web は `web/components/polaroid.tsx` の lightbox variant が CSS だけで同方針。2026-08-15・DESIGN v1.2）
 - **家族・共有（チケット16）**：`public.redeem_invite_code` RPC が `family_members` への唯一の登録経路（INSERT ポリシーは意図的に無し）。**業務エラーは RAISE せず discriminated jsonb で返す**（`lib/family-join.ts` がパース）。家族の閲覧は専用 `/family/*` ルート（既存画面に readOnly フラグを差し込まない）。みたよは楽観更新＋23505 は成功扱い（`lib/use-my-reactions.ts`）。招待コードは7日・使い捨て・32文字アルファベット（`lib/invite.ts`）
 - **閲覧リンク（チケット17）**：`lib/view-link.ts`。有効リンクは subject に1本（partial unique）なので**再発行は「止める→作り直す」の2段階**。worker の slug 経路（`/media/view-urls` の `{slug}`）は実装・本番検証済み。**`EXPO_PUBLIC_WEB_URL` は `https://watashiater.vercel.app`**（チケット21のデプロイで確定済み）
 - **アカウント削除（チケット18）**：順序は worker `POST /media/wipe`（R2 の `subjects/<id>/` を prefix 一括削除。孤児も回収）→ RPC `delete_own_account`（auth.users の DELETE で全カスケード）→ signOut。**逆順にすると prefix を導出できず孤児が残る**。`lib/account.ts` に集約。SecondaryButton の `destructive` prop は削除系専用（errorRed）
@@ -199,7 +201,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
   - **Service Worker は殻だけ**。`url.origin !== self.location.origin` なら何もしない＝これが「署名URLをキャッシュしない」担保（URL の除外リストにしない）。画面の読み込みは network-first（cache-first だと新デプロイが反映されない）。`vercel.json` で `/sw.js` に `must-revalidate` を付ける（無いと SW を更新できない）。ユーザーデータのオフラインは `lib/offline-cache.ts` の担当
   - アイコンは `scripts/gen-icons.mjs` の**仮アイコン**（依存なし・決定的生成。チケット28で「幕の開いた舞台」構図＋新パレットに刷新済み）。本番アイコンとネイティブの `assets/images/icon.png` はチケット23
 - **チケット23（Google Play リリース準備）＝最後の未完了チケットの着手点**：
-  - **本番アイコン・スプラッシュはチケット28の新パレット**（桜〜ラベンダー〜空色の空・ローズ→紫の幕。DESIGN v1.1）で作る。仮アイコンの `scripts/gen-icons.mjs` は SIZES に 1024 を足せばそのまま流用できる（スクリプト冒頭コメント参照）。**未差し替えの Expo テンプレ生成物**＝`assets/images/icon.png`・`android-icon-foreground/background/monochrome.png`・`splash-icon.png`（`app.json` の adaptiveIcon backgroundColor は #FFE4F1 に更新済み）
+  - **本番アイコン・スプラッシュはチケット28の新パレット**（桜〜ラベンダー〜空色の空・ローズ→紫の幕。DESIGN v1.2 §3）で作る。仮アイコンの `scripts/gen-icons.mjs` は SIZES に 1024 を足せばそのまま流用できる（スクリプト冒頭コメント参照）。**未差し替えの Expo テンプレ生成物**＝`assets/images/icon.png`・`android-icon-foreground/background/monochrome.png`・`splash-icon.png`（`app.json` の adaptiveIcon backgroundColor は #FFE4F1 に更新済み）
   - **リリースビルドで初めて必要になるもの**：Google OAuth の **Android 用クライアント**（Expo Go 開発では不要のまま来た。上の「認証」参照）／Expo Go では最終確認にならなかった項目の実機確認（マイク許可の文言＝config plugin・`Linking.openSettings()`。docs/00 メモ）
   - ビルドは **EAS Build**（この開発機＝WSL2 に Android SDK なし）。ストア掲載文は REQUIREMENTS §1.1 の**禁止語彙（葬送系）**に注意。Google Play Console の操作はユーザーに依頼して結果を待つ
 
