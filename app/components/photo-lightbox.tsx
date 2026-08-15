@@ -5,6 +5,11 @@
  * 実装の判断：
  * - 背景は DIMMED_SKY＝skyTop 85% + stageNavy 15% の混色。DESIGN §7「背景色を少し濃くする」・
  *   §11-4「黒背景・夜の劇場化禁止」。app-card.tsx の PAPER_TINT と同じトークン由来混色方式
+ * - 開き方は「幕が中央から左右へ広がり、その前で写真が上映される」（2026-08-15 ユーザー決定）。
+ *   単なるフェードだと一瞬光るだけで劇場に見えなかった。**CSS アニメには animationFillMode:
+ *   'backwards' を必ず付ける**：既定の 'none' はアニメ登録前の1フレームを「終わりの姿」で
+ *   描くため、全面の幕がその1フレームだけ出て光る（実機で確認。curtain-overlay.tsx の
+ *   「base style は終わりの姿」の流儀は、この点だけ補う必要がある）
  * - 閉じる＝即アンマウント（退場アニメなし）。CSS アニメには完了コールバックが無く
  *   （curtain-overlay.tsx の判断記録）、「閉じたら音声が即止まる」が完了条件そのもの。
  *   useAudioPlayer はアンマウントで自動 release＝停止する
@@ -44,8 +49,12 @@ import { colors, shadows, spacing } from '@/constants/tokens';
 
 /** skyTop(#FFD6E8) 85% + stageNavy(#2B3A55) 15% の混色（DESIGN §7「背景色を少し濃くする」） */
 export const DIMMED_SKY = '#DFBFD2';
-/** 開くアニメの所要（DESIGN §8 の基準 200ms） */
-const OPEN_MS = 200;
+/** 幕が中央から左右へ広がりきるまで。基準の 200ms より長め＝動きが「広がる」と読める最短 */
+const CURTAIN_SPREAD_MS = 320;
+/** 写真が現れるまでの待ち。幕が8割ほど開いたところで出す */
+const CONTENT_DELAY_MS = 140;
+/** 写真がすっと立ち上がる所要（DESIGN §8 の基準 200ms） */
+const CONTENT_RISE_MS = 200;
 /** 音声読み込みの見切り（AudioStatus に error が無いための代替検知） */
 const LOAD_TIMEOUT_MS = 10000;
 
@@ -158,23 +167,32 @@ export function PhotoLightbox({
   const photoWidth = Math.min(maxPhotoWidth, maxPhotoHeight * ratio);
   const polaroidWidth = photoWidth + POLAROID_FRAME.side * 2;
 
-  const fadeIn = !reduceMotion
+  // 幕が中央から左右へ広がって、その前で写真が上映される（DESIGN §7）。
+  // animationFillMode: 'backwards' が要（既定の 'none' だと、アニメ登録前の1フレームだけ
+  // 「終わりの姿」＝全面の幕がそのまま描かれ、パッと光って見える。実機で確認した不具合）
+  const curtainOpen = !reduceMotion
     ? {
-        animationName: { from: { opacity: 0 } },
-        animationDuration: `${OPEN_MS}ms`,
+        animationName: { from: { transform: [{ scaleX: 0 }] } },
+        animationDuration: `${CURTAIN_SPREAD_MS}ms`,
         animationTimingFunction: 'ease-out' as const,
+        animationFillMode: 'backwards' as const,
       }
     : null;
-  const scaleIn = !reduceMotion
+  // 幕が広がりきるころに写真が現れる（同時だと幕の動きが読めない）
+  const riseIn = !reduceMotion
     ? {
-        animationName: { from: { transform: [{ scale: 0.95 }] } },
-        animationDuration: `${OPEN_MS}ms`,
+        animationName: { from: { opacity: 0, transform: [{ translateY: 12 }] } },
+        animationDuration: `${CONTENT_RISE_MS}ms`,
+        animationDelay: `${CONTENT_DELAY_MS}ms`,
         animationTimingFunction: 'ease-out' as const,
+        animationFillMode: 'backwards' as const,
       }
     : null;
 
   return (
-    <Animated.View style={[styles.overlay, fadeIn]}>
+    <View style={styles.overlay}>
+      {/* 幕。中央から左右へ広がる（transform の原点は既定で中央） */}
+      <Animated.View pointerEvents="none" style={[styles.veil, curtainOpen]} />
       {/* 背面タップでも閉じる（補助経路。主経路は最下部の「とじる」） */}
       <Pressable
         accessibilityLabel="とじる"
@@ -188,7 +206,7 @@ export function PhotoLightbox({
         style={[
           styles.content,
           { paddingBottom: insets.bottom + spacing.xl, paddingTop: insets.top + spacing.xl },
-          scaleIn,
+          riseIn,
         ]}>
         <View pointerEvents="box-none" style={styles.body}>
           <View style={[styles.polaroid, { width: polaroidWidth }]}>
@@ -198,7 +216,9 @@ export function PhotoLightbox({
               contentFit="cover"
               source={{ uri, cacheKey }}
               style={[styles.photo, { aspectRatio: ratio }]}
-              transition={150}
+              // フェードインさせない：同じ cacheKey の絵をボードで既に出しているので
+              // キャッシュから即座に描ける。150ms かけると下地が透けて光って見えた
+              transition={0}
               onLoad={(event) => {
                 // 実画像の寸法で枠を写真の比率に合わせる（cover なので枠＝比率なら切れない）
                 if (event.source.width > 0 && event.source.height > 0) {
@@ -259,7 +279,7 @@ export function PhotoLightbox({
         ) : null}
         <SecondaryButton icon={X} label="とじる" onPress={onClose} />
       </Animated.View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -304,13 +324,17 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: DIMMED_SKY,
     zIndex: 10,
   },
   photo: {
     // aspectRatio は写真の実比率を render 側でインライン指定する（切り抜き禁止）
-    backgroundColor: colors.skyBottom,
+    // 地はポラロイドの白フチと同色。読み込みの一瞬に別の色が覗くと光ったように見える
+    backgroundColor: colors.cardWhite,
     width: '100%',
+  },
+  veil: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: DIMMED_SKY,
   },
   polaroid: {
     backgroundColor: colors.cardWhite,
