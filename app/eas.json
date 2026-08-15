@@ -1,0 +1,31 @@
+{
+  "cli": {
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://shqkwdxpjnfnctatukqn.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_Q3SdN76La4Q-S5pHY5s5YA_Dl8aK9AZ",
+        "EXPO_PUBLIC_WORKER_URL": "https://watashiater-worker.rabo-hohoemi.workers.dev",
+        "EXPO_PUBLIC_WEB_URL": "https://watashiater.vercel.app"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://shqkwdxpjnfnctatukqn.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_Q3SdN76La4Q-S5pHY5s5YA_Dl8aK9AZ",
+        "EXPO_PUBLIC_WORKER_URL": "https://watashiater-worker.rabo-hohoemi.workers.dev",
+        "EXPO_PUBLIC_WEB_URL": "https://watashiater.vercel.app"
+      }
+    }
+  }
+}
