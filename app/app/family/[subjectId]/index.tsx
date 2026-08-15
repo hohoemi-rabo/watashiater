@@ -49,7 +49,7 @@ export default function FamilyMuseumScreen() {
             <AppText variant="screenTitle">{subject.nickname}さんの博物館</AppText>
             <SecondaryButton
               icon={Images}
-              label="机の上（しゃしん）"
+              label="ギャラリー（しゃしん）"
               onPress={() => router.push(`/family/${subject.id}/gallery`)}
             />
             <SecondaryButton

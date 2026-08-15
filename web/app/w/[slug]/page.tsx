@@ -106,10 +106,10 @@ export default async function ViewPage({ params }: PageProps<'/w/[slug]'>) {
           ) : null}
         </header>
 
-        {/* ── 机の上（配置・傾き・重なりをアプリと同じに再現） ── */}
+        {/* ── ギャラリー（机の上の配置・傾き・重なりをアプリと同じに再現） ── */}
         {boardItems.length > 0 ? (
           <section>
-            <h2 className="px-5 pb-4 font-heading text-card-title">机の上</h2>
+            <h2 className="px-5 pb-4 font-heading text-card-title">ギャラリー</h2>
             <DeskBoard
               heightFraction={boardHeightFraction}
               items={boardItems}

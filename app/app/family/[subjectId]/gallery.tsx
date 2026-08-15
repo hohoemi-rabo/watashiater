@@ -77,7 +77,7 @@ export default function FamilyGalleryScreen() {
         <View style={[styles.header, { paddingTop: insets.top + spacing.xl }]}>
           <BackButton />
           <AppText variant="screenTitle" style={styles.title}>
-            {subject ? `${subject.nickname}さんの机の上` : '机の上'}
+            {subject ? `${subject.nickname}さんのギャラリー` : 'ギャラリー'}
           </AppText>
 
           {busy ? <ActivityIndicator color={colors.cardWhite} size="large" /> : null}

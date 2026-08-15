@@ -8,6 +8,7 @@ import { BookOpen, Images, ScrollText, Settings, Share2, Users } from 'lucide-re
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
+import { AppLogo } from '@/components/app-logo';
 import { AppText } from '@/components/app-text';
 import { OfflineNote } from '@/components/offline-note';
 import { PrimaryButton } from '@/components/primary-button';
@@ -30,9 +31,7 @@ export default function HomeScreen() {
   return (
     <SkyBackground>
       <ScrollView contentContainerStyle={styles.content}>
-        <AppText variant="screenTitle" style={styles.logo}>
-          ワタシアター
-        </AppText>
+        <AppLogo />
 
         {!isOnline ? <OfflineNote /> : null}
 
@@ -70,7 +69,7 @@ export default function HomeScreen() {
           <Images color={colors.cardWhite} size={28} strokeWidth={2} />
           <View style={styles.deskTextGroup}>
             <AppText variant="cardTitle" style={styles.deskTitle}>
-              机の上（ギャラリー）
+              ギャラリー
             </AppText>
             <AppText variant="caption" style={styles.deskCaption}>
               しゃしんが ここに ならびます
@@ -101,10 +100,6 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
     padding: spacing.xl,
     paddingBottom: spacing.section,
-  },
-  logo: {
-    color: colors.curtainRed,
-    textAlign: 'center',
   },
   progressCard: {
     gap: spacing.lg,

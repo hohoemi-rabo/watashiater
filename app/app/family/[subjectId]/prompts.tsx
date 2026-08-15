@@ -67,7 +67,7 @@ export default function FamilyPromptsScreen() {
                 {card.hasRecording ? (
                   <View style={styles.recordingRow}>
                     <Volume2 color={colors.spotYellow} size={16} strokeWidth={2} />
-                    <AppText variant="caption">声の録音つき（机の上の写真から聞けます）</AppText>
+                    <AppText variant="caption">声の録音つき（ギャラリーの写真から聞けます）</AppText>
                   </View>
                 ) : null}
               </AppCard>

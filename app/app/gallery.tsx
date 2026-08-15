@@ -199,7 +199,7 @@ export default function GalleryScreen() {
         <View style={[styles.header, { paddingTop: insets.top + spacing.xl }]}>
           <BackButton />
           <AppText variant="screenTitle" style={styles.title}>
-            机の上
+            ギャラリー
           </AppText>
 
           {!isOnline ? <OfflineNote detail="ならべかえは つながってから できます。" /> : null}
