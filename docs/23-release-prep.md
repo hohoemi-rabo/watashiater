@@ -48,6 +48,23 @@ Google Play の内部テスト配信までを整える。
 - バージョンは `appVersionSource: "remote"`＋production の `autoIncrement`（app.json に versionCode を書かない）
 - ビルドコマンド: `npx eas-cli build --platform android --profile preview`（実機スモーク用 APK）→ 通過後 `--profile production`（AAB）
 
+### 検証結果：初回 preview APK は起動即クラッシュ → 依存修正で解決
+
+- 症状：スプラッシュ表示直後に落ちる。logcat（crash バッファ）で
+  `ClassNotFoundException: expo.modules.kotlin.types.AnyTypeCache`（expo-asset の AssetModule 初期化中）
+- 原因：`expo-audio` が `expo-asset` を **peerDependencies `*`** で要求 → npm が peer 自動インストールで
+  **最新の expo-asset@57.0.9（SDK 57 用）をルートに**置き、`expo` 本体用の 12.0.13 は入れ子に退避。
+  Android の autolinking はルートを拾うため SDK 57 のネイティブコードが SDK 54 の expo-modules-core と
+  組み合わさりクラッシュ。**Expo Go は自前の SDK 54 ネイティブを使うため開発中は一切露見しない**。
+  `expo install --check` は直接依存しか見ないため検出できず、`npx expo-doctor` が正しく検出した
+  （peer 欠落＋重複の2件）
+- 対処：`npx expo install expo-asset`（`~12.0.13` を直接依存に追加。config plugin も自動追加）。
+  expo-constants@57 の巻き添え重複も同時に解消。expo-doctor 18/18 パス
+- 教訓：**ネイティブモジュールを含む新パッケージ追加後は `npx expo-doctor` を回す**（`--check` では足りない）
+- ログ取得の環境メモ：この WSL2 から LAN 内の実機へは直接届かない（ワイヤレスデバッグ不可）。
+  **USB 接続＋Windows 版 platform-tools（`adb.exe`）を WSL の interop で叩く**方法が確実
+  （Linux 版 adb は WSL2 の NAT で実機に届かない）
+
 ### 将来の申し送り
 
 - **製品版（一般公開）トラックへ進むには、新規個人デベロッパーアカウントは「テスター12人以上×14日間」のクローズドテスト実績が必要**。内部テスト（本チケットの完了条件）には不要
