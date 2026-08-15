@@ -41,6 +41,11 @@ WebBrowser.maybeCompleteAuthSession();
 
 const redirectTo = makeRedirectUri();
 
+/** loadSubject の試行回数（初回＋リトライ2回）。エラー画面を出す前にここまで粘る */
+const FETCH_ATTEMPTS = 3;
+/** リトライの待ち時間。試行回数を掛けて延ばす（400ms → 800ms） */
+const FETCH_RETRY_DELAY_MS = 400;
+
 export type Subject = Tables<'subjects'>;
 /** 自分が家族として登録されている博物館（チケット16。/family の導線判定と一覧に使う） */
 export type Membership = Pick<Tables<'family_members'>, 'id' | 'subject_id' | 'display_name'>;
@@ -133,6 +138,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * state を更新しつつ、取得結果を戻り値でも返す（呼び出し直後の判定は戻り値を使う）。
    * どちらか一方でも失敗したら subjectError（単一のエラー state。AuthGate のリトライ画面が引き受ける）
    *
+   * 失敗しても即エラーにせず、間を置いて計 FETCH_ATTEMPTS 回まで試す。ログイン直後は
+   * ブラウザから戻った直後で通信が不安定になりやすく、1回目だけ落ちる事象が実機で出た
+   * （リリースビルドで確認。docs/23 メモ）。他のフックが持つ「見せるものが無いときだけ
+   * エラーにする」契約に、ここも近づける。
+   *
    * @param allowCache 取得に失敗したとき、この端末のキャッシュから戻してよいか（チケット19）。
    *   起動時と電波復帰時だけ true。ログイン直後は false（遷移判定を鈍らせない）
    */
@@ -141,13 +151,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userId: string,
       allowCache = false,
     ): Promise<{ ok: boolean; subject: Subject | null; memberships: Membership[] }> => {
-      const [subjectResult, membershipsResult] = await Promise.all([
-        supabase.from('subjects').select('*').eq('owner_user_id', userId).maybeSingle(),
-        supabase
-          .from('family_members')
-          .select('id, subject_id, display_name')
-          .eq('member_user_id', userId),
-      ]);
+      let subjectResult;
+      let membershipsResult;
+      for (let attempt = 1; ; attempt++) {
+        [subjectResult, membershipsResult] = await Promise.all([
+          supabase.from('subjects').select('*').eq('owner_user_id', userId).maybeSingle(),
+          supabase
+            .from('family_members')
+            .select('id, subject_id, display_name')
+            .eq('member_user_id', userId),
+        ]);
+        if (!subjectResult.error && !membershipsResult.error) {
+          break;
+        }
+        if (attempt >= FETCH_ATTEMPTS) {
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, FETCH_RETRY_DELAY_MS * attempt));
+      }
       if (subjectResult.error || membershipsResult.error) {
         if (allowCache) {
           const cached = await readCache<CachedAuth>(cacheKeys.auth);
