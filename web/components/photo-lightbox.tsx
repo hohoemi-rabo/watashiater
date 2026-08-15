@@ -100,7 +100,8 @@ export function PhotoLightbox({ photo, onClose, onRetry }: PhotoLightboxProps) {
       />
 
       <div className="pointer-events-none relative mx-auto flex h-full max-w-[520px] flex-col items-center justify-center gap-6 px-5 py-8">
-        <div className="pointer-events-auto w-full max-w-[min(100%,45vh)]">
+        {/* 幅は Polaroid（w-fit）が写真の実比率から決める。ここは中央寄せだけ */}
+        <div className="pointer-events-auto flex w-full justify-center">
           <Polaroid
             caption={photo.caption}
             hasRecording={photo.hasRecording}

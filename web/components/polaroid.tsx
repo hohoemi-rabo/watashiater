@@ -6,6 +6,11 @@
  *   全高 = 幅 + 20px  … 写真が正方形なので 上8 + 下28 − 左右16 = 20
  * 写真を aspect-square にしてフチを padding で作れば、この関係は CSS が自動で満たす。
  * だから机の上は JS で寸法を測らずに済む（desk-board.tsx）。
+ *
+ * この約束は board variant だけのもの。lightbox variant は写真を切り抜かず
+ * 実際の縦横比で全体を見せる（2026-08-15 ユーザー決定。正方形 cover だと縦写真の
+ * 頭と足が切れる）。フチは w-fit で写真に吸い付かせ、JS で測らず CSS だけで満たす。
+ * app/components/photo-lightbox.tsx と方針を一致させること
  */
 import { Volume2 } from 'lucide-react'
 
@@ -25,7 +30,7 @@ export function Polaroid({ url, caption, hasRecording, variant = 'board' }: Pola
   const lightbox = variant === 'lightbox'
   return (
     <div
-      className={`bg-card-white ${lightbox ? 'shadow-lifted' : 'shadow-rest'}`}
+      className={`bg-card-white ${lightbox ? 'w-fit max-w-full shadow-lifted' : 'shadow-rest'}`}
       style={{
         paddingLeft: POLAROID_FRAME.side,
         paddingRight: POLAROID_FRAME.side,
@@ -39,11 +44,23 @@ export function Polaroid({ url, caption, hasRecording, variant = 'board' }: Pola
           // eslint-disable-next-line @next/next/no-img-element
           <img
             alt={hasRecording ? `「${caption}」の写真（声つき）` : `「${caption}」の写真`}
-            className="aspect-square w-full bg-sky-bottom object-cover"
+            className={
+              lightbox
+                ? // 切り抜かない：実比率のまま「幅いっぱい」と「高さ45vh」の両方に収める
+                  'block max-h-[45vh] w-auto max-w-full bg-sky-bottom'
+                : 'aspect-square w-full bg-sky-bottom object-cover'
+            }
             src={url}
           />
         ) : (
-          <div className="aspect-square w-full bg-sky-bottom" />
+          <div
+            className={
+              lightbox
+                ? // 空枠は幅の当てが無いので高さ起点の正方形にする
+                  'aspect-square h-[40vh] max-w-full bg-sky-bottom'
+                : 'aspect-square w-full bg-sky-bottom'
+            }
+          />
         )}
         {hasRecording ? (
           // 音声つきの目印（DESIGN §7「小さな spot-yellow のスピーカーバッジ」）
@@ -56,7 +73,11 @@ export function Polaroid({ url, caption, hasRecording, variant = 'board' }: Pola
         ) : null}
       </div>
       <div
-        className={lightbox ? 'flex items-center justify-center py-2' : 'flex items-center justify-center'}
+        // lightbox の w-0 min-w-full：長いキャプションがフチを写真より広げないための定石
+        // （幅の決定には参加させず、決まった幅いっぱいに広がる）
+        className={
+          lightbox ? 'flex w-0 min-w-full items-center justify-center py-2' : 'flex items-center justify-center'
+        }
         style={{ minHeight: POLAROID_FRAME.bottom, height: lightbox ? undefined : POLAROID_FRAME.bottom }}
       >
         <p

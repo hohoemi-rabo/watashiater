@@ -15,6 +15,10 @@
  * - 読み込み失敗は10秒タイムアウトで検知（SDK 54 の AudioStatus に error フィールドが無い）。
  *   「もういちどよみこむ」→ 親の refetch → 新しい署名URLが props で流れ込み source が差し替わる。
  *   読み込みが初めて成功した時点で1回だけ自動再生する（リトライ成功後も含む＝聞きたくて押している）
+ * - 拡大表示は写真を切り抜かず、実際の縦横比で全体を見せる（2026-08-15 ユーザー決定。
+ *   正方形 cover だと縦写真の頭と足が切れる）。比率は onLoad で実画像から得るまで正方形で仮置き
+ *   ＝タップ元のボード（正方形のまま維持）と同じ絵から滑らかに広がる。web/components/polaroid.tsx
+ *   の lightbox variant と方針を一致させること
  */
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { Image } from 'expo-image';
@@ -86,6 +90,8 @@ export function PhotoLightbox({
   const status = useAudioPlayerStatus(player);
 
   const [timedOut, setTimedOut] = useState(false);
+  /** 写真の実比率（幅÷高さ）。onLoad まで null＝正方形で仮置き。photo.id を key に開き直すのでリセット不要 */
+  const [photoRatio, setPhotoRatio] = useState<number | null>(null);
   const autoPlayedRef = useRef(false);
 
   // リトライで新しい署名URLが届いたら、前回のタイムアウト表示を解いて読み込みからやり直す
@@ -144,8 +150,13 @@ export function PhotoLightbox({
   const loadFailed = hasRecording && (recordingUrl === undefined || (timedOut && !status.isLoaded));
   const loadingAudio = hasRecording && !loadFailed && !status.isLoaded;
 
-  // 拡大ポラロイドの幅：横は余白を引いた全幅、縦はコントロール＋とじるが必ず入る上限
-  const polaroidWidth = Math.min(width - spacing.xl * 2, height * 0.45);
+  // 拡大ポラロイドの寸法：写真の実比率を保ったまま「画面幅いっぱい」と
+  // 「コントロール＋とじるが必ず入る高さ（画面の45%）」の両方に収める
+  const ratio = photoRatio ?? 1;
+  const maxPhotoWidth = width - spacing.xl * 2 - POLAROID_FRAME.side * 2;
+  const maxPhotoHeight = height * 0.45;
+  const photoWidth = Math.min(maxPhotoWidth, maxPhotoHeight * ratio);
+  const polaroidWidth = photoWidth + POLAROID_FRAME.side * 2;
 
   const fadeIn = !reduceMotion
     ? {
@@ -186,8 +197,14 @@ export function PhotoLightbox({
               cachePolicy="memory-disk"
               contentFit="cover"
               source={{ uri, cacheKey }}
-              style={styles.photo}
+              style={[styles.photo, { aspectRatio: ratio }]}
               transition={150}
+              onLoad={(event) => {
+                // 実画像の寸法で枠を写真の比率に合わせる（cover なので枠＝比率なら切れない）
+                if (event.source.width > 0 && event.source.height > 0) {
+                  setPhotoRatio(event.source.width / event.source.height);
+                }
+              }}
             />
             <View style={styles.captionBand}>
               <AppText numberOfLines={2} style={styles.caption} variant="cardTitle">
@@ -291,7 +308,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   photo: {
-    aspectRatio: 1,
+    // aspectRatio は写真の実比率を render 側でインライン指定する（切り抜き禁止）
     backgroundColor: colors.skyBottom,
     width: '100%',
   },
