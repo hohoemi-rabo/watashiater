@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 このリポジトリは「ワタシアター」（60〜80代シニアが自分の博物館を作るアプリ）のモノレポ。
 仕様は **REQUIREMENTS.md**、見た目は **DESIGN.md**（v1.2）に従うこと。両方を必ず先に読むこと。
 Phase 2（**上映会**＝写真＋本人の声のスライド動画）の要件は **REQUIREMENTS-PHASE2.md** に確定済み。
-着手は**チケット23完了後**。MVP 同様、Phase 2 に向けた先回り実装・抽象化をしないこと。
+チケット23（リリース準備）は完了済みなので**着手可能**。MVP 同様、先回り実装・抽象化をしないこと。
 
 ---
 
@@ -63,7 +63,7 @@ npm run deploy                # wrangler deploy
 
 実装は `docs/` の連番チケットに沿って進める。**番号順＝実装順**（一覧は docs/README.md）。
 
-- **セッション開始時**：docs/README.md と各チケット冒頭のステータス行で現在地を確認し、番号が最小の未完了チケットから着手する（**README に実装順の例外が書かれていればそちらを優先**。28＝デザイン刷新まで完了済みで、残りは 23＝Google Play リリース準備のみ）
+- **セッション開始時**：docs/README.md と各チケット冒頭のステータス行で現在地を確認する（**README に実装順の例外が書かれていればそちらを優先**）。**00〜28 のチケットはすべて完了済み**＝MVP は Google Play 内部テスト配信まで到達している。次にやることは Phase 2（上映会。REQUIREMENTS-PHASE2.md）か、内部テストのフィードバック対応
 - 着手前に、チケットの「参照」が指す REQUIREMENTS.md / DESIGN.md の該当節を必ず読む
 - 各チケットの Todo は `- [ ]` で管理し、**完了したら `- [x]` に書き換える**。ファイル冒頭のステータス行（未着手／進行中／完了）も随時更新する
 - 仕様をチケットに書き写さない。REQUIREMENTS.md / DESIGN.md が唯一の情報源（チケットは参照＋Todo＋完了条件のみ）
@@ -163,7 +163,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 
 ## 実装で確立したパターン（チケット00〜21・24・25。詳細は各チケットのメモ）
 
-- **認証**：`lib/auth-context.tsx` の `useAuth()`（session / subject / memberships / restoredFromCache / signInWithGoogle / signOut / refreshSubject）。ルートガードは `app/_layout.tsx` の AuthGate。ログインは Expo Go 制約により**ブラウザ経由の `signInWithOAuth`**（Supabase の Redirect URLs に `exp://**` 登録済み。Android 用 OAuth クライアントはリリースビルドまで不要）
+- **認証**：`lib/auth-context.tsx` の `useAuth()`（session / subject / memberships / restoredFromCache / signInWithGoogle / signOut / refreshSubject）。ルートガードは `app/_layout.tsx` の AuthGate。ログインは Expo Go 制約により**ブラウザ経由の `signInWithOAuth`**（Supabase の Redirect URLs に `exp://**`＝Expo Go 用と `watashiater://**`＝リリースビルド用の両方を登録済み。**Android 用 OAuth クライアントは不要**＝ネイティブ `signInWithIdToken` に切り替えない限り要らない）
 - **データ取得**：`lib/use-prompts.ts`（画面フォーカス毎に refetch。保存して戻ると一覧・進捗が自動追随）。「回答済み」＝answers に行が存在する
 - **共通UI**：`components/` の sky-background / app-text / app-card / prompt-card（演目札）/ primary・secondary-button / back-button / progress-dots。tokens.ts の spacing・radii は app 専用の実装規約（web と値一致必須の対象外）
 - **非同期処理直後の分岐は処理の戻り値で行う**。setState 直後に state を読まない（チケット04で実際に起きたバグの教訓）
@@ -199,11 +199,14 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
   - **フォント（チケット25 で確定）**：ネイティブは `lib/app-fonts.ts` が TTF を持ち、Web は `lib/app-fonts.web.ts`（空マップ）＋`public/fonts/fonts.css` の `@font-face`。**`.web.ts` でファイルごと分けること**（`Platform.OS` 分岐では import が残って Metro が TTF を Web バンドルに入れてしまう）。CSS は `scripts/gen-web-fonts.mjs` が Google Fonts の CSS から生成（書体名を `tokens.ts` に合わせるだけ・実体は gstatic・unicode-range で使う文字の分だけ落ちる）。ネイティブ側は**必ずウェイトのサブパスから import**（ルート import は全19ウェイト106MB）
   - **`public/` が Web の静的ファイル置き場**（出力ルートへそのままコピーされる）：`index.html`（HTML シェル）・`manifest.json`・`sw.js`・`fonts/`・`icons/`。`public/index.html` は Expo の既定テンプレートを差し替え、html の lang と title のプレースホルダーが `app.json` の `web.lang` / `web.name` で置換される。**置換は最初の1件だけなので、プレースホルダーの綴りをコメント等に書かないこと**。`viewport-fit=cover` は付けない（iOS が自動でセーフエリア内に収める。付けると `SkyBackground` と二重になる）
   - **Service Worker は殻だけ**。`url.origin !== self.location.origin` なら何もしない＝これが「署名URLをキャッシュしない」担保（URL の除外リストにしない）。画面の読み込みは network-first（cache-first だと新デプロイが反映されない）。`vercel.json` で `/sw.js` に `must-revalidate` を付ける（無いと SW を更新できない）。ユーザーデータのオフラインは `lib/offline-cache.ts` の担当
-  - アイコンは `scripts/gen-icons.mjs` の**仮アイコン**（依存なし・決定的生成。チケット28で「幕の開いた舞台」構図＋新パレットに刷新済み）。本番アイコンとネイティブの `assets/images/icon.png` はチケット23
-- **チケット23（Google Play リリース準備）＝最後の未完了チケットの着手点**：
-  - **本番アイコン・スプラッシュはチケット28の新パレット**（桜〜ラベンダー〜空色の空・ローズ→紫の幕。DESIGN v1.2 §3）で作る。仮アイコンの `scripts/gen-icons.mjs` は SIZES に 1024 を足せばそのまま流用できる（スクリプト冒頭コメント参照）。**未差し替えの Expo テンプレ生成物**＝`assets/images/icon.png`・`android-icon-foreground/background/monochrome.png`・`splash-icon.png`（`app.json` の adaptiveIcon backgroundColor は #FFE4F1 に更新済み）
-  - **リリースビルドで初めて必要になるもの**：Google OAuth の **Android 用クライアント**（Expo Go 開発では不要のまま来た。上の「認証」参照）／Expo Go では最終確認にならなかった項目の実機確認（マイク許可の文言＝config plugin・`Linking.openSettings()`。docs/00 メモ）
-  - ビルドは **EAS Build**（この開発機＝WSL2 に Android SDK なし）。ストア掲載文は REQUIREMENTS §1.1 の**禁止語彙（葬送系）**に注意。Google Play Console の操作はユーザーに依頼して結果を待つ
+  - アイコンは `scripts/gen-icons.mjs` が全プラットフォームぶんを生成する（依存なし・決定的生成。チケット28で「幕の開いた舞台」構図＋新パレット、チケット23で本番アイコン・スプラッシュ・ストア用バナーまで拡張）
+- **リリース（チケット23。Google Play 内部テスト配信まで完了）**：
+  - **アプリの同一性**：表示名 `ワタシアター`／slug・scheme `watashiater`／`android.package` = **`com.hohoemirabo.watashiater`**（変更不可）。バージョンは EAS の remote 管理（`appVersionSource: "remote"`＋production の `autoIncrement`）なので **app.json に versionCode を書かない**
+  - **ログインの戻り先はビルドで変わる**：`makeRedirectUri()` は Expo Go で `exp://`・リリースビルドで `watashiater://`。Supabase の Redirect URLs には**両方登録済み**。**Android 用 OAuth クライアント（SHA-1）は不要**（ブラウザ経由 `signInWithOAuth` のままなので。ネイティブ `signInWithIdToken` に切り替える場合にのみ必要＝docs/01 の判断）
+  - **アイコン生成**：`scripts/gen-icons.mjs` が PWA アイコン・`assets/images/icon.png`・アダプティブ3層・`splash-icon.png`・`docs/store/feature-graphic.png` を作る。RGBA（PNG color type 6）パスあり＝**アダプティブの foreground / monochrome は透過必須**（不透明だとマスクで全面四角になる）。生成物はコミットする
+  - **ビルドとストア**：`npx eas-cli build --platform android --profile preview`（実機スモーク用 APK）／`--profile production`（AAB）。`.env` は EAS にアップロードされないので `EXPO_PUBLIC_*` は **eas.json の env に直書き**（公開前提の値）。掲載文・データセーフティの回答は `docs/store-listing.md`。Google Play Console の操作はユーザーに依頼して結果を待つ
+  - **ネイティブ依存を足したら `npx expo-doctor` を回す**（`expo install --check` は直接依存しか見ない）。チケット23で `expo-audio` の peer 経由に SDK 57 の `expo-asset` が混入し、**Expo Go では再現しない起動時クラッシュ**になった実例あり（docs/23 メモ）
+  - 実機ログは **USB 接続＋Windows 版 `adb.exe`**（WSL2 の Linux 版 adb・ワイヤレスデバッグは LAN に届かない）
 
 ## 音声入力の方針（チケット22で確定・再検討しない）
 
