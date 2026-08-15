@@ -7,6 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Phase 2（**上映会**＝写真＋本人の声のスライド動画）の要件は **REQUIREMENTS-PHASE2.md** に確定済み。
 チケット23（リリース準備）は完了済みなので**着手可能**。MVP 同様、先回り実装・抽象化をしないこと。
 
+**現在地（2026-08-15）**：MVP は Google Play の内部テストで配信中（versionCode 3）。
+2026-08-17（月）から、ほほ笑みラボの生徒さん22人に試してもらう予定。
+次にやることは**そのフィードバック対応**か、Phase 2（上映会）。
+
 ---
 
 ## 構成（セットアップ済み）
@@ -163,7 +167,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 
 ## 実装で確立したパターン（チケット00〜21・24・25。詳細は各チケットのメモ）
 
-- **認証**：`lib/auth-context.tsx` の `useAuth()`（session / subject / memberships / restoredFromCache / signInWithGoogle / signOut / refreshSubject）。ルートガードは `app/_layout.tsx` の AuthGate。ログインは Expo Go 制約により**ブラウザ経由の `signInWithOAuth`**（Supabase の Redirect URLs に `exp://**`＝Expo Go 用と `watashiater://**`＝リリースビルド用の両方を登録済み。**Android 用 OAuth クライアントは不要**＝ネイティブ `signInWithIdToken` に切り替えない限り要らない）
+- **認証**：`lib/auth-context.tsx` の `useAuth()`（session / subject / memberships / restoredFromCache / signInWithGoogle / signOut / refreshSubject）。ルートガードは `app/_layout.tsx` の AuthGate。ログインは Expo Go 制約により**ブラウザ経由の `signInWithOAuth`**（Supabase の Redirect URLs に `exp://**`＝Expo Go 用と `watashiater://**`＝リリースビルド用の両方を登録済み。**Android 用 OAuth クライアントは不要**＝ネイティブ `signInWithIdToken` に切り替えない限り要らない）。**`loadSubject` は失敗しても即エラーにせず3回まで試す**（ブラウザから戻った直後は通信が不安定で1回目だけ落ちることがあり、全画面のエラーゲートが出ていた。2026-08-15 実機で修正）
 - **データ取得**：`lib/use-prompts.ts`（画面フォーカス毎に refetch。保存して戻ると一覧・進捗が自動追随）。「回答済み」＝answers に行が存在する
 - **共通UI**：`components/` の sky-background / app-text / app-card / prompt-card（演目札）/ primary・secondary-button / back-button / progress-dots。tokens.ts の spacing・radii は app 専用の実装規約（web と値一致必須の対象外）
 - **非同期処理直後の分岐は処理の戻り値で行う**。setState 直後に state を読まない（チケット04で実際に起きたバグの教訓）
@@ -176,7 +180,10 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 - **ならべかえ（チケット14）**：`components/draggable-polaroid.tsx`＋`lib/board-save.ts`。見た目＝基準位置＋offset 共有値で、ドロップはワークレット内で畳み込む（跳ね戻りゼロ）。長押し220msでつまむ（スクロールとの取り合いは activateAfterLongPress で解決）・最前面 zIndex はドラッグ中のみ・保存はドロップ毎4項目セット・失敗は revertSignal で元へ。`GestureHandlerRootView` は `_layout.tsx` に追加済み。共有値は `.get()/.set()`・コールバックに `'worklet'` 明示（詳細は docs/14 メモ）
 - **録音の検証済み事実**（チケット00）：AAC は `RecordingPresets.HIGH_QUALITY` のみ／`record({ forDuration })` は実機で有効／3分＝約2.78MB／`File.type` はアップロードの Content-Type に使わない（詳細は docs/00 検証結果）
 - **録音（チケット10）**：本番プリセットは HIGH_QUALITY ベースの 1ch/64kbps（3分≈1.4MB・耳確認済み）。1回答1録音＝`recordings` は upsert(`onConflict:'answer_id'`)。保存順序は「PUT → answers 行の用意 → upsert」（空行の失敗経路を作らない）。録音まわりの機微は `components/recording-box.tsx` 冒頭コメントと docs/10 メモ
-- **写真が語る（チケット15）**：`components/photo-lightbox.tsx`（画面内 absoluteFill オーバーレイ。Modal は使わない）。閉じる＝即アンマウント＝`useAudioPlayer` の解放で音が確実に止まる。背景は `DIMMED_SKY`（skyTop+stageNavy の混色。黒背景禁止）。音声読み込み失敗は10秒タイムアウトで検知（SDK 54 の AudioStatus に error が無い）。**拡大表示は写真を切り抜かない**（onLoad の実寸で枠を実比率に合わせる。正方形 cover はボード・回答プレビューのみ。閲覧Web は `web/components/polaroid.tsx` の lightbox variant が CSS だけで同方針。2026-08-15・DESIGN v1.2）
+- **写真が語る（チケット15）**：`components/photo-lightbox.tsx`（画面内 absoluteFill オーバーレイ。Modal は使わない）。閉じる＝即アンマウント＝`useAudioPlayer` の解放で音が確実に止まる。背景は `DIMMED_SKY`（skyTop+stageNavy の混色。黒背景禁止）。音声読み込み失敗は10秒タイムアウトで検知（SDK 54 の AudioStatus に error が無い）。**拡大表示は写真を切り抜かない**（onLoad の実寸で枠を実比率に合わせる。正方形 cover はボード・回答プレビューのみ。閲覧Web は `web/components/polaroid.tsx` の lightbox variant が CSS だけで同方針。2026-08-15・DESIGN v1.2）。**開き方は「幕が中央から左右へ広がる」**（膜を独立層にして scaleX 0→1・320ms／写真は 140ms 遅れて 200ms で立ち上がる）。**ボードの写真は押しても見た目を変えない**（半透明にすると木目が透けて汚れて見える。共通の scale 0.98 はドラッグの transform と競合して使えない）
+- **Reanimated の CSS アニメには `animationFillMode: 'backwards'` を付ける**（既定は `'none'`）。アニメの登録が `componentDidMount`＝描画の後なので、**最初の1フレームだけ「終わりの姿」がそのまま描かれる**。全面を覆う要素だと画面がパッと光って見える（チケット23の実機で発覚。`curtain-overlay.tsx` の「base style は終わりの姿」の流儀は、この点だけ補う必要がある）。expo-image の `transition` も同様に、キャッシュ済みの絵に付けると下地が透ける時間を作るだけ
+- **画面名は「ギャラリー」**（2026-08-15 ユーザー判断）。「机の上」は木の机に写真を並べる**見た目の比喩の呼び名**としてコード・ドキュメントに残すが、UI には出さない
+- **ロゴは `components/app-logo.tsx`**（ホームと onboarding で共有）。「ワタシ」と「シアター」が重なる**「シ」の一字だけ `curtain-red`**・他は `stage-navy`、下段に字間を開けた `WATASHI THEATER`。全字を朱色にしていた旧版に戻さない（DESIGN §6「ロゴ表記」）
 - **家族・共有（チケット16）**：`public.redeem_invite_code` RPC が `family_members` への唯一の登録経路（INSERT ポリシーは意図的に無し）。**業務エラーは RAISE せず discriminated jsonb で返す**（`lib/family-join.ts` がパース）。家族の閲覧は専用 `/family/*` ルート（既存画面に readOnly フラグを差し込まない）。みたよは楽観更新＋23505 は成功扱い（`lib/use-my-reactions.ts`）。招待コードは7日・使い捨て・32文字アルファベット（`lib/invite.ts`）
 - **閲覧リンク（チケット17）**：`lib/view-link.ts`。有効リンクは subject に1本（partial unique）なので**再発行は「止める→作り直す」の2段階**。worker の slug 経路（`/media/view-urls` の `{slug}`）は実装・本番検証済み。**`EXPO_PUBLIC_WEB_URL` は `https://watashiater.vercel.app`**（チケット21のデプロイで確定済み）
 - **アカウント削除（チケット18）**：順序は worker `POST /media/wipe`（R2 の `subjects/<id>/` を prefix 一括削除。孤児も回収）→ RPC `delete_own_account`（auth.users の DELETE で全カスケード）→ signOut。**逆順にすると prefix を導出できず孤児が残る**。`lib/account.ts` に集約。SecondaryButton の `destructive` prop は削除系専用（errorRed）
@@ -204,7 +211,10 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
   - **アプリの同一性**：表示名 `ワタシアター`／slug・scheme `watashiater`／`android.package` = **`com.hohoemirabo.watashiater`**（変更不可）。バージョンは EAS の remote 管理（`appVersionSource: "remote"`＋production の `autoIncrement`）なので **app.json に versionCode を書かない**
   - **ログインの戻り先はビルドで変わる**：`makeRedirectUri()` は Expo Go で `exp://`・リリースビルドで `watashiater://`。Supabase の Redirect URLs には**両方登録済み**。**Android 用 OAuth クライアント（SHA-1）は不要**（ブラウザ経由 `signInWithOAuth` のままなので。ネイティブ `signInWithIdToken` に切り替える場合にのみ必要＝docs/01 の判断）
   - **アイコン生成**：`scripts/gen-icons.mjs` が PWA アイコン・`assets/images/icon.png`・アダプティブ3層・`splash-icon.png`・`docs/store/feature-graphic.png` を作る。RGBA（PNG color type 6）パスあり＝**アダプティブの foreground / monochrome は透過必須**（不透明だとマスクで全面四角になる）。生成物はコミットする
+  - **EAS ビルドは回数制限のある有料資源。実行前に必ずユーザーに確認を取る**（無料枠・アカウント単位の月次上限。2026-08-15 ユーザー指示）。キューの段階でキャンセルすれば消費されない見込みだが、当てにしない
+  - **JS だけの変更は Expo Go で確認できる＝ビルド不要**。実ビルドが要るのは app.json のネイティブ設定（アイコン・スプラッシュ・権限・package・scheme）とネイティブ依存の追加だけ。修正が出揃ってから production を1回、が基本の進め方
   - **ビルドとストア**：`npx eas-cli build --platform android --profile preview`（実機スモーク用 APK）／`--profile production`（AAB）。`.env` は EAS にアップロードされないので `EXPO_PUBLIC_*` は **eas.json の env に直書き**（公開前提の値）。掲載文・データセーフティの回答は `docs/store-listing.md`。Google Play Console の操作はユーザーに依頼して結果を待つ
+  - **内部テストの配信**：AAB を内部テストトラックへ上げてリリース開始 → 「テスター数」タブ下部の**オプトイン URL** を配る。Play ストア側のキャッシュで**古いバージョンがしばらく表示される**ことがある（オプトイン URL を開き直す・プルリフレッシュ・Play ストアのキャッシュ削除で解消）。テスターリストは Play Console のアカウント全体で共有され、他アプリのリストを流用できる
   - **ネイティブ依存を足したら `npx expo-doctor` を回す**（`expo install --check` は直接依存しか見ない）。チケット23で `expo-audio` の peer 経由に SDK 57 の `expo-asset` が混入し、**Expo Go では再現しない起動時クラッシュ**になった実例あり（docs/23 メモ）
   - 実機ログは **USB 接続＋Windows 版 `adb.exe`**（WSL2 の Linux 版 adb・ワイヤレスデバッグは LAN に届かない）
 
