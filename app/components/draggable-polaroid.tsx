@@ -177,12 +177,15 @@ export const DraggablePolaroid = memo(function DraggablePolaroid({
           dragging ? styles.dragging : null,
           animatedStyle,
         ]}>
+        {/* 押した見た目を変えない：拡大表示がすぐ開くこと自体が反応になるうえ、
+            共通の「沈む」演出（scale 0.98）は animated 側の transform と競合する。
+            半透明にする案はボードの木目が透けて写真が汚れて見えた（ユーザー指摘で削除） */}
         <Pressable
           accessibilityLabel={`「${caption}」の写真をひらく`}
           accessibilityRole="button"
           disabled={rearrange}
           onPress={() => onOpen(photoId)}
-          style={({ pressed }) => [styles.fill, pressed && styles.pressed]}>
+          style={styles.fill}>
           <BoardPolaroid
             cacheKey={cacheKey}
             caption={caption}
@@ -206,9 +209,6 @@ const styles = StyleSheet.create({
   },
   fill: {
     flex: 1,
-  },
-  pressed: {
-    opacity: 0.9,
   },
   wrapper: {
     position: 'absolute',
