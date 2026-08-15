@@ -10,6 +10,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 
 import { AddToHomeGuide } from '@/components/add-to-home-guide';
 import { AppCard } from '@/components/app-card';
+import { AppLogo } from '@/components/app-logo';
 import { AppText } from '@/components/app-text';
 import { BackButton } from '@/components/back-button';
 import { PrimaryButton } from '@/components/primary-button';
@@ -60,9 +61,7 @@ export default function OnboardingScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {session ? <BackButton /> : null}
 
-        <AppText variant="screenTitle" style={styles.logo}>
-          ワタシアター
-        </AppText>
+        <AppLogo />
         <AppText style={styles.lead}>じぶんの博物館を つくりましょう</AppText>
 
         {GUIDE_CARDS.map((card, index) => (
@@ -106,10 +105,6 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     padding: spacing.xl,
     paddingBottom: spacing.section,
-  },
-  logo: {
-    color: colors.curtainRed,
-    textAlign: 'center',
   },
   lead: {
     textAlign: 'center',
