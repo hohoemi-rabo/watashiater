@@ -214,6 +214,8 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
   - **EAS ビルドは回数制限のある有料資源。実行前に必ずユーザーに確認を取る**（無料枠・アカウント単位の月次上限。2026-08-15 ユーザー指示）。キューの段階でキャンセルすれば消費されない見込みだが、当てにしない
   - **JS だけの変更は Expo Go で確認できる＝ビルド不要**。実ビルドが要るのは app.json のネイティブ設定（アイコン・スプラッシュ・権限・package・scheme）とネイティブ依存の追加だけ。修正が出揃ってから production を1回、が基本の進め方
   - **ビルドとストア**：`npx eas-cli build --platform android --profile preview`（実機スモーク用 APK）／`--profile production`（AAB）。`.env` は EAS にアップロードされないので `EXPO_PUBLIC_*` は **eas.json の env に直書き**（公開前提の値）。掲載文・データセーフティの回答は `docs/store-listing.md`。Google Play Console の操作はユーザーに依頼して結果を待つ
+  - **`expo-audio` の不要な権限は `android.blockedPermissions` で外す**（`FOREGROUND_SERVICE` / `FOREGROUND_SERVICE_MEDIA_PLAYBACK`）。ライブラリが使用有無に関わらずマニフェストに入れるため、Play が「フォアグラウンドサービスの申告」を要求してくる。本アプリは**どちらのサービスも起動しない**（録音側は `allowsBackgroundRecording` 依存で既定 false、再生側は `setActiveForLockScreen` からのみ起動＝未使用）ので、申告ではなく削除が正しい対応
+  - **トラックは2種類**：**内部テスト**＝審査が実質なく数分で配信されるが、一般公開に必要な「テスター12人×14日」の実績にならない。**クローズドテスト**＝審査があり時間はかかるが実績になる。一般公開を視野に入れるならクローズドで配る
   - **内部テストの配信**：AAB を内部テストトラックへ上げてリリース開始 → 「テスター数」タブ下部の**オプトイン URL** を配る。Play ストア側のキャッシュで**古いバージョンがしばらく表示される**ことがある（オプトイン URL を開き直す・プルリフレッシュ・Play ストアのキャッシュ削除で解消）。テスターリストは Play Console のアカウント全体で共有され、他アプリのリストを流用できる
   - **ネイティブ依存を足したら `npx expo-doctor` を回す**（`expo install --check` は直接依存しか見ない）。チケット23で `expo-audio` の peer 経由に SDK 57 の `expo-asset` が混入し、**Expo Go では再現しない起動時クラッシュ**になった実例あり（docs/23 メモ）
   - 実機ログは **USB 接続＋Windows 版 `adb.exe`**（WSL2 の Linux 版 adb・ワイヤレスデバッグは LAN に届かない）
