@@ -7,8 +7,7 @@
  *   その下の「ほかの方法で送る」（今までの共有シート）。生徒さんの送り先は事実上 LINE だが、
  *   LINE を使わない家族のために共有シートも残す。アクセントは curtainRed＋lineGreen の2色（§11-6）
  * - 送る本文は LINE と共有シートで同じものを使う（下の *Message を唯一の組み立て場所にする）
- * - カードが4枚で1画面に収まらないため、下端に「下にもあります」を浮かべる（チケット33）。
- *   ScrollView はこの画面が持ったまま、判定と ref だけ useScrollHint に任せる
+
  * - コードは大きく・字間を空けて表示（電話で読み上げる・書き写す場面を想定）
  * - みたよ一覧はアプリ内のみ・最新30件（通知は出さない。REQUIREMENTS §3.5(a)）
  * - リンクの再発行は「止める → つくり直す」の2段階（無効化は確認ダイアログ必須。§3.5(b)）
@@ -22,7 +21,6 @@ import { AppText } from '@/components/app-text';
 import { BackButton } from '@/components/back-button';
 import { LineButton } from '@/components/line-button';
 import { PrimaryButton } from '@/components/primary-button';
-import { ScrollHint, useScrollHint } from '@/components/scroll-hint';
 import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { colors, fonts, fontSizes, spacing } from '@/constants/tokens';
@@ -47,8 +45,6 @@ export default function ShareScreen() {
   const isOnline = useIsOnline();
   const [linkBusy, setLinkBusy] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
-  // カードが4枚あり1画面に収まらない。下に続きがあることを知らせる（チケット33）
-  const hint = useScrollHint();
 
   const handleCreateCode = async () => {
     if (!subject) {
@@ -142,10 +138,7 @@ export default function ShareScreen() {
 
   return (
     <SkyBackground>
-      <ScrollView
-        ref={hint.scrollRef}
-        contentContainerStyle={styles.content}
-        {...hint.scrollViewProps}>
+      <ScrollView contentContainerStyle={styles.content}>
         <BackButton />
         <AppText variant="screenTitle">みんなに見せる</AppText>
 
@@ -277,8 +270,6 @@ export default function ShareScreen() {
           </>
         ) : null}
       </ScrollView>
-      {/* 案内は SkyBackground のセーフエリアの内側に重ねる（部品側で insets を足さないため） */}
-      {hint.visible ? <ScrollHint onPress={hint.scrollDown} /> : null}
     </SkyBackground>
   );
 }
