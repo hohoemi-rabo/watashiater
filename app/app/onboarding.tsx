@@ -38,18 +38,28 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  /**
+   * ログイン済みとして扱うかどうか。**ログイン処理中は session が入っても「まだ」扱いにする**：
+   * ブラウザから戻ると session が先に入るので、そのまま反映すると遷移までの一瞬だけ
+   * 戻る／ホームのヘッダーが現れて画面が飛び跳ねる（2026-09-12 ユーザー指摘）
+   */
+  const signedIn = Boolean(session) && !busy;
 
   const handleSignIn = async () => {
     setBusy(true);
     setErrorMessage(null);
     const result = await signInWithGoogle();
-    setBusy(false);
     if (result.status === 'success') {
+      // **busy は落とさない**：落とすと遷移までの一瞬だけログイン前の姿
+      // （「Google でログイン」ボタン）に描き直され、「ログインできていない画面が出た」
+      // ように見える（2026-09-12 ユーザー指摘）。この画面はこのあとすぐ外れる
+      //
       // 遷移判定は必ず result.hasSubject / hasMemberships を使う。context の state を読むと
       // ボタン押下時点の古い値（ログアウト直後＝null）を掴んで誤誘導する
       router.replace(result.hasSubject ? '/' : result.hasMemberships ? '/family' : '/nickname');
       return;
     }
+    setBusy(false);
     if (result.status === 'error') {
       setErrorMessage(result.message ?? 'ログインできませんでした。もう一度試してください。');
     }
@@ -59,7 +69,7 @@ export default function OnboardingScreen() {
   return (
     <SkyBackground>
       {/* ログイン前はこの画面が入口なので戻る先が無い。設定の「使い方」から来たときだけ出す */}
-      {session ? (
+      {signedIn ? (
         <View style={styles.header}>
           <ScreenHeader showHome />
         </View>
@@ -82,7 +92,7 @@ export default function OnboardingScreen() {
             ログイン前の初見でも、設定「使い方を見る」の再訪でも見える位置に置く */}
         <AddToHomeGuide />
 
-        {session ? null : (
+        {signedIn ? null : (
           <>
             <PrimaryButton
               icon={LogIn}
