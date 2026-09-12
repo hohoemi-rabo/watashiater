@@ -1,6 +1,10 @@
 /**
- * 補助ボタン。白カード面＋stage-navy 文字。押下挙動は主役ボタンと同じ（DESIGN.md §5）。
- * destructive は削除系の操作にだけ使う（errorRed 文字。curtainRed とは区別＝DESIGN §3）。
+ * 補助ボタン。白カード面＋stage-navy 文字＋**同色の2px枠**。押下挙動は主役ボタンと同じ（DESIGN.md §5）。
+ * destructive は削除系の操作にだけ使う（errorRed の文字と枠。curtainRed とは区別＝DESIGN §3）。
+ *
+ * 枠がある理由（2026-09-12 実機でユーザー指摘）：ボタンの地（cardWhite #FFFFFF）と
+ * AppCard の地（PAPER_TINT #FFF9FC）はほぼ同じ色で、カードの上に置くと影だけが頼りになり
+ * 「押せるもの」に見えなかった。文字と同じ色の枠を回して、どの地の上でもボタンと分かるようにする。
  */
 import type { LucideIcon } from 'lucide-react-native';
 import { Pressable, StyleSheet } from 'react-native';
@@ -32,6 +36,8 @@ export function SecondaryButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
+        // 枠は文字と同じ色（destructive なら赤枠・赤文字でそろう）
+        { borderColor: color },
         pressed && styles.pressed,
         disabled && styles.disabled,
       ]}>
@@ -48,6 +54,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.cardWhite,
     borderRadius: radii.button,
+    borderWidth: 2,
     flexDirection: 'row',
     gap: spacing.sm,
     justifyContent: 'center',
