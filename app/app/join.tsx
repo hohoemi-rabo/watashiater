@@ -87,7 +87,7 @@ export default function JoinScreen() {
                 : `${joined.nickname}さんの かぞくに なりました`}
             </AppText>
             <AppText>
-              {joined.nickname}さんの 博物館（しゃしん・じぶん史）を いつでも 見られます。
+              {joined.nickname}さんの 博物館（しゃしん・自分史）を いつでも 見られます。
             </AppText>
             <PrimaryButton
               icon={DoorOpen}

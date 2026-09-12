@@ -9,6 +9,6 @@
  * - TTF 4本（23MB）が Web バンドルに入らない（import 自体がここに無い）
  * - `useFonts({})` は即座に [true, null] を返すので、フォント待ちで白画面にならない
  * - `@font-face` は実際に使われた書体しか取りに行かない＝
- *   Shippori Mincho はじぶん史を開くまで読み込まれない
+ *   Shippori Mincho は自分史を開くまで読み込まれない
  */
 export const appFonts = {};

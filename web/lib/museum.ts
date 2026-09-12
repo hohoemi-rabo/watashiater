@@ -58,7 +58,7 @@ export type Museum = {
   /** created_at → id 昇順。この全順序が board-layout.ts の「毎回同じ配置」の前提 */
   photos: MuseumPhoto[]
   lifeStoryBodyText: string | null
-  /** じぶん史の奥付（作成日）。本文が無いときは null */
+  /** 自分史の奥付（作成日）。本文が無いときは null */
   lifeStoryGeneratedAt: string | null
 }
 

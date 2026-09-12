@@ -28,16 +28,16 @@ const sections: { id?: string; heading: string; body: React.ReactNode }[] = [
       <ul className="list-disc space-y-2 pl-5">
         <li>あなたの「博物館」を保存し、表示するため。</li>
         <li>あなたが許可した家族に、博物館を見てもらうため。</li>
-        <li>回答の文章から「じぶん史」を自動で作るため。</li>
+        <li>回答の文章から「自分史」を自動で作るため。</li>
         <li>不具合の調査と修正のため。</li>
       </ul>
     ),
   },
   {
-    heading: '「じぶん史」の自動生成（AI）について',
+    heading: '「自分史」の自動生成（AI）について',
     body: (
       <p>
-        「じぶん史をつくる」を押したときだけ、回答の文章を Google の生成 AI（Gemini
+        「自分史を作る」を押したときだけ、回答の文章を Google の生成 AI（Gemini
         API）に送って文章を作ります。写真と録音した声は AI に送りません。
       </p>
     ),
@@ -50,7 +50,7 @@ const sections: { id?: string; heading: string; body: React.ReactNode }[] = [
         <ul className="mt-2 list-disc space-y-2 pl-5">
           <li>Supabase（アカウント情報・回答の文章の保存。データベースは東京リージョン）</li>
           <li>Cloudflare（写真・音声ファイルの保存）</li>
-          <li>Google Gemini API（じぶん史の生成時のみ。上の節のとおり）</li>
+          <li>Google Gemini API（自分史の生成時のみ。上の節のとおり）</li>
         </ul>
         <p className="mt-2">
           これら以外に情報を渡すことはありません。情報を売ることも、広告のために使うこともありません。
@@ -89,7 +89,7 @@ const sections: { id?: string; heading: string; body: React.ReactNode }[] = [
           アプリの「せってい」→「アカウントを削除」から、いつでも自分でアカウントを削除できます。
         </p>
         <p className="mt-2">
-          削除すると、アカウント情報・回答の文章・写真・録音した声・じぶん史・家族との共有設定の
+          削除すると、アカウント情報・回答の文章・写真・録音した声・自分史・家族との共有設定の
           すべてがサーバーから完全に削除されます。あとから元に戻すことはできません。
         </p>
         <p className="mt-2">

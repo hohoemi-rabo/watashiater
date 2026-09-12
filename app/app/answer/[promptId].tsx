@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.body,
     // lineHeight は指定しない：Android はカーソルが行の高さいっぱいに描かれるため、
     // 1.7倍にすると文字よりカーソルが大きく見えて戸惑わせる（実機フィードバック反映）。
-    // 読み物としての行間1.7は表示側（一覧プレビュー・じぶん史）で使う
+    // 読み物としての行間1.7は表示側（一覧プレビュー・自分史）で使う
     minHeight: 200,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,

@@ -43,7 +43,7 @@ const MAX_BODY_LENGTH = 8000;
 // 生成プロンプトの方針は REQUIREMENTS §3.3 で固定（一人称は本人／創作しない／
 // 未回答のお題に触れない／終末を連想させる表現の禁止）
 const SYSTEM_INSTRUCTION = [
-	"あなたは、本人が「お題」に答えて書いた文章をもとに、本人の一人称による「じぶん史」を仕立てる編集者です。",
+	"あなたは、本人が「お題」に答えて書いた文章をもとに、本人の一人称による「自分史」を仕立てる編集者です。",
 	"次の決まりを必ず守ってください。",
 	"- 一人称は本人。本人が自分で綴った随筆として書く",
 	"- 回答に書かれていない事実・人名・年代・出来事を創作しない",
@@ -86,7 +86,7 @@ type GeminiResponse = {
 /** Gemini を呼んで随筆本文を返す。失敗はエラー Response を返す（呼び出し側でそのまま返却） */
 async function generateEssay(env: Env, answers: AnswerItem[]): Promise<string | Response> {
 	const userText = [
-		"以下は本人が書いた回答です。これをもとに、じぶん史を書いてください。",
+		"以下は本人が書いた回答です。これをもとに、自分史を書いてください。",
 		...answers.map((a) => `\n【お題】${a.title}\n${a.body}`),
 	].join("\n");
 
@@ -119,19 +119,19 @@ async function generateEssay(env: Env, answers: AnswerItem[]): Promise<string | 
 	// 失敗の詳細（安全フィルタの理由等）はログにのみ残し、ユーザーには一般的な文言を返す
 	if (!response.ok) {
 		console.error(`Gemini API ${response.status}: ${await response.text()}`);
-		return jsonError(502, "upstream_error", "じぶん史をつくれませんでした。少し時間をおいて、もういちどためしてください");
+		return jsonError(502, "upstream_error", "自分史をつくれませんでした。少し時間をおいて、もういちどためしてください");
 	}
 	const result = (await response.json()) as GeminiResponse;
 	const candidate = result.candidates?.[0];
 	const bodyText = candidate?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
 	if (result.promptFeedback?.blockReason || candidate?.finishReason !== "STOP" || bodyText === "") {
 		console.error(`Gemini unusable response: ${JSON.stringify(result).slice(0, 2000)}`);
-		return jsonError(502, "upstream_error", "じぶん史をつくれませんでした。少し時間をおいて、もういちどためしてください");
+		return jsonError(502, "upstream_error", "自分史をつくれませんでした。少し時間をおいて、もういちどためしてください");
 	}
 	return bodyText;
 }
 
-/** POST /ai/life-story：回答済みお題テキスト → 随筆調のじぶん史（REQUIREMENTS §3.3） */
+/** POST /ai/life-story：回答済みお題テキスト → 随筆調の自分史（REQUIREMENTS §3.3） */
 export async function handleGenerateLifeStory(request: Request, env: Env): Promise<Response> {
 	const auth = await verifyAccessToken(request, env);
 	if (!auth) return jsonError(401, "unauthorized", "ログインが必要です");

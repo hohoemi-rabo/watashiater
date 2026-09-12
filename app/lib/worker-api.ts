@@ -104,7 +104,7 @@ export async function wipeMedia(): Promise<{ deleted: number }> {
 export type LifeStoryAnswer = { title: string; body: string };
 
 /**
- * じぶん史の生成（チケット12。worker の AI 生成プロキシ経由）。
+ * 自分史の生成（チケット12。worker の AI 生成プロキシ経由）。
  * 1日3回まで・できあがるまで10〜30秒かかる（worker 側タイムアウト60秒）。
  * remaining は「今日あと何回つくれるか」。エラーは message をそのまま表示できる
  * WorkerApiError（429 レート制限の文言も worker が日本語で返す）

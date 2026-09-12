@@ -12,7 +12,7 @@ import { colors, spacing } from '@/constants/tokens';
 import { StyleSheet, View } from 'react-native';
 
 type OfflineNoteProps = {
-  /** 画面ごとの追記（例「ならべかえは つながってから できます。」） */
+  /** 画面ごとの追記（例「並べ替えは つながってから できます。」） */
   detail?: string;
 };
 

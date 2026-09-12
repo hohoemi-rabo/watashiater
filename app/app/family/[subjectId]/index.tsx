@@ -1,5 +1,5 @@
 /**
- * 家族から見た博物館のメニュー（チケット16）。机の上・じぶん史・お題カードへの入り口。
+ * 家族から見た博物館のメニュー（チケット16）。机の上・自分史・お題カードへの入り口。
  * subject が RLS で見えない（家族登録が解除された）ときは「見られなくなりました」を出す。
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -54,7 +54,7 @@ export default function FamilyMuseumScreen() {
             />
             <SecondaryButton
               icon={ScrollText}
-              label="じぶん史"
+              label="自分史"
               onPress={() => router.push(`/family/${subject.id}/story`)}
             />
             <SecondaryButton

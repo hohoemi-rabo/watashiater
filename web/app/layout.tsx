@@ -4,7 +4,7 @@ import { Noto_Sans_JP, Shippori_Mincho, Zen_Maru_Gothic } from 'next/font/google
 import './globals.css'
 
 // DESIGN.md §4 フォント3種。ウェイトは app/constants/tokens.ts の fonts と揃える
-// （見出し=ZenMaruGothic_700Bold / 本文=NotoSansJP 400・500 / じぶん史=ShipporiMincho_400Regular）。
+// （見出し=ZenMaruGothic_700Bold / 本文=NotoSansJP 400・500 / 自分史=ShipporiMincho_400Regular）。
 //
 // subsets に 'japanese' は指定できない（next 15.5 の font-data.json に無い）が、
 // **subsets はプリロード対象の選択にしか使われず**、Google Fonts の CSS に載る

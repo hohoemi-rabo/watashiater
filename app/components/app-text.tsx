@@ -6,7 +6,7 @@
  *   body        … 本文 16 / Noto Sans JP Regular（行間1.7）
  *   bodyMedium  … 本文 16 / Noto Sans JP Medium
  *   caption     … 補助 13 / text-soft
- *   story       … じぶん史ページ専用 18 / Shippori Mincho（行間2.0）
+ *   story       … 自分史ページ専用 18 / Shippori Mincho（行間2.0）
  */
 import { StyleSheet, Text, type TextProps } from 'react-native';
 

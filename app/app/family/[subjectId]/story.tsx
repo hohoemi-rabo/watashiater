@@ -1,7 +1,7 @@
 /**
- * 家族から見たじぶん史（チケット16。読み取り専用＋みたよ）。
+ * 家族から見た自分史（チケット16。読み取り専用＋見たよ）。
  * story.tsx の閲覧部分だけの縮小版（生成・編集・幕演出は書き手専用なので持たない）。
- * 紙質背景＋明朝（DESIGN §4）。本文の下に「みたよ」ボタン。
+ * 紙質背景＋明朝（DESIGN §4）。本文の下に「見たよ」ボタン。
  */
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
@@ -44,7 +44,7 @@ export default function FamilyStoryScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <BackButton />
           <AppText variant="screenTitle">
-            {subject ? `${subject.nickname}さんのじぶん史` : 'じぶん史'}
+            {subject ? `${subject.nickname}さんの自分史` : '自分史'}
           </AppText>
 
           {busy ? <ActivityIndicator color={colors.stageNavy} size="large" /> : null}
@@ -67,7 +67,7 @@ export default function FamilyStoryScreen() {
 
           {!busy && !anyError && subject && !story ? (
             <AppCard style={styles.card}>
-              <AppText variant="cardTitle">じぶん史は まだ ありません</AppText>
+              <AppText variant="cardTitle">自分史は まだ ありません</AppText>
               <AppText>できあがったら、ここで 読めます。</AppText>
             </AppCard>
           ) : null}

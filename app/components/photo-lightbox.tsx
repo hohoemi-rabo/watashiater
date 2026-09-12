@@ -10,9 +10,9 @@
  *   320ms では動きが読めなかった（クローズドテストの声）。**背景の面（veil）は幕ではなく
  *   舞台の地**なので静止させ、その手前に本物の幕を2枚かぶせて開く形に改めた。
  *   幕は開き切ったらアンマウントする（写真と操作の上に居座らせない）
- * - じぶん史の緞帳（curtain-overlay.tsx）とはひだの色と座標だけ共有する（lib/pleats.ts）。
+ * - 自分史の緞帳（curtain-overlay.tsx）とはひだの色と座標だけ共有する（lib/pleats.ts）。
  *   金の縁・飾り幕は入れない：写真とボタンにかぶるうえ、**写真を見るたびに毎回出る**ので
- *   豪華すぎると邪魔になる。速さも 0.6秒（じぶん史は2秒）
+ *   豪華すぎると邪魔になる。速さも 0.6秒（自分史は2秒）
  * - **CSS アニメには animationFillMode: 'backwards' を必ず付ける**：既定の 'none' はアニメ
  *   登録前の1フレームを「終わりの姿」で描くため、全面の幕がその1フレームだけ消えて光る
  *   （実機で確認。curtain-overlay.tsx の「base style は終わりの姿」の流儀は、この点だけ補う）
@@ -59,7 +59,7 @@ import { buildPleatStops, curtainGather, type CurtainSide } from '@/lib/pleats';
 export const DIMMED_SKY = '#DFBFD2';
 /**
  * 幕が開き切るまで（チケット30で 320→600ms）。DESIGN §8 の基準 200ms の例外。
- * じぶん史の緞帳（2秒）より短いのは、あちらが生成のとき1回きりなのに対し、
+ * 自分史の緞帳（2秒）より短いのは、あちらが生成のとき1回きりなのに対し、
  * こちらは写真をタップするたびに毎回出るため＝重い演出だと数枚目で邪魔になる
  */
 const CURTAIN_OPEN_MS = 600;
@@ -67,9 +67,9 @@ const CURTAIN_OPEN_MS = 600;
 const CONTENT_DELAY_MS = 320;
 /** 写真がすっと立ち上がる所要（チケット30で 200→280ms。幕の速さに合わせる） */
 const CONTENT_RISE_MS = 280;
-/** 幕のひだ本数（片側）。じぶん史より1本少ない＝一瞬しか出ないので粗めで足りる */
+/** 幕のひだ本数（片側）。自分史より1本少ない＝一瞬しか出ないので粗めで足りる */
 const FOLDS_PER_PANEL = 5;
-/** 開き切ったときの幕の幅（元の何倍まで束ねるか。じぶん史と同じ） */
+/** 開き切ったときの幕の幅（元の何倍まで束ねるか。自分史と同じ） */
 const GATHER_SCALE = 0.5;
 
 const PLEATS = buildPleatStops(FOLDS_PER_PANEL);
@@ -91,7 +91,7 @@ type PhotoLightboxProps = {
   onClose: () => void;
   /** 音声よみこみ失敗 → 親の refetch（署名URLの取り直し） */
   onRetry: () => void;
-  /** 家族の閲覧時だけ渡す「みたよ」（チケット16）。書き手側は渡さない＝表示しない */
+  /** 家族の閲覧時だけ渡す「見たよ」（チケット16）。書き手側は渡さない＝表示しない */
   reaction?: { reacted: boolean; onReact: () => void };
   /** オフライン（チケット19）。声はオンライン前提なので、赤いエラーではなく案内を出す */
   offline?: boolean;
@@ -316,7 +316,7 @@ export function PhotoLightbox({
 }
 
 /**
- * 拡大表示の幕1枚（チケット30）。じぶん史の緞帳と同じ束ね縮みだが、
+ * 拡大表示の幕1枚（チケット30）。自分史の緞帳と同じ束ね縮みだが、
  * 金の縁も飾り幕も持たない軽い版（判断の理由はファイル冒頭）
  */
 function CurtainPanel({ side, half }: { side: CurtainSide; half: number }) {

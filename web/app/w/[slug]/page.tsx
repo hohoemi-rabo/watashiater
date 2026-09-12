@@ -13,7 +13,7 @@ import { getViewUrls } from '@/lib/worker-api'
 // 閲覧内容は常に最新を出す（署名URLにも有効期限がある）。静的化させない
 export const dynamic = 'force-dynamic'
 
-/** じぶん史の奥付の日付。サーバーは UTC で動くので JST を明示する（アプリ側と同じ見た目にする） */
+/** 自分史の奥付の日付。サーバーは UTC で動くので JST を明示する（アプリ側と同じ見た目にする） */
 function formatJaDate(iso: string): string {
   return new Intl.DateTimeFormat('ja-JP', { dateStyle: 'long', timeZone: 'Asia/Tokyo' }).format(
     new Date(iso),
@@ -124,18 +124,18 @@ export default async function ViewPage({ params }: PageProps<'/w/[slug]'>) {
           </section>
         ) : null}
 
-        {/* ── じぶん史（DESIGN §4「一冊の本」：空の上に浮かぶ生成りのページ。
+        {/* ── 自分史（DESIGN §4「一冊の本」：空の上に浮かぶ生成りのページ。
              扉（題字＋飾り罫）・全角1字下げの段落・末尾に奥付＝アプリの story 画面と同じ体裁） ── */}
         {museum.lifeStoryBodyText !== null ? (
           <section className="px-5 pt-12">
-            <h2 className="pb-4 font-heading text-card-title">じぶん史</h2>
+            <h2 className="pb-4 font-heading text-card-title">自分史</h2>
             <div className="rounded-2xl bg-story-paper px-6 py-8 shadow-rest">
               {/* 内側の細い枠罫（木色）＝本のページの体裁 */}
               <div className="rounded-xl border border-desk-wood/50 px-5 py-6">
                 {/* 扉。◆は絵文字ではなく記号グリフ（DESIGN §11 の絵文字禁止に抵触しない） */}
                 <p className="text-center text-caption text-text-soft">{museum.nickname}</p>
                 <p className="pt-1 text-center font-story text-screen-title font-normal tracking-[0.3em] text-stage-navy">
-                  じぶん史
+                  自分史
                 </p>
                 <div className="flex items-center gap-2 pb-5 pt-3">
                   <span aria-hidden className="h-px flex-1 bg-desk-wood/50" />

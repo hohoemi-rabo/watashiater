@@ -1,5 +1,5 @@
 /**
- * じぶん史（チケット12：生成・閲覧・編集・再生成。チケット28で「空に浮かぶ本のページ」に改装）。
+ * 自分史（チケット12：生成・閲覧・編集・再生成。チケット28で「空に浮かぶ本のページ」に改装）。
  * 背景は他画面と同じ空グラデに戻し、本文は生成り（story-paper）の「本のページ」カード
  * （扉＝中央の題字と飾り罫・全角1字下げの段落・末尾に奥付）へ載せる。本文は Shippori Mincho
  * （DESIGN.md §4「一冊の本」の空気・§2「すべてのカードは浮いている」）。
@@ -127,13 +127,13 @@ export default function StoryScreen() {
   // 離脱ガード：生成中・編集の書きかけ・未保存の生成本文があるときは「もどる」を差し止める
   usePreventRemove(generating || editDirty || unsavedBody !== null, ({ data }) => {
     if (generating) {
-      showAlert('じぶん史をつくっています', 'できあがるまで少しおまちください。', [
+      showAlert('自分史をつくっています', 'できあがるまで少しおまちください。', [
         { text: 'わかりました', style: 'cancel' },
       ]);
       return;
     }
     if (unsavedBody !== null && mode === 'view') {
-      showAlert('できあがったじぶん史がほぞんされていません', 'もどると消えてしまいます。', [
+      showAlert('できあがった自分史がほぞんされていません', 'もどると消えてしまいます。', [
         { text: 'やめる', style: 'cancel' },
         {
           text: 'ほぞんしないで もどる',
@@ -290,11 +290,11 @@ export default function StoryScreen() {
               contentContainerStyle={styles.content}
               keyboardShouldPersistTaps="handled">
               <BackButton />
-              <AppText variant="screenTitle">じぶん史</AppText>
+              <AppText variant="screenTitle">自分史</AppText>
               <AppCard style={styles.gapCard}>
                 <AppText variant="cardTitle">じぶんの言葉で書きなおせます</AppText>
                 <TextInput
-                  accessibilityLabel="じぶん史の本文"
+                  accessibilityLabel="自分史の本文"
                   multiline
                   onChangeText={setDraft}
                   style={styles.editInput}
@@ -322,9 +322,9 @@ export default function StoryScreen() {
           <ScrollView contentContainerStyle={styles.content}>
             <BackButton />
             {/* 本文があるときは扉（ページ内の題字）が画面タイトルを兼ねる。二重に出さない */}
-            {bodyToShow === null ? <AppText variant="screenTitle">じぶん史</AppText> : null}
+            {bodyToShow === null ? <AppText variant="screenTitle">自分史</AppText> : null}
 
-            {!isOnline ? <OfflineNote detail="じぶん史づくりは つながってから できます。" /> : null}
+            {!isOnline ? <OfflineNote detail="自分史づくりは つながってから できます。" /> : null}
 
             {loading ? <ActivityIndicator color={colors.curtainRed} size="large" /> : null}
 
@@ -380,7 +380,7 @@ export default function StoryScreen() {
                           {subject.nickname}
                         </AppText>
                       ) : null}
-                      <AppText style={styles.titleText}>じぶん史</AppText>
+                      <AppText style={styles.titleText}>自分史</AppText>
                       <View style={styles.ruleRow}>
                         <View style={styles.rule} />
                         <AppText style={styles.ruleDiamond}>◆</AppText>
@@ -443,12 +443,12 @@ export default function StoryScreen() {
                 <AppCard style={styles.gapCard}>
                   <AppText variant="cardTitle">文字の回答がまだありません</AppText>
                   <AppText>
-                    文字で書いた回答をもとにじぶん史をつくります。お題にもどって、文字でもこたえてみてください。
+                    文字で書いた回答をもとに自分史をつくります。お題にもどって、文字でもこたえてみてください。
                   </AppText>
                 </AppCard>
               ) : (
                 <AppCard style={styles.gapCard}>
-                  <AppText variant="cardTitle">あなたのじぶん史をつくれます</AppText>
+                  <AppText variant="cardTitle">あなたの自分史をつくれます</AppText>
                   <AppText>
                     これまでの回答をもとに、AIが1本の読み物にまとめます。回答カードの文章はそのまま残ります。
                   </AppText>
@@ -457,7 +457,7 @@ export default function StoryScreen() {
                   </AppText>
                   <PrimaryButton
                     icon={ScrollText}
-                    label="じぶん史をつくる"
+                    label="自分史を作る"
                     onPress={() => void handleGenerate()}
                     disabled={generating || remaining === 0 || !isOnline}
                   />

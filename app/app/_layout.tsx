@@ -140,7 +140,7 @@ export default function RootLayout() {
   }
 
   return (
-    // RNGH のジェスチャーはこのルートが必須（チケット14のならべかえ）。
+    // RNGH のジェスチャーはこのルートが必須（チケット14の並べ替え）。
     // Android ではジェスチャー活性化時に ScrollView などのネイティブタッチを
     // 取り消す役目もこのビューが担う
     <GestureHandlerRootView style={styles.root}>

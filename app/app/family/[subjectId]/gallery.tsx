@@ -1,9 +1,9 @@
 /**
- * 家族から見た机の上（チケット16。閲覧＋みたよのみ。REQUIREMENTS §3.5(a)）。
- * gallery.tsx の閲覧モード相当の縮小版：ならべかえ関連（モード切替・保存・override）は
+ * 家族から見た机の上（チケット16。閲覧＋見たよのみ。REQUIREMENTS §3.5(a)）。
+ * gallery.tsx の閲覧モード相当の縮小版：並べ替え関連（モード切替・保存・override）は
  * 持たない。配置は書き手本人と同じ（対象 subject の board_seed＋保存済み board_*）なので、
  * 「本人がならべた机」がそのまま見える。タップ拡大＋声の再生はチケット15の PhotoLightbox を
- * そのまま使い、家族のときだけ「みたよ」ボタンを渡す。
+ * そのまま使い、家族のときだけ「見たよ」ボタンを渡す。
  */
 import { usePreventRemove } from '@react-navigation/native';
 import { useLocalSearchParams } from 'expo-router';

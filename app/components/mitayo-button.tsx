@@ -1,12 +1,12 @@
 /**
- * みたよボタン（チケット16。DESIGN §8「拍手」）。
+ * 見たよボタン（チケット16。DESIGN §8「拍手」）。
  * タップで手のひらアイコンが1回はじけ、spot-yellow の小さな紙吹雪が0.6秒舞う。
  * - 演出は家風どおり Reanimated の CSS キーフレーム。完了コールバックが無いので
  *   setTimeout でアンマウントする（curtain-overlay.tsx の判断記録と同じ）
  * - 粒子の飛び先は決定的な放射パターン（乱数を使わず見た目は十分ばらける。
  *   React Compiler 下で render 毎に値が変わる心配もない）
  * - reacted＝送信済みは押せない状態表示（アイコン塗りは「選択状態のみ」＝DESIGN §9）。
- *   みたよの取り消しは仕様に無い
+ *   見たよの取り消しは仕様に無い
  * - reduced-motion 時は演出を出さず状態だけ変える（DESIGN §8）
  */
 import { Hand } from 'lucide-react-native';
@@ -122,7 +122,7 @@ export function MitayoButton({ reacted, onPress, disabled }: MitayoButtonProps) 
           : null}
       </View>
       <AppText variant="cardTitle" style={styles.label}>
-        {reacted ? 'みたよ しました' : 'みたよ'}
+        {reacted ? '見たよ しました' : '見たよ'}
       </AppText>
     </Pressable>
   );

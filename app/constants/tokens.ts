@@ -11,14 +11,14 @@ export const colors = {
   skyBottom: '#C4E8FF', // 背景グラデ下端（淡い空色）
   cardWhite: '#FFFFFF', // カード面
   curtainRed: '#E0472F', // 幕の朱色。各画面で最も重要なアクション1つにだけ使う
-  spotYellow: '#F5B93C', // スポットライトの黄。みたよ・達成・ハイライト（エラーには使わない）
+  spotYellow: '#F5B93C', // スポットライトの黄。見たよ・達成・ハイライト（エラーには使わない）
   deskWood: '#C99A68', // 机の上ボードの木肌
   stageNavy: '#2B3A55', // 本文テキスト。真っ黒(#000)は使わない
   textSoft: '#6B7280', // 補助テキスト
   errorRed: '#C0392B', // エラー・削除系（curtain-red と区別する。DESIGN.md §3）
-  storyPaper: '#FBF7EF', // じぶん史ページの紙背景（DESIGN.md §4）
+  storyPaper: '#FBF7EF', // 自分史ページの紙背景（DESIGN.md §4）
   shadowPlum: '#8C3CB4', // 影専用の紫（桜系背景に青い影は濁るため。DESIGN.md §5）
-  // 緞帳（じぶん史）の縁と房だけに使う補助色。spotYellow(#F5B93C) 60% + deskWood(#C99A68) 40% の混色＝
+  // 緞帳（自分史）の縁と房だけに使う補助色。spotYellow(#F5B93C) 60% + deskWood(#C99A68) 40% の混色＝
   // PAPER_TINT・DIMMED_SKY と同じ「トークン由来の混色」で作り、生値を発明しない（チケット29）
   curtainGold: '#E3AD4E',
   // LINE へ送るボタンだけに使う補助色。LINE 公式色 #06C755 を少し落とした値＝白文字との
@@ -67,7 +67,7 @@ export const fonts = {
   heading: 'ZenMaruGothic_700Bold', // 見出し・ロゴ・ボタン
   body: 'NotoSansJP_400Regular', // 本文・UI
   bodyMedium: 'NotoSansJP_500Medium', // 本文・UI（Medium）
-  story: 'ShipporiMincho_400Regular', // じぶん史ページのみ
+  story: 'ShipporiMincho_400Regular', // 自分史ページのみ
 } as const;
 
 /** DESIGN.md §4 サイズ表（アプリ用スケール。閲覧Webとは別スケール・変更機能なし） */
@@ -77,13 +77,13 @@ export const fontSizes = {
   body: 16, // 14px未満を本文に使わない
   caption: 13,
   button: 16, // Bold
-  storyBody: 18, // じぶん史ページは読み物なので例外で18pxまで上げてよい
+  storyBody: 18, // 自分史ページは読み物なので例外で18pxまで上げてよい
   // ポラロイドのキャプション（DESIGN §5「Zen Maru Gothic 14px」）。
   // §4の「14px未満を本文に使わない」は本文の規定であり、キャプションは対象外
   polaroidCaption: 14,
 } as const;
 
-/** DESIGN.md §4 行間（本文1.7。じぶん史ページは2.0） */
+/** DESIGN.md §4 行間（本文1.7。自分史ページは2.0） */
 export const lineHeights = {
   body: 1.7,
   story: 2.0,

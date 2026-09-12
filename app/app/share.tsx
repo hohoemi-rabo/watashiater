@@ -1,5 +1,5 @@
 /**
- * みんなに見せる（チケット16：招待コード・かぞく一覧・みたよ一覧／チケット17：閲覧専用URL。
+ * みんなに見せる（チケット16：招待コード・かぞく一覧・見たよ一覧／チケット17：閲覧専用URL。
  * REQUIREMENTS §7-7）。
  * - 招待コードの発行がこの画面で最も重要なアクション＝唯一の curtainRed（DESIGN §3）。
  *   リンク系のボタンはすべて Secondary
@@ -9,7 +9,7 @@
  * - 送る本文は LINE と共有シートで同じものを使う（下の *Message を唯一の組み立て場所にする）
 
  * - コードは大きく・字間を空けて表示（電話で読み上げる・書き写す場面を想定）
- * - みたよ一覧はアプリ内のみ・最新30件（通知は出さない。REQUIREMENTS §3.5(a)）
+ * - 見たよ一覧はアプリ内のみ・最新30件（通知は出さない。REQUIREMENTS §3.5(a)）
  * - リンクの再発行は「止める → つくり直す」の2段階（無効化は確認ダイアログ必須。§3.5(b)）
  */
 import { Link2, Share2, StopCircle } from 'lucide-react-native';
@@ -175,7 +175,7 @@ export default function ShareScreen() {
               ) : (
                 <>
                   <AppText>
-                    招待コードを かぞくに おしらせすると、かぞくは この博物館を 見て「みたよ」を
+                    招待コードを かぞくに おしらせすると、かぞくは この博物館を 見て「見たよ」を
                     おくれるように なります。
                   </AppText>
                   <PrimaryButton
@@ -249,19 +249,19 @@ export default function ShareScreen() {
             </AppCard>
 
             <AppCard style={styles.card}>
-              <AppText variant="cardTitle">みたよ</AppText>
+              <AppText variant="cardTitle">見たよ</AppText>
               {reactions.length === 0 ? (
-                <AppText>まだ みたよ は ありません。</AppText>
+                <AppText>まだ 見たよ は ありません。</AppText>
               ) : (
                 reactions.map((reaction) => (
                   <View key={reaction.id} style={styles.row}>
                     <AppText variant="bodyMedium">
-                      {reaction.memberName}さんが みたよ しました
+                      {reaction.memberName}さんが 見たよ しました
                     </AppText>
                     <AppText variant="caption">
                       {reaction.kind === 'photo'
                         ? `写真「${reaction.photoTitle}」・${formatJaDate(reaction.createdAt)}`
-                        : `じぶん史・${formatJaDate(reaction.createdAt)}`}
+                        : `自分史・${formatJaDate(reaction.createdAt)}`}
                     </AppText>
                   </View>
                 ))

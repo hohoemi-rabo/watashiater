@@ -1,10 +1,10 @@
 /**
- * ギャラリー（机の上）閲覧＋ならべかえ（チケット13・14。REQUIREMENTS §3.4① / DESIGN §5・§7）。
+ * ギャラリー（机の上）閲覧＋並べ替え（チケット13・14。REQUIREMENTS §3.4① / DESIGN §5・§7）。
  * 全お題の写真をポラロイドとして木目ボードにばら撒き配置する。
  * - 配置は board-layout.ts の契約どおり（board_seed で決定的・保存配置優先）
  * - 重なり順は「z 昇順に並べ替えて描画順」で表現する。zIndex はドラッグ中の1枚だけ
  *   （Android は同 elevation の兄弟なら描画順が安定して効く。影も3段規約のまま）
- * - ならべかえ（チケット14）：長押しでつまんでドラッグ。ドロップ毎に board_* を保存し、
+ * - 並べ替え（チケット14）：長押しでつまんでドラッグ。ドロップ毎に board_* を保存し、
  *   見た目は「基準位置＋offset 共有値」で動かす（詳細は draggable-polaroid.tsx）。
  *   overrides は z ソート・ボード高さ・DB 保存にだけ使い、基準 props は変えない
  * - タップ拡大＋音声（チケット15）：閲覧モードのタップで PhotoLightbox を開く。
@@ -202,7 +202,7 @@ export default function GalleryScreen() {
             ギャラリー
           </AppText>
 
-          {!isOnline ? <OfflineNote detail="ならべかえは つながってから できます。" /> : null}
+          {!isOnline ? <OfflineNote detail="並べ替えは つながってから できます。" /> : null}
 
           {loading ? <ActivityIndicator color={colors.cardWhite} size="large" /> : null}
 
@@ -245,10 +245,10 @@ export default function GalleryScreen() {
                 </AppText>
               </View>
             ) : (
-              // ならべかえは配置をその都度サーバーに保存するのでオフラインでは入れない
+              // 並べ替えは配置をその都度サーバーに保存するのでオフラインでは入れない
               <SecondaryButton
                 icon={Hand}
-                label="ならべかえ"
+                label="並べ替え"
                 onPress={() => setMode('rearrange')}
                 disabled={!isOnline}
               />

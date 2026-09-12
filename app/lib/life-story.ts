@@ -1,5 +1,5 @@
 /**
- * じぶん史の保存の道具箱（React 非依存。チケット12。recording-attach.ts の鏡）。
+ * 自分史の保存の道具箱（React 非依存。チケット12。recording-attach.ts の鏡）。
  * - 生成結果の保存は upsert：life_story.subject_id は素の UNIQUE 制約なので
  *   onConflict が使える（recordings と同じ。answers が upsert を避けた事情は該当しない）
  * - generated_at は DB 側で自動更新されないため、再生成の上書きでも明示的に入れる

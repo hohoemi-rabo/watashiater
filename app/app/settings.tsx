@@ -67,7 +67,7 @@ export default function SettingsScreen() {
   const confirmDelete = () => {
     showAlert(
       'アカウントを削除しますか？',
-      '写真・声・じぶん史など、すべてのデータが消えます。もとにもどすことは できません。',
+      '写真・声・自分史など、すべてのデータが消えます。もとにもどすことは できません。',
       [
         { text: 'やめる', style: 'cancel' },
         {

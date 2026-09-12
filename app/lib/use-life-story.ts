@@ -1,5 +1,5 @@
 /**
- * じぶん史（life_story 行。subject 毎に1本）を取得するフック（チケット12・19）。
+ * 自分史（life_story 行。subject 毎に1本）を取得するフック（チケット12・19）。
  * use-recording.ts と同じ構造の単数版。画面フォーカス毎に再取得する。
  *
  * オフライン対応（チケット19。use-prompts / use-board-photos も同型）：
@@ -32,7 +32,7 @@ type LifeStoryState = {
 
 type CachedLifeStory = { story: LifeStory | null };
 
-const LOAD_ERROR_MESSAGE = 'じぶん史をよみこめませんでした。';
+const LOAD_ERROR_MESSAGE = '自分史をよみこめませんでした。';
 
 /** @param targetSubjectId 家族として見る対象の subject（チケット16）。省略時は自分の博物館 */
 export function useLifeStory(targetSubjectId?: string) {

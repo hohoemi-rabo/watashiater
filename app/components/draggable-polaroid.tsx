@@ -1,5 +1,5 @@
 /**
- * ならべかえ用のドラッグラッパー（チケット14）。BoardPolaroid の中身には触らない。
+ * 並べ替え用のドラッグラッパー（チケット14）。BoardPolaroid の中身には触らない。
  *
  * 位置の設計（ちらつきゼロの要）：
  * - 見た目の位置 = 基準位置（props の baseLeft/baseTop ＝自動整列 or DB保存値）+ offset 共有値
@@ -14,7 +14,7 @@
  * - 長押し（220ms）で持ち上げ。待機中に指が動くと Pan は fail して ScrollView が普通に勝つ。
  *   活性化すると RNGH がネイティブタッチを取り消す（GestureHandlerRootView が必須）
  * - タップ拡大（チケット15）は内側の Pressable。閲覧モードでは Pan が disabled なので競合せず、
- *   ならべかえ中は Pressable を disabled にしてタップ不活性（長押しは RNGH のタッチ取消で勝つ）
+ *   並べ替え中は Pressable を disabled にしてタップ不活性（長押しは RNGH のタッチ取消で勝つ）
  * - ドラッグ中の最前面は zIndex（ドラッグ中のみ）。兄弟の並べ替えをジェスチャー中に
  *   行わない（GestureDetector の再アタッチを避ける）。静止時は「描画順=重なり」を維持
  * - 回転はドラッグで変えない（2本指回転はシニアの書き手には難しいので採用しない）

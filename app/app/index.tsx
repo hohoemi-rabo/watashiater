@@ -1,6 +1,6 @@
 /**
  * ホーム（ハブ）。DESIGN.md §7：上部ロゴ／中央に進捗（演目札ドット）と「お題を書く」／
- * 「じぶん史をつくる」（回答1問以上で有効。REQUIREMENTS §3.3）／
+ * 「自分史を作る」（回答1問以上で有効。REQUIREMENTS §3.3）／
  * 下部にギャラリーへの入り口（木目のミニプレビュー）。
  */
 import { useRouter } from 'expo-router';
@@ -56,7 +56,7 @@ export default function HomeScreen() {
 
         <SecondaryButton
           icon={ScrollText}
-          label="じぶん史をつくる"
+          label="自分史を作る"
           onPress={() => router.push('/story')}
           disabled={loading || answeredCount === 0}
         />
