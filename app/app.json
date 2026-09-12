@@ -35,7 +35,7 @@
       "favicon": "./assets/images/favicon.png",
       "name": "ワタシアター",
       "lang": "ja",
-      "description": "じぶんの博物館を つくりましょう",
+      "description": "自分の博物館を作りましょう",
       "themeColor": "#FFD6E8"
     },
     "plugins": [
