@@ -1,5 +1,5 @@
 /**
- * ホーム（ハブ）。DESIGN.md §7：上部ロゴ／中央に進捗（演目札ドット）と「つづきをかく」／
+ * ホーム（ハブ）。DESIGN.md §7：上部ロゴ／中央に進捗（演目札ドット）と「お題を書く」／
  * 「じぶん史をつくる」（回答1問以上で有効。REQUIREMENTS §3.3）／
  * 下部にギャラリーへの入り口（木目のミニプレビュー）。
  */
@@ -51,7 +51,7 @@ export default function HomeScreen() {
               <ProgressDots total={PROMPT_TOTAL} filled={loading ? 0 : answeredCount} />
             </>
           )}
-          <PrimaryButton icon={BookOpen} label="つづきをかく" onPress={() => router.push('/prompts')} />
+          <PrimaryButton icon={BookOpen} label="お題を書く" onPress={() => router.push('/prompts')} />
         </AppCard>
 
         <SecondaryButton
