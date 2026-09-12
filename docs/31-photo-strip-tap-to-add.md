@@ -1,6 +1,6 @@
 # 31. 回答画面：写真の枠をタップしても写真を選べるように
 
-- ステータス: 未着手
+- ステータス: 進行中（実装・静的検証ずみ／実機確認まち）
 - 参照: REQUIREMENTS.md §3.2（写真添付）/ DESIGN.md §7 回答画面（「写真添付枠はポラロイド型の空枠」。本チケットで改訂）/ §5 質感。実装は `app/components/photo-strip.tsx`（呼び出し元 `app/app/answer/[promptId].tsx` の `onAdd` をそのまま使う）
 - 依存: なし
 - 由来: クローズドテストの声（2026-09-08 ユーザー依頼「写真を載せるとき、ボタン以外に写真のところをタップする機能」）
@@ -18,11 +18,11 @@
 
 ## Todo
 
-- [ ] `photo-strip.tsx`：空枠を `Pressable`（`accessibilityRole="button"`・ラベル「写真をのせる」）にし、写真の有無にかかわらず `photos.length < PHOTO_MAX_PER_ANSWER` の間は表示。中身はアイコン（ImagePlus）＋「ここを押して写真をのせる」。押下時は他の押下と同じ opacity 0.6
-- [ ] disabled 条件（loading / uploading / offline / loadError）を整理し、判断をコメントに残す
-- [ ] 傾き：空枠は既存写真と同じ `TILTS` の続きの角度にする（並びが自然に見える）
-- [ ] `npx tsc --noEmit`・`npm run lint`
-- [ ] DESIGN.md §7 回答画面の記述を更新（「空枠は常に出し、押すと写真を選べる」）
+- [x] `photo-strip.tsx`：空枠を `Pressable`（`accessibilityRole="button"`・ラベル「写真をのせる」）にし、写真の有無にかかわらず `photos.length < PHOTO_MAX_PER_ANSWER` の間は表示。中身はアイコン（ImagePlus）＋「ここを押して写真をのせる」。押下時は他の押下と同じ opacity 0.6
+- [x] disabled 条件（loading / uploading / offline / loadError）を整理し、判断をコメントに残す
+- [x] 傾き：空枠は既存写真と同じ `TILTS` の続きの角度にする（並びが自然に見える）
+- [x] `npx tsc --noEmit`・`npm run lint`
+- [x] DESIGN.md §7 回答画面の記述を更新（「空枠は常に出し、押すと写真を選べる」）
 - [ ] 実機（Expo Go）で確認：枠タップ→写真選択→追加、5枚で枠が消える、オフライン時は押せない
 
 ## 完了条件
@@ -31,4 +31,31 @@
 
 ## メモ
 
-（作業中の記録）
+### 枠の作り：回転は外側の View・タップは内側の Pressable
+
+ポラロイドは ±3°傾いているので、Pressable 自体を回すと当たり判定の確認が要る。
+`draggable-polaroid.tsx`（ギャラリーの写真タップ拡大）が**回転した親の内側に Pressable を置く**形で
+本番実績があるので、同じ構造をとった。白フチの View は今までどおり `styles.polaroid` のまま、
+点線の内側（`styles.emptyInner`）が押せる面になる＝押す場所が「枠の中」で見た目と一致する。
+
+傾きは `TILTS[photos.length % TILTS.length]`＝既存写真の続きの角度なので、枚数が増えても並びが揃う。
+
+### 押せない条件を1か所にまとめた
+
+`addDisabled = loading || uploading || offline || loadError !== null`。
+枠は常に見えているため、押しても何も起きない状態を作らず「押せない見た目」で先に伝える。
+`loadError` を含めたのは、読み込みに失敗している＝今何枚あるか分からない状態で足させないため
+（既存の「写真をのせる」ボタンも同じ条件で隠している）。無効時の `opacity: 0.5` は白フチごと
+落としたいので Pressable ではなく外側のポラロイドに当てている。
+
+押下の `opacity: 0.6` は既存の `deletePressed` と同じ値（新しい押下表現を発明しない）。
+
+### 文言
+
+枠の中は決定事項どおり「ここを押して写真をのせる」。旧「おもいでの写真を のせられます」は
+置き換わった。「おもいで」という語を残すかは**チケット34（文言の見直し）でまとめて判断**する。
+
+### 検証したこと
+
+`npx tsc --noEmit` / `npm run lint` / `expo export --platform android` / `--platform web` は通った
+（`photo-strip.tsx` は書き手Web／PWA でも使う共有コンポーネントなので Web 出力も確認）。

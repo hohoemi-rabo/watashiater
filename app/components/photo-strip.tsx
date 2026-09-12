@@ -4,6 +4,9 @@
  *   傾きは index 決定的（再レンダーで揺れない）
  * - 削除系は errorRed（curtain-red はこの画面では保存ボタン専用。DESIGN §3）
  * - 画像は r2_key を cacheKey にしてディスクキャッシュ（署名URLのクエリは毎回変わるため）
+ * - 点線の空枠は飾りではなく**写真を選ぶ入り口**（チケット31。生徒さんは枠を押そうとした）。
+ *   写真が何枚あっても末尾に出し続け、「ここに次の写真がのる」を形で示す。「写真をのせる」
+ *   ボタンも残す＝入り口は2つ（ボタンに慣れた人を迷わせない）
  */
 import { Image } from 'expo-image';
 import { ImagePlus, Trash2 } from 'lucide-react-native';
@@ -47,6 +50,15 @@ export function PhotoStrip({
   offline,
 }: PhotoStripProps) {
   const uploading = uploadState !== null;
+  /**
+   * 空枠から写真を選べない場面。枠は常に見えているので、押してから何も起きないのではなく
+   * 「押せない見た目」で先に伝える（DESIGN §2）。内訳：
+   * - loading … 既存の「写真をのせる」ボタンの disabled と同じ条件
+   * - uploading … handleAddPhotos が早期 return する場面
+   * - offline … 書き込みはオンライン前提（チケット19）。案内文は今までどおり別に出す
+   * - loadError … 今何枚あるのか分からない状態なので足させない（既存ボタンも隠している条件）
+   */
+  const addDisabled = loading || uploading || offline === true || loadError !== null;
 
   return (
     <View style={styles.container}>
@@ -78,6 +90,31 @@ export function PhotoStrip({
         </View>
       ))}
 
+      {photos.length < PHOTO_MAX_PER_ANSWER ? (
+        // 写真の末尾に出し続けるポラロイド型の空枠。傾きは既存写真の続きの角度にして並びを揃える。
+        // 回転は外側の View・タップは内側の Pressable（ギャラリーの写真タップ拡大と同じ形＝
+        // draggable-polaroid.tsx。回転した親の中でも当たり判定が素直に効く実績のある構造）
+        <View
+          style={[
+            styles.polaroid,
+            { transform: [{ rotate: TILTS[photos.length % TILTS.length] }] },
+            addDisabled && styles.addFrameDisabled,
+          ]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="写真をのせる"
+            accessibilityState={{ disabled: addDisabled }}
+            disabled={addDisabled}
+            onPress={onAdd}
+            style={({ pressed }) => [styles.emptyInner, pressed && styles.addPressed]}>
+            <ImagePlus color={colors.textSoft} size={28} strokeWidth={2} />
+            <AppText variant="caption" style={styles.emptyText}>
+              ここを押して写真をのせる
+            </AppText>
+          </Pressable>
+        </View>
+      ) : null}
+
       {loading ? <ActivityIndicator color={colors.stageNavy} /> : null}
 
       {loadError && offline ? (
@@ -91,17 +128,6 @@ export function PhotoStrip({
             {loadError}
           </AppText>
           <SecondaryButton label="もういちど よみこむ" onPress={onRetryLoad} />
-        </View>
-      ) : null}
-
-      {!loading && !loadError && photos.length === 0 && !uploading ? (
-        // 写真ゼロのときだけポラロイド型の空枠（「ここに写真がのる」が形で分かる。DESIGN §7）
-        <View style={styles.polaroid}>
-          <View style={styles.emptyInner}>
-            <AppText variant="caption" style={styles.emptyText}>
-              おもいでの写真を のせられます
-            </AppText>
-          </View>
         </View>
       ) : null}
 
@@ -169,8 +195,17 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     borderStyle: 'dashed',
     borderWidth: 1,
+    gap: spacing.sm,
     justifyContent: 'center',
     padding: spacing.md,
+  },
+  // 押下・無効の表現は既存（deletePressed）と同じ値を使い、新しい流儀を発明しない。
+  // 無効は白フチごと落としたいので Pressable ではなく外側のポラロイドに当てる
+  addPressed: {
+    opacity: 0.6,
+  },
+  addFrameDisabled: {
+    opacity: 0.5,
   },
   emptyText: {
     textAlign: 'center',
