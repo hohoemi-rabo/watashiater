@@ -9,11 +9,11 @@
 import { useRouter } from 'expo-router';
 import { Check, DoorOpen } from 'lucide-react-native';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
-import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/screen-header';
 import { PrimaryButton } from '@/components/primary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, spacing } from '@/constants/tokens';
@@ -75,8 +75,10 @@ export default function JoinScreen() {
 
   return (
     <SkyBackground>
+      <View style={styles.header}>
+        <ScreenHeader showHome />
+      </View>
       <ScrollView contentContainerStyle={styles.content}>
-        <BackButton />
         <AppText variant="screenTitle">家族として登録する</AppText>
 
         {joined ? (
@@ -136,6 +138,10 @@ export default function JoinScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
   card: {
     gap: spacing.lg,
   },
@@ -149,6 +155,8 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.xxl,
     padding: spacing.xl,
+    // 上余白はヘッダー側が持つので、ここは「戻る」と見出しの間
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.section,
   },
   error: {

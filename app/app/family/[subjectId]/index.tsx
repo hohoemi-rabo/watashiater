@@ -4,11 +4,11 @@
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { BookOpen, Images, ScrollText } from 'lucide-react-native';
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
-import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/screen-header';
 import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { colors, spacing } from '@/constants/tokens';
@@ -22,8 +22,10 @@ export default function FamilyMuseumScreen() {
 
   return (
     <SkyBackground>
+      <View style={styles.header}>
+        <ScreenHeader showHome />
+      </View>
       <ScrollView contentContainerStyle={styles.content}>
-        <BackButton />
 
         {loading ? <ActivityIndicator color={colors.stageNavy} size="large" /> : null}
 
@@ -70,12 +72,18 @@ export default function FamilyMuseumScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
   card: {
     gap: spacing.lg,
   },
   content: {
     gap: spacing.xxl,
     padding: spacing.xl,
+    // 上余白はヘッダー側が持つので、ここは「戻る」と見出しの間
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.section,
   },
   errorTitle: {

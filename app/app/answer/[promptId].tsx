@@ -40,7 +40,7 @@ import Animated, { useReducedMotion } from 'react-native-reanimated';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
-import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/screen-header';
 import { OfflineNote } from '@/components/offline-note';
 import { PhotoStrip } from '@/components/photo-strip';
 import { PrimaryButton } from '@/components/primary-button';
@@ -510,8 +510,10 @@ export default function AnswerScreen() {
   if (!loading && error) {
     return (
       <SkyBackground>
+        <View style={styles.header}>
+          <ScreenHeader showHome />
+        </View>
         <View style={styles.content}>
-          <BackButton />
           <AppCard style={styles.gapCard}>
             <AppText variant="cardTitle">読み込めませんでした</AppText>
             <AppText>{error}</AppText>
@@ -525,8 +527,10 @@ export default function AnswerScreen() {
   if (!loading && !isFree && !fixedItem) {
     return (
       <SkyBackground>
+        <View style={styles.header}>
+          <ScreenHeader showHome />
+        </View>
         <View style={styles.content}>
-          <BackButton />
           <AppCard style={styles.gapCard}>
             <AppText variant="cardTitle">このお題は見つかりませんでした</AppText>
             <AppText>「戻る」からお題の一覧へお戻りください。</AppText>
@@ -539,8 +543,10 @@ export default function AnswerScreen() {
   return (
     <SkyBackground>
       <View style={styles.screen}>
+        <View style={styles.header}>
+          <ScreenHeader showHome />
+        </View>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <BackButton />
 
         {loading ? (
           <ActivityIndicator color={colors.curtainRed} size="large" />
@@ -721,12 +727,18 @@ export default function AnswerScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
   screen: {
     flex: 1,
   },
   content: {
     gap: spacing.xl,
     padding: spacing.xl,
+    // 上余白はヘッダー側が持つので、ここは「戻る」と見出しの間
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.section,
   },
   footer: {

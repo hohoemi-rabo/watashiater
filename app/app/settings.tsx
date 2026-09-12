@@ -12,7 +12,7 @@ import { StyleSheet, TextInput, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
-import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/screen-header';
 import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { TAP_TARGET_MIN, colors, fonts, fontSizes, radii, spacing } from '@/constants/tokens';
@@ -106,8 +106,10 @@ export default function SettingsScreen() {
 
   return (
     <SkyBackground>
+      <View style={styles.header}>
+        <ScreenHeader />
+      </View>
       <View style={styles.content}>
-        <BackButton />
         <AppText variant="screenTitle">設定</AppText>
         <AppCard style={styles.card}>
           <AppText variant="cardTitle">ニックネーム</AppText>
@@ -167,9 +169,15 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
   content: {
     gap: spacing.xxl,
     padding: spacing.xl,
+    // 上余白はヘッダー側が持つので、ここは「戻る」と見出しの間
+    paddingTop: spacing.xxl,
   },
   card: {
     gap: spacing.md,

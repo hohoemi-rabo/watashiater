@@ -32,7 +32,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
-import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/screen-header';
 import {
   CURTAIN_CLOSE_MS,
   CURTAIN_OPEN_MS,
@@ -286,10 +286,12 @@ export default function StoryScreen() {
       <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
         {mode === 'edit' ? (
           <View style={styles.safeArea}>
+            <View style={styles.header}>
+              <ScreenHeader />
+            </View>
             <ScrollView
               contentContainerStyle={styles.content}
               keyboardShouldPersistTaps="handled">
-              <BackButton />
               <AppText variant="screenTitle">自分史</AppText>
               <AppCard style={styles.gapCard}>
                 <AppText variant="cardTitle">自分の言葉で書きなおせます</AppText>
@@ -319,8 +321,11 @@ export default function StoryScreen() {
             </View>
           </View>
         ) : (
-          <ScrollView contentContainerStyle={styles.content}>
-            <BackButton />
+          <>
+            <View style={styles.header}>
+              <ScreenHeader />
+            </View>
+            <ScrollView contentContainerStyle={styles.content}>
             {/* 本文があるときは扉（ページ内の題字）が画面タイトルを兼ねる。二重に出さない */}
             {bodyToShow === null ? <AppText variant="screenTitle">自分史</AppText> : null}
 
@@ -464,7 +469,8 @@ export default function StoryScreen() {
                 </AppCard>
               )
             ) : null}
-          </ScrollView>
+            </ScrollView>
+          </>
         )}
       </SafeAreaView>
 
@@ -475,6 +481,10 @@ export default function StoryScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
   actions: {
     gap: spacing.md,
   },
@@ -528,6 +538,8 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.xxl,
     padding: spacing.xl,
+    // 上余白はヘッダー側が持つので、ここは「戻る」と見出しの間
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.section,
   },
   dateCaption: {

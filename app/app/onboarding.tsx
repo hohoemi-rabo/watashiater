@@ -6,13 +6,13 @@
 import { useRouter } from 'expo-router';
 import { LogIn } from 'lucide-react-native';
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AddToHomeGuide } from '@/components/add-to-home-guide';
 import { AppCard } from '@/components/app-card';
 import { AppLogo } from '@/components/app-logo';
 import { AppText } from '@/components/app-text';
-import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/screen-header';
 import { PrimaryButton } from '@/components/primary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { colors, spacing } from '@/constants/tokens';
@@ -58,8 +58,13 @@ export default function OnboardingScreen() {
 
   return (
     <SkyBackground>
+      {/* ログイン前はこの画面が入口なので戻る先が無い。設定の「使い方」から来たときだけ出す */}
+      {session ? (
+        <View style={styles.header}>
+          <ScreenHeader showHome />
+        </View>
+      ) : null}
       <ScrollView contentContainerStyle={styles.content}>
-        {session ? <BackButton /> : null}
 
         <AppLogo />
         <AppText style={styles.lead}>自分の博物館を作りましょう</AppText>
@@ -101,9 +106,15 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
   content: {
     gap: spacing.lg,
     padding: spacing.xl,
+    // 上余白はヘッダー側が持つので、ここは「戻る」と見出しの間
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.section,
   },
   lead: {

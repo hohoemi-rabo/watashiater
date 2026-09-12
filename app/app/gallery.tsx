@@ -26,7 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
-import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/screen-header';
 import { POLAROID_EXTRA_HEIGHT } from '@/components/board-polaroid';
 import { DeskBoard, DeskGrain } from '@/components/desk-board';
 import { DraggablePolaroid } from '@/components/draggable-polaroid';
@@ -197,7 +197,7 @@ export default function GalleryScreen() {
         {/* 木目はコンテンツ側に敷いて写真と一緒にスクロールさせる（desk-board.tsx の判断） */}
         <DeskGrain />
         <View style={[styles.header, { paddingTop: insets.top + spacing.xl }]}>
-          <BackButton />
+          <ScreenHeader />
           <AppText variant="screenTitle" style={styles.title}>
             ギャラリー
           </AppText>

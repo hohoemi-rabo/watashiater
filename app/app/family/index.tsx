@@ -7,11 +7,11 @@
 import { useRouter } from 'expo-router';
 import { DoorOpen, KeyRound, LogOut, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
-import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/screen-header';
 import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { colors, spacing } from '@/constants/tokens';
@@ -80,9 +80,13 @@ export default function FamilyHubScreen() {
 
   return (
     <SkyBackground>
+      {/* 自分の博物館を持つ人は settings から来る＝戻れる。家族専用はここがホーム */}
+      {subject ? (
+        <View style={styles.header}>
+          <ScreenHeader />
+        </View>
+      ) : null}
       <ScrollView contentContainerStyle={styles.content}>
-        {/* 自分の博物館を持つ人は settings から来る＝もどれる。家族専用はここがホーム */}
-        {subject ? <BackButton /> : null}
         <AppText variant="screenTitle">家族の博物館</AppText>
 
         {loading ? <ActivityIndicator color={colors.stageNavy} size="large" /> : null}
@@ -141,12 +145,18 @@ export default function FamilyHubScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
   card: {
     gap: spacing.lg,
   },
   content: {
     gap: spacing.xxl,
     padding: spacing.xl,
+    // 上余白はヘッダー側が持つので、ここは「戻る」と見出しの間
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.section,
   },
   errorTitle: {

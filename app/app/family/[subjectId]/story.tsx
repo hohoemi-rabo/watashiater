@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
-import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/screen-header';
 import { MitayoButton } from '@/components/mitayo-button';
 import { SecondaryButton } from '@/components/secondary-button';
 import { colors, spacing } from '@/constants/tokens';
@@ -41,8 +41,10 @@ export default function FamilyStoryScreen() {
   return (
     <View style={styles.paper}>
       <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
+        <View style={styles.header}>
+          <ScreenHeader showHome />
+        </View>
         <ScrollView contentContainerStyle={styles.content}>
-          <BackButton />
           <AppText variant="screenTitle">
             {subject ? `${subject.nickname}さんの自分史` : '自分史'}
           </AppText>
@@ -94,12 +96,18 @@ export default function FamilyStoryScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
   card: {
     gap: spacing.md,
   },
   content: {
     gap: spacing.xxl,
     padding: spacing.xl,
+    // 上余白はヘッダー側が持つので、ここは「戻る」と見出しの間
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.section,
   },
   dateCaption: {

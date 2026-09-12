@@ -9,7 +9,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
-import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/screen-header';
 import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
 import { colors, spacing } from '@/constants/tokens';
@@ -29,8 +29,10 @@ export default function FamilyPromptsScreen() {
 
   return (
     <SkyBackground>
+      <View style={styles.header}>
+        <ScreenHeader showHome />
+      </View>
       <ScrollView contentContainerStyle={styles.content}>
-        <BackButton />
         <AppText variant="screenTitle">
           {subject ? `${subject.nickname}さんのお題カード` : 'お題カード'}
         </AppText>
@@ -79,12 +81,18 @@ export default function FamilyPromptsScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
   card: {
     gap: spacing.md,
   },
   content: {
     gap: spacing.lg,
     padding: spacing.xl,
+    // 上余白はヘッダー側が持つので、ここは「戻る」と見出しの間
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.section,
   },
   errorTitle: {
