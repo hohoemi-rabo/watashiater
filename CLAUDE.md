@@ -48,7 +48,7 @@ npx expo export --platform android --output-dir <一時dir> --clear
 npx expo export --platform web --output-dir <一時dir> --clear
                               # Web 出力の検証（TTF が混入していないか・index.html が正しいか）
 node scripts/gen-web-fonts.mjs   # public/fonts/fonts.css を作り直す（生成物はコミットする）
-node scripts/gen-icons.mjs       # PWA アイコンを作り直す（同上）
+node scripts/gen-icons.mjs       # アイコン一式を作り直す（同上。元絵は assets/icon-source.jpg）
 
 # web/
 npm run dev                   # 開発サーバー
@@ -213,11 +213,14 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
   - **フォント（チケット25 で確定）**：ネイティブは `lib/app-fonts.ts` が TTF を持ち、Web は `lib/app-fonts.web.ts`（空マップ）＋`public/fonts/fonts.css` の `@font-face`。**`.web.ts` でファイルごと分けること**（`Platform.OS` 分岐では import が残って Metro が TTF を Web バンドルに入れてしまう）。CSS は `scripts/gen-web-fonts.mjs` が Google Fonts の CSS から生成（書体名を `tokens.ts` に合わせるだけ・実体は gstatic・unicode-range で使う文字の分だけ落ちる）。ネイティブ側は**必ずウェイトのサブパスから import**（ルート import は全19ウェイト106MB）
   - **`public/` が Web の静的ファイル置き場**（出力ルートへそのままコピーされる）：`index.html`（HTML シェル）・`manifest.json`・`sw.js`・`fonts/`・`icons/`。`public/index.html` は Expo の既定テンプレートを差し替え、html の lang と title のプレースホルダーが `app.json` の `web.lang` / `web.name` で置換される。**置換は最初の1件だけなので、プレースホルダーの綴りをコメント等に書かないこと**。`viewport-fit=cover` は付けない（iOS が自動でセーフエリア内に収める。付けると `SkyBackground` と二重になる）
   - **Service Worker は殻だけ**。`url.origin !== self.location.origin` なら何もしない＝これが「署名URLをキャッシュしない」担保（URL の除外リストにしない）。画面の読み込みは network-first（cache-first だと新デプロイが反映されない）。`vercel.json` で `/sw.js` に `must-revalidate` を付ける（無いと SW を更新できない）。ユーザーデータのオフラインは `lib/offline-cache.ts` の担当
-  - アイコンは `scripts/gen-icons.mjs` が全プラットフォームぶんを生成する（依存なし・決定的生成。チケット28で「幕の開いた舞台」構図＋新パレット、チケット23で本番アイコン・スプラッシュ・ストア用バナーまで拡張）
+  - アイコンは `scripts/gen-icons.mjs` が全プラットフォームぶんを生成する（**元絵 `assets/icon-source.jpg` を切り出す**。チケット37でユーザー提供の絵に差し替え＝それまでのコードで描く方式は廃止）
 - **リリース（チケット23。Google Play 内部テスト配信まで完了）**：
   - **アプリの同一性**：表示名 `ワタシアター`／slug・scheme `watashiater`／`android.package` = **`com.hohoemirabo.watashiater`**（変更不可）。バージョンは EAS の remote 管理（`appVersionSource: "remote"`＋production の `autoIncrement`）なので **app.json に versionCode を書かない**
   - **ログインの戻り先はビルドで変わる**：`makeRedirectUri()` は Expo Go で `exp://`・リリースビルドで `watashiater://`。Supabase の Redirect URLs には**両方登録済み**。**Android 用 OAuth クライアント（SHA-1）は不要**（ブラウザ経由 `signInWithOAuth` のままなので。ネイティブ `signInWithIdToken` に切り替える場合にのみ必要＝docs/01 の判断）
-  - **アイコン生成**：`scripts/gen-icons.mjs` が PWA アイコン・`assets/images/icon.png`・アダプティブ3層・`splash-icon.png`・`docs/store/feature-graphic.png` を作る。RGBA（PNG color type 6）パスあり＝**アダプティブの foreground / monochrome は透過必須**（不透明だとマスクで全面四角になる）。生成物はコミットする
+  - **アイコン生成**：`scripts/gen-icons.mjs` が PWA アイコン・`assets/images/icon.png`・アダプティブ3層・`splash-icon.png`・`docs/store/feature-graphic.png` を作る。**元絵は `assets/icon-source.jpg`**（差し替えたらこのスクリプトを流す）。sharp を使うので app の devDependencies に入っている。生成物はコミットする
+    - **アダプティブの foreground / monochrome は透過必須**（不透明だとマスクで全面四角になる）
+    - **アダプティブで実際に見えるのは 108dp のうち中央 72dp（66.7%）だけ**。角が落ちるだけではないので、foreground の絵はこの範囲に収める（チケット37で実測確認）
+    - 出力は 256色パレット PNG・dither なし（写真的な絵を素の PNG にすると 1024px で 2MB 近くなりアプリが重い。dither を入れると滑らかな面に点ノイズが出る）。**大きく出るストアのバナーだけフルカラー**
   - **EAS ビルドは回数制限のある有料資源。実行前に必ずユーザーに確認を取る**（無料枠・アカウント単位の月次上限。2026-08-15 ユーザー指示）。キューの段階でキャンセルすれば消費されない見込みだが、当てにしない
   - **JS だけの変更は Expo Go で確認できる＝ビルド不要**。実ビルドが要るのは app.json のネイティブ設定（アイコン・スプラッシュ・権限・package・scheme）とネイティブ依存の追加だけ。修正が出揃ってから production を1回、が基本の進め方
   - **ビルドとストア**：`npx eas-cli build --platform android --profile preview`（実機スモーク用 APK）／`--profile production`（AAB）。`.env` は EAS にアップロードされないので `EXPO_PUBLIC_*` は **eas.json の env に直書き**（公開前提の値）。掲載文・データセーフティの回答は `docs/store-listing.md`。Google Play Console の操作はユーザーに依頼して結果を待つ
