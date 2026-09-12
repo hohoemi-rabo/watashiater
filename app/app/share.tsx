@@ -3,6 +3,10 @@
  * REQUIREMENTS §7-7）。
  * - 招待コードの発行がこの画面で最も重要なアクション＝唯一の curtainRed（DESIGN §3）。
  *   リンク系のボタンはすべて Secondary
+ * - 送る導線は2本立て（チケット32）：主役級の「LINEで送る」（lineGreen・LINE を直接開く）と、
+ *   その下の「ほかの方法で送る」（今までの共有シート）。生徒さんの送り先は事実上 LINE だが、
+ *   LINE を使わない家族のために共有シートも残す。アクセントは curtainRed＋lineGreen の2色（§11-6）
+ * - 送る本文は LINE と共有シートで同じものを使う（下の *Message を唯一の組み立て場所にする）
  * - コードは大きく・字間を空けて表示（電話で読み上げる・書き写す場面を想定）
  * - みたよ一覧はアプリ内のみ・最新30件（通知は出さない。REQUIREMENTS §3.5(a)）
  * - リンクの再発行は「止める → つくり直す」の2段階（無効化は確認ダイアログ必須。§3.5(b)）
@@ -14,6 +18,7 @@ import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-na
 import { AppCard } from '@/components/app-card';
 import { AppText } from '@/components/app-text';
 import { BackButton } from '@/components/back-button';
+import { LineButton } from '@/components/line-button';
 import { PrimaryButton } from '@/components/primary-button';
 import { SecondaryButton } from '@/components/secondary-button';
 import { SkyBackground } from '@/components/sky-background';
@@ -21,6 +26,7 @@ import { colors, fonts, fontSizes, spacing } from '@/constants/tokens';
 import { showAlert } from '@/lib/app-alert';
 import { useAuth } from '@/lib/auth-context';
 import { createInviteCode } from '@/lib/invite';
+import { shareViaLine } from '@/lib/line-share';
 import { useIsOnline } from '@/lib/use-online';
 import { useShareData } from '@/lib/use-share-data';
 import { buildViewUrl, createViewLink, deactivateViewLink } from '@/lib/view-link';
@@ -54,17 +60,19 @@ export default function ShareScreen() {
     await refetch();
   };
 
+  // 送る本文は LINE でも共有シートでも同じ。文面をハンドラに直書きせず、ここだけで組み立てる
+  const inviteMessage = invite
+    ? `「ワタシアター」の招待コードです：${invite.code}\n` +
+      'アプリの「かぞくとして登録する」で このコードを入れてください。'
+    : '';
+
   const handleShareCode = async () => {
     if (!invite) {
       return;
     }
-    // 共有シート（LINE 等）へ。失敗してもコードは画面に見えているので何もしない
+    // 共有シートへ。失敗してもコードは画面に見えているので何もしない
     try {
-      await Share.share({
-        message:
-          `「ワタシアター」の招待コードです：${invite.code}\n` +
-          'アプリの「かぞくとして登録する」で このコードを入れてください。',
-      });
+      await Share.share({ message: inviteMessage });
     } catch {
       // ユーザーが共有をやめた等。エラー表示は不要
     }
@@ -85,16 +93,17 @@ export default function ShareScreen() {
     await refetch();
   };
 
+  const linkMessage = viewLink
+    ? `${subject?.nickname ?? 'わたし'}の博物館「ワタシアター」です。ぜひ 見てください。\n` +
+      buildViewUrl(viewLink.slug)
+    : '';
+
   const handleShareLink = async () => {
     if (!viewLink) {
       return;
     }
     try {
-      await Share.share({
-        message:
-          `${subject?.nickname ?? 'わたし'}の博物館「ワタシアター」です。ぜひ 見てください。\n` +
-          buildViewUrl(viewLink.slug),
-      });
+      await Share.share({ message: linkMessage });
     } catch {
       // ユーザーが共有をやめた等。エラー表示は不要
     }
@@ -155,7 +164,12 @@ export default function ShareScreen() {
                   <AppText variant="caption">
                     {formatJaDate(invite.expires_at)}まで つかえます・1回だけ つかえます
                   </AppText>
-                  <SecondaryButton icon={Share2} label="LINEなどで おくる" onPress={() => void handleShareCode()} />
+                  <LineButton label="LINEで送る" onPress={() => void shareViaLine(inviteMessage)} />
+                  <SecondaryButton
+                    icon={Share2}
+                    label="ほかの方法で送る"
+                    onPress={() => void handleShareCode()}
+                  />
                 </>
               ) : (
                 <>
@@ -184,9 +198,10 @@ export default function ShareScreen() {
                   <AppText variant="caption">
                     このリンクを知っている人は だれでも 見られます。
                   </AppText>
+                  <LineButton label="LINEで送る" onPress={() => void shareViaLine(linkMessage)} />
                   <SecondaryButton
                     icon={Share2}
-                    label="LINEなどで おくる"
+                    label="ほかの方法で送る"
                     onPress={() => void handleShareLink()}
                   />
                   <SecondaryButton

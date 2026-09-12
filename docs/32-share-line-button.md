@@ -1,6 +1,6 @@
 # 32. みんなに見せる：「LINEで送る」を LINE 色の直通ボタンに
 
-- ステータス: 未着手
+- ステータス: 進行中（実装・静的検証ずみ／実機確認まち）
 - 参照: REQUIREMENTS.md §3.5（共有）/ DESIGN.md §3 使い方のルール（本チケットで補助色 `line-green` を追加）/ §11-6（1画面3色まで）。実装は `app/app/share.tsx` の2か所（招待コード・見せる用リンク）
 - 依存: なし
 - 由来: クローズドテストの声（2026-09-08 ユーザー依頼「LINEで送るボタンに色をつける（LINE のイメージ色）」）
@@ -11,31 +11,66 @@
 
 ## 決定事項（2026-09-08 ユーザー確認済み）
 
-- **「LINEで送る」＝LINE の緑（`#06C755`）の主役級ボタン**。押すと共有シートを経ずに LINE が開く（送り先の選択は LINE 側）
+- **「LINEで送る」＝LINE の緑の主役級ボタン**。押すと共有シートを経ずに LINE が開く（送り先の選択は LINE 側）
 - その下に「ほかの方法で送る」（今までの共有シート）を補助ボタンで残す（LINE を使わない家族向け）
-- LINE 未インストール等で開けなければ、黙って共有シートに落とす（エラーを見せない）
 - 緑は新しい補助色 `line-green`（app `tokens.ts` ⇄ web `tailwind.config.js` に追加し値を一致。用途は LINE ボタンのみ）。みんなに見せる画面のアクセントは curtain-red（招待コードをつくる）＋ line-green の2色＝§11-6 の範囲内
+
+### 着手時の調査で変わった2点（2026-09-12 ユーザー確認済み）
+
+- **緑は `#06C755` ではなく `#06A845`**：公式色に白文字はコントラスト 2.2:1 で、大きな太字の基準 3:1 にも届かない（参考：赤い主役ボタン `#E0472F` は 4.1:1）。公式色を少し落として 3.1:1 にし、「LINE の緑」と読める見た目は保つ
+- **LINE 未インストール時に共有シートへ落とすのは取り下げ**：LINE 公式ドキュメントで `line://` スキームが非推奨になっており、現行の正式な形は `https://line.me/R/share?text=…` だけ。https なので未インストールでも openURL は失敗せず（ブラウザで LINE のページが開く）、「入っていないこと」は検出できない。非推奨 API に依存するより、LINE を使わない家族の受け皿は直下の「ほかの方法で送る」に任せる
 - LINE のロゴ画像は使わない（商標ガイドラインの制約を持ち込まない）。緑地に白文字「LINEで送る」＋汎用の吹き出しアイコン（lucide `MessageCircle`）
 
 ## 実装方針
 
-- `lib/line-share.ts`：`shareViaLine(text)`。ネイティブは `Linking.openURL('line://msg/text/' + encodeURIComponent(text))`（LINE 公式の URL スキーム。未インストールなら openURL が reject する → `Share.share` にフォールバック）。Web（PWA）は `https://line.me/R/share?text=…`（ユニバーサルリンク。iPhone は LINE が入っていればアプリが開く）。分岐は処理の一部だけなので `Platform.OS`（CLAUDE.md のプラットフォーム分岐の順序 2）
+- `lib/line-share.ts`：`shareViaLine(text)`。URL は `https://line.me/R/share?text=…`（UTF-8 パーセントエンコード）の**1本だけ**。ネイティブと Web で URL が同じなので `Platform.OS` 分岐は不要。openURL が throw するのは想定外の失敗のときだけなので、そのときだけ `Share.share` へ落とす（押しても何も起きない状態を作らないため）
 - `components/line-button.tsx`：PrimaryButton と同じ寸法・影・押下挙動で、地色だけ `lineGreen`。PrimaryButton に色 prop を足さない（curtain-red の「最重要アクション1つ」規約を薄めない）
-- `Linking.canOpenURL` は使わない（Android 11+ はマニフェストの `<queries>` が無いと常に false を返し、判定に使えない。openURL の失敗で判定する）
+- `Linking.canOpenURL` は使わない（Android 11+ はマニフェストの `<queries>` が無いと常に false を返し、判定に使えない）。**openURL の失敗も未インストールの判定には使えない**（https は必ず開く。上の「調査で変わった2点」参照）
 
 ## Todo
 
-- [ ] トークン追加：`lineGreen`（app）⇄ `line-green`（web）。DESIGN §3 に補助色として追記（用途を LINE ボタン限定と明記）
-- [ ] `lib/line-share.ts`（URL スキーム・フォールバック・Web 分岐。理由をコメントに）
-- [ ] `components/line-button.tsx`
-- [ ] `share.tsx`：招待コードと見せる用リンクの両カードを「LINEで送る（緑）」＋「ほかの方法で送る（補助）」に置き換え。送る本文は今のまま
-- [ ] `npx tsc --noEmit`・`npm run lint`
-- [ ] 実機（Expo Go）で確認：LINE が直接開き本文が入っている／「ほかの方法で送る」で共有シートが開く。可能なら LINE 未インストール端末（またはアンインストール）でフォールバックも確認
+- [x] トークン追加：`lineGreen`（app）⇄ `line-green`（web）。DESIGN §3 に補助色として追記（用途を LINE ボタン限定と明記）
+- [x] `lib/line-share.ts`（公式の共有リンク・想定外失敗時のフォールバック。理由をコメントに）
+- [x] `components/line-button.tsx`
+- [x] `share.tsx`：招待コードと見せる用リンクの両カードを「LINEで送る（緑）」＋「ほかの方法で送る（補助）」に置き換え。送る本文は今のまま
+- [x] `npx tsc --noEmit`・`npm run lint`・`npx expo export`（android / web）
+- [x] DESIGN.md §3 の補助色・§7 みんなに見せるを更新
+- [ ] 実機（Expo Go）で確認：LINE が直接開き本文が入っている／「ほかの方法で送る」で共有シートが開く
 
 ## 完了条件
 
-みんなに見せる画面で、招待コード・見せる用リンクのどちらも「LINEで送る」の緑ボタンから LINE が直接開き、本文が入った状態で送り先を選べる。LINE が無い端末では共有シートが開く。
+みんなに見せる画面で、招待コード・見せる用リンクのどちらも「LINEで送る」の緑ボタンから LINE が直接開き、本文が入った状態で送り先を選べる。LINE を使わない家族には直下の「ほかの方法で送る」から共有シートで送れる。
 
 ## メモ
 
-（作業中の記録）
+### `line://` は使わない（2026-09-12 に公式ドキュメントで確認）
+
+LINE の URL スキームのドキュメントでは `line://` スキーム全体が非推奨とされ、
+テキスト共有の現行の形は **`https://line.me/R/share?text=…`（UTF-8 パーセントエンコード）** だけ。
+着手前に書いた実装方針（`line://msg/text/` を試して失敗したら共有シート）はこの前提が崩れる：
+
+- https なので、LINE が入っていなくても openURL は成功する（ブラウザで LINE のページが開く）
+- `Linking.canOpenURL` も判定に使えない（Android 11+ はマニフェストの `<queries>` が無いと常に false）
+
+よって「LINE が入っていないこと」は検出できない。非推奨 API に happy path を預けるより、
+受け皿は UI 側（直下の「ほかの方法で送る」）に持たせる方針へ変更した。
+`shareViaLine` の try/catch は **想定外の失敗**のときだけ共有シートへ落とすためのもので、
+未インストールの検出ではない（コメントにも明記）。
+
+### 緑は公式色そのままにしなかった
+
+LINE 公式色 `#06C755` に白文字はコントラスト 2.2:1。大きな太字の基準 3:1 にも届かず、
+60〜80代が主な利用者のこのアプリでは弱すぎる（赤い主役ボタン `#E0472F`＋白は 4.1:1）。
+少し落とした `#06A845` なら 3.1:1 で基準を満たし、見た目は「LINE の緑」のまま。
+濃さの微調整は `tokens.ts` の1行で効く。
+
+### PrimaryButton と分けた理由
+
+`LineButton` は PrimaryButton とスタイルがほぼ同じだが、色 prop を足して共用しなかった。
+curtain-red＝「各画面で最も重要なアクション1つにだけ使う」（DESIGN §3）という対応を
+prop で崩さないため。重複を承知の判断で、理由は `line-button.tsx` 冒頭に残した。
+
+### 検証したこと
+
+`npx tsc --noEmit` / `npm run lint` / `expo export --platform android` / `--platform web` は通った。
+LINE が実際に開くか・本文が入るかは実機でしか確かめられないので、目視をユーザーに依頼する。
