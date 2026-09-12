@@ -58,20 +58,25 @@ const smoothstep = (edge0, edge1, v) => {
   return t * t * (3 - 2 * t);
 };
 
-/** 房飾り（上の幕）の下端。弧が下にふくらむ。数を絞って1つ1つを大きく
- *  （小さいアイコンでもドレープに見えるように。チケット28で 7→5） */
+/**
+ * 房飾り（上の幕）の下端。**ほぼ水平**にする（チケット37）。
+ * 以前は弧を大きく取っていたが、弧と弧のあいだにできる**上向きの角が山の頂に見え**、
+ * 「アイコンが山に見える」という声につながった（2026-09-12 生徒さんの声）。
+ * 波は布のたわみが分かる程度にごく浅くし、角を作らない
+ */
 function valanceBottom(x, scallops = 5) {
   const f = x * scallops - Math.floor(x * scallops);
-  return 0.18 + 0.075 * Math.sin(Math.PI * f);
+  return 0.2 + 0.018 * Math.sin(Math.PI * f);
 }
 
 /**
  * 左の垂れ幕の内側の端（右はこれを左右反転）。
- * 裾に向かって弧を描いて大きく開く＝「幕が左右に寄せられている」シルエット。
- * 旧版の直線的な台形は開口部が塔のように見えた（チケット28の目視で判明）ため曲線に変更
+ * **ほぼ垂直に吊るし、裾だけわずかに外へ広げる**（チケット37）。
+ * 以前は裾に向かって大きく開いていたが、その斜めの輪郭が山の斜面に見えていた。
+ * 幕は「吊るされて垂れているもの」なので、縦に落ちる輪郭のほうが幕らしい
  */
 function panelInnerEdge(y) {
-  return 0.34 - 0.24 * clamp01(y) ** 1.6;
+  return 0.2 + 0.04 * clamp01(y) ** 2;
 }
 
 /** 舞台の床の上端。ここから下は木の床＝「舞台」が一目で分かる要素（チケット28で追加） */
@@ -143,15 +148,21 @@ function shadeScene(x, y, { inset = 1, aspect = 1, scallops = 5, coneScale = 1, 
   // 0.006 の幅で混ぜて縁をなめらかに（スーパーサンプルと併せて 48px でも汚くならない）
   const coverage = smoothstep(0, 0.006, curtain);
   if (coverage > 0) {
-    // 縦のひだ。幕の上でだけ見える
-    const fold = 0.9 + 0.14 * (0.5 + 0.5 * Math.cos(xa * Math.PI * 14));
+    // 縦のひだ。幕の上でだけ見える。**はっきり付ける**（チケット37）：
+    // 淡いと布ではなく「塗られた斜面」に見え、山に読まれる原因になっていた
+    const fold = 0.78 + 0.32 * (0.5 + 0.5 * Math.cos(xa * Math.PI * 16));
     // 裾を少し落として奥行きを出す
     const depth = 1 - 0.12 * smoothstep(0.55, 1, cy);
     // 布地はローズ→紫の縦グラデ（上の房飾りはローズ寄り・裾に向かって紫へ）
     let cloth = mix(CURTAIN_ROSE, CURTAIN_PURPLE, clamp01(cy)).map((c) => c * fold * depth);
-    // 内側の縁に淡い桜色の縁取り＝幕のシルエットを小さいサイズでも読ませる（チケット28）
-    const rim = 1 - smoothstep(0.004, 0.03, curtain);
-    cloth = mix(cloth, [0xff, 0xd6, 0xe8], rim * 0.5);
+    // 房飾りは手前に掛かった別の布。少し明るくして左右の幕と地続きに見せない（チケット37）
+    if (cy < valanceBottom(cx, scallops)) {
+      cloth = cloth.map((c) => Math.min(255, c * 1.12));
+    }
+    // 内側の縁の細い金線＝劇場の緞帳だと一目で分かる印（チケット37。アプリ内の緞帳と同じ
+    // curtain-gold #E3AD4E。チケット28の淡い桜色は地に溶けて輪郭を作れていなかった）
+    const rim = 1 - smoothstep(0.003, 0.016, curtain);
+    cloth = mix(cloth, [0xe3, 0xad, 0x4e], rim * 0.85);
     color = mix(color, cloth, coverage);
   } else {
     // 房飾りのすぐ下に落ちる影（DESIGN §1「浮かんでいる」）
