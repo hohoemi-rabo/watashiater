@@ -139,11 +139,11 @@
       opacity: 1;
     }
     55% {
-      transform: translateY(16px);
+      transform: translateY(20px);
       opacity: 0.35;
     }
     70% {
-      transform: translateY(16px);
+      transform: translateY(20px);
       opacity: 0;
     }
     /* 消えた瞬間に元の位置へ戻す＝戻る動きを見せない */

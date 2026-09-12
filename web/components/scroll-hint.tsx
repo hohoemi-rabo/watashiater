@@ -10,8 +10,9 @@
  *   初回訪問でそのまま動かすと案内が幕の裏で3回動き終わってしまう。「もう見た」かどうかは
  *   描画前のインラインスクリプトが立てる `<html data-curtain="seen">` で分かる（page.tsx）
  * - 高さの測定は表示直前に行う（画像やフォントで伸びるため、マウント直後だと足りない）
- * - **一度スクロールしたら二度と出さない**。案内の役目（下に続きがあると教える）は済んでいるので、
- *   上に戻るたびに出し直すとしつこいだけ
+ * - **消えるのはページの終わりが見えてから**（2026-09-12 ユーザー指摘）。少し動かしただけで消えると、
+ *   まだ半分も見ていないのに案内が無くなる。ページの長さは人によって変わる（写真や回答の数で変わる）ので、
+ *   固定の px ではなく「残りが画面の高さの何割か」で測る。一度消したら出し直さない
  * - 見た目・動きは実機で見くらべて A 案（濃紺の丸に白い指）に決定（2026-09-12 ユーザー選択）。
  *   白いカードの上に重なっても確実に読めることを優先した
  * - **動きは3回で止まる**（DESIGN §8「装飾アニメの常時ループ禁止」との折り合い。keyframes は
@@ -30,8 +31,11 @@ const AFTER_CURTAIN_MS = 200
 const SETTLE_MS = 300
 /** この差より小さければ「1画面に収まっている」＝案内を出さない */
 const OVERFLOW_MIN = 8
-/** これだけ動いたら「気づいた」とみなして消す */
-const SCROLLED_PAST = 40
+/**
+ * ページの終わりまでの残りが画面の高さのこの割合を切ったら消す。
+ * 一番下のお題が見えてくるあたり＝もう案内は要らない
+ */
+const NEAR_BOTTOM_RATIO = 0.6
 /** 押したときに進む量（表示領域に対する割合） */
 const SCROLL_STEP_RATIO = 0.8
 
@@ -42,16 +46,20 @@ export function ScrollHint() {
     const seenCurtain = document.documentElement.dataset.curtain === 'seen'
     const delay = seenCurtain ? SETTLE_MS : CURTAIN_OPEN_MS + AFTER_CURTAIN_MS
 
+    /** 画面の下端からページの終わりまで、あと何ピクセルあるか */
+    const remainingBelow = () =>
+      document.documentElement.scrollHeight - window.scrollY - window.innerHeight
+
     const timer = window.setTimeout(() => {
       const overflows =
         document.documentElement.scrollHeight > window.innerHeight + OVERFLOW_MIN
-      if (overflows && window.scrollY < SCROLLED_PAST) {
+      if (overflows && remainingBelow() > window.innerHeight * NEAR_BOTTOM_RATIO) {
         setShown(true)
       }
     }, delay)
 
     const handleScroll = () => {
-      if (window.scrollY < SCROLLED_PAST) {
+      if (remainingBelow() > window.innerHeight * NEAR_BOTTOM_RATIO) {
         return
       }
       window.clearTimeout(timer)
@@ -81,8 +89,8 @@ export function ScrollHint() {
         }
         type="button"
       >
-        <span className="scroll-hint-chip flex h-12 w-12 items-center justify-center rounded-full bg-stage-navy shadow-raised">
-          <Pointer aria-hidden="true" className="h-6 w-6 text-card-white" strokeWidth={2} />
+        <span className="scroll-hint-chip flex h-16 w-16 items-center justify-center rounded-full bg-stage-navy shadow-raised">
+          <Pointer aria-hidden="true" className="h-8 w-8 text-card-white" strokeWidth={2} />
         </span>
         <span className="text-caption font-medium text-stage-navy">下にもあります</span>
       </button>
