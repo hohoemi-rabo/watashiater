@@ -3,7 +3,7 @@
  * 有効な招待コード・見せる用リンク・家族一覧・見たよ一覧を、家風どおり
  * 並列フラットクエリ＋JS join で取る。
  * - 見たよは最新30件（画面が際限なく伸びないように。REQUIREMENTS §7-7 はアプリ内一覧のみ）
- * - 写真が消えて対象を解決できない 見たよ は行ごと出さない（「けされた写真」の文言を発明しない）
+ * - 写真が消えて対象を解決できない見たよは行ごと出さない（「けされた写真」の文言を発明しない）
  * - どの段の失敗も単一のエラー state（use-board-photos と同じ方針）
  */
 import { useFocusEffect } from 'expo-router';
@@ -40,7 +40,7 @@ type ShareDataState = {
 
 const REACTION_FEED_LIMIT = 30;
 const LOAD_ERROR_MESSAGE =
-  'よみこめませんでした。電波のよいところで、もういちどためしてください。';
+  '読み込めませんでした。電波のよいところで、もう一度試してください。';
 
 export function useShareData() {
   const { subject } = useAuth();
@@ -157,7 +157,7 @@ export function useShareData() {
         const photoTitle =
           (answer.prompt_id !== null
             ? promptTitleById.get(answer.prompt_id)
-            : answer.custom_title) ?? 'じぶんのお題';
+            : answer.custom_title) ?? '自分のお題';
         return [{ id: row.id, memberName, kind: 'photo', photoTitle, createdAt: row.created_at }];
       });
     }

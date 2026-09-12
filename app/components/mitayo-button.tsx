@@ -122,7 +122,7 @@ export function MitayoButton({ reacted, onPress, disabled }: MitayoButtonProps) 
           : null}
       </View>
       <AppText variant="cardTitle" style={styles.label}>
-        {reacted ? '見たよ しました' : '見たよ'}
+        {reacted ? '見たよしました' : '見たよ'}
       </AppText>
     </Pressable>
   );

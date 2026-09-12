@@ -1,7 +1,7 @@
 /**
  * 録音の保存の道具箱（React 非依存。チケット10。photo-attach.ts の鏡）。
  * 保存順序は「R2 へ PUT → answers 行の用意 → recordings upsert」：
- * いちばん多い失敗（電波）は PUT の段階で出尽くすので、空の answers 行が残る
+ * 一番多い失敗（電波）は PUT の段階で出尽くすので、空の answers 行が残る
  * 失敗経路がほぼ無く、失敗時の後始末分岐が要らない（判断はチケット10メモ）。
  */
 import { supabase } from '@/lib/supabase';
@@ -13,7 +13,7 @@ export const RECORDING_MAX_SEC = 180;
 export const RECORDING_HARD_CAP_SEC = 181;
 
 const UPLOAD_ERROR_MESSAGE =
-  'のこせませんでした。でんぱの よいところで もういちど ためしてください。';
+  '残せませんでした。電波のよいところでもう一度試してください。';
 
 export type UploadFileResult = { ok: true; r2Key: string } | { ok: false; message: string };
 

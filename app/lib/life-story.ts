@@ -14,9 +14,9 @@ type PromptListItem = { prompt: Tables<'prompts'>; answer: Tables<'answers'> | n
 const WORKER_BODY_MAX = 8000;
 
 const SAVE_ERROR_MESSAGE =
-  'できあがった文章をまだほぞんできていません。電波のよいところで、もういちどためしてください。';
+  'できあがった文章をまだ保存できていません。電波のよいところで、もう一度試してください。';
 const EDIT_ERROR_MESSAGE =
-  'ほぞんできませんでした。電波のよいところで、もういちどためしてください。';
+  '保存できませんでした。電波のよいところで、もう一度試してください。';
 
 /**
  * 回答一覧 → worker へ送るペイロード。
@@ -38,7 +38,7 @@ export function buildLifeStoryAnswers(
   if (freeAnswer && freeBody !== '') {
     // 自由お題の行には custom_title が必ずある（DB の CHECK）。万一の欠落は既定の題名で救う
     result.push({
-      title: freeAnswer.custom_title ?? 'じぶんのお題',
+      title: freeAnswer.custom_title ?? '自分のお題',
       body: freeBody.slice(0, WORKER_BODY_MAX),
     });
   }

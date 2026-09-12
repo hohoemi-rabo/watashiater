@@ -30,17 +30,17 @@ export default function FamilyMuseumScreen() {
         {!loading && error ? (
           <AppCard style={styles.card}>
             <AppText variant="cardTitle" style={styles.errorTitle}>
-              よみこめませんでした
+              読み込めませんでした
             </AppText>
             <AppText>{error}</AppText>
-            <SecondaryButton label="もういちどよみこむ" onPress={() => void refetch()} />
+            <SecondaryButton label="もう一度読み込む" onPress={() => void refetch()} />
           </AppCard>
         ) : null}
 
         {!loading && !error && !subject ? (
           <AppCard style={styles.card}>
-            <AppText variant="cardTitle">この博物館は 見られなくなりました</AppText>
-            <AppText>くわしくは、博物館の もちぬしの方に きいてみてください。</AppText>
+            <AppText variant="cardTitle">この博物館は見られなくなりました</AppText>
+            <AppText>詳しくは、博物館の持ち主の方に聞いてみてください。</AppText>
           </AppCard>
         ) : null}
 
@@ -49,7 +49,7 @@ export default function FamilyMuseumScreen() {
             <AppText variant="screenTitle">{subject.nickname}さんの博物館</AppText>
             <SecondaryButton
               icon={Images}
-              label="ギャラリー（しゃしん）"
+              label="ギャラリー（写真）"
               onPress={() => router.push(`/family/${subject.id}/gallery`)}
             />
             <SecondaryButton

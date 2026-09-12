@@ -9,7 +9,7 @@ import {
 	handleWipeMedia,
 } from "./media";
 
-// AI生成プロキシ（REQUIREMENTS §5 役割1）とメディアの門番（同 役割2）。
+// AI生成プロキシ（REQUIREMENTS §5 役割1）とメディアの門番（同役割2）。
 // Gemini の API キーはこの worker の外に出さず、R2 への読み書きも必ずこの worker を通る。
 //
 // CORS は許可オリジンの完全一致リストで付ける（チケット24。理由と設計は src/cors.ts）。

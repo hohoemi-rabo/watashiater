@@ -32,7 +32,7 @@ type LifeStoryState = {
 
 type CachedLifeStory = { story: LifeStory | null };
 
-const LOAD_ERROR_MESSAGE = '自分史をよみこめませんでした。';
+const LOAD_ERROR_MESSAGE = '自分史を読み込めませんでした。';
 
 /** @param targetSubjectId 家族として見る対象の subject（チケット16）。省略時は自分の博物館 */
 export function useLifeStory(targetSubjectId?: string) {

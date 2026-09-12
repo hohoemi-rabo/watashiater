@@ -1,5 +1,5 @@
 /**
- * 回答に添付された写真（photos 行）と閲覧用署名URLをまとめて取得するフック（チケット09）。
+ * 回答に添付された写真（photos 行）と閲覧用署名URLをま止めて取得するフック（チケット09）。
  * - answerId が null（まだ回答行が無い）のときは空で確定する
  * - 署名URLは有効期限つきなのでキャッシュせず、フォーカスのたびに取り直す。
  *   画像本体は expo-image が r2_key の cacheKey でディスクキャッシュする（PhotoStrip 側）
@@ -20,7 +20,7 @@ type PhotosState = {
   error: string | null;
 };
 
-const LOAD_ERROR_MESSAGE = '写真を よみこめませんでした。';
+const LOAD_ERROR_MESSAGE = '写真を読み込めませんでした。';
 
 export function usePhotos(answerId: string | null) {
   const [state, setState] = useState<PhotosState>({

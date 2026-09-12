@@ -17,7 +17,7 @@ if (!workerUrl) {
 }
 
 const GENERIC_ERROR_MESSAGE =
-  'つうしんに しっぱいしました。でんぱの よいところで もういちど ためしてください。';
+  '通信に失敗しました。電波のよいところでもう一度試してください。';
 
 export class WorkerApiError extends Error {
   readonly code: string;
@@ -45,7 +45,7 @@ async function getAccessToken(): Promise<string> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) {
-    throw new WorkerApiError('no_session', 'ログインしなおしてください。');
+    throw new WorkerApiError('no_session', 'ログインしな押してください。');
   }
   return token;
 }
@@ -106,7 +106,7 @@ export type LifeStoryAnswer = { title: string; body: string };
 /**
  * 自分史の生成（チケット12。worker の AI 生成プロキシ経由）。
  * 1日3回まで・できあがるまで10〜30秒かかる（worker 側タイムアウト60秒）。
- * remaining は「今日あと何回つくれるか」。エラーは message をそのまま表示できる
+ * remaining は「今日あと何回作れるか」。エラーは message をそのまま表示できる
  * WorkerApiError（429 レート制限の文言も worker が日本語で返す）
  */
 export async function generateLifeStory(

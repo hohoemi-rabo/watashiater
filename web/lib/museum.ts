@@ -53,7 +53,7 @@ export type Museum = {
    * 無いときは机の上の1枚目（created_at 最古）で代える（2026-08-13 ユーザー判断）
    */
   coverPhoto: MuseumPhoto | null
-  /** 演目札の閲覧版。回答済みだけを、固定お題（sort_order 順）→自由お題 の順で返す */
+  /** 演目札の閲覧版。回答済みだけを、固定お題（sort_order 順）→自由お題の順で返す */
   cards: MuseumCard[]
   /** created_at → id 昇順。この全順序が board-layout.ts の「毎回同じ配置」の前提 */
   photos: MuseumPhoto[]
@@ -145,7 +145,7 @@ export const getMuseumBySlug = cache(async (slug: string): Promise<Museum | null
 
   const titleOfAnswer = (answer: AnswerRow): string =>
     (answer.prompt_id !== null ? promptTitleById.get(answer.prompt_id) : answer.custom_title) ??
-    'じぶんのお題'
+    '自分のお題'
 
   // 演目札は「書いたものだけ」を見せる判断（DESIGN §7 の演目札一覧の閲覧版）。
   // アプリの一覧と違い、閲覧側に未回答の空札を並べると書き手の宿題を家族に晒すことになる。
@@ -154,7 +154,7 @@ export const getMuseumBySlug = cache(async (slug: string): Promise<Museum | null
   const cards: MuseumCard[] = answers
     .slice()
     .sort((a, b) => {
-      // 固定お題（sort_order 順）→ 自由お題 の順。自由お題は subject に1枠
+      // 固定お題（sort_order 順）→ 自由お題の順。自由お題は subject に1枠
       const orderA = a.prompt_id === null ? Number.MAX_SAFE_INTEGER : (sortOrderByPromptId.get(a.prompt_id) ?? 0)
       const orderB = b.prompt_id === null ? Number.MAX_SAFE_INTEGER : (sortOrderByPromptId.get(b.prompt_id) ?? 0)
       return orderA - orderB
@@ -163,7 +163,7 @@ export const getMuseumBySlug = cache(async (slug: string): Promise<Museum | null
       key: answer.prompt_id === null ? 'free' : String(answer.prompt_id),
       title: titleOfAnswer(answer),
       bodyText: answer.body_text,
-      // photoRows は created_at 昇順なので、最初に見つかった1枚がその回答の1枚目
+      // photoRows は created_at 昇順なので、最初に見使った1枚がその回答の1枚目
       thumbnailR2Key: photoRows.find((photo) => photo.answer_id === answer.id)?.r2_key ?? null,
       hasRecording: recordingKeyByAnswerId.has(answer.id),
     }))
@@ -177,7 +177,7 @@ export const getMuseumBySlug = cache(async (slug: string): Promise<Museum | null
       boardY: photo.board_y,
       boardRotation: photo.board_rotation,
       boardZ: photo.board_z,
-      caption: answer ? titleOfAnswer(answer) : 'じぶんのお題',
+      caption: answer ? titleOfAnswer(answer) : '自分のお題',
       bodyText: answer?.body_text ?? '',
       recordingR2Key: recordingKeyByAnswerId.get(photo.answer_id) ?? null,
     }

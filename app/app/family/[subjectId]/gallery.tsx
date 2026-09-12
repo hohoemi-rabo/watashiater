@@ -2,7 +2,7 @@
  * 家族から見た机の上（チケット16。閲覧＋見たよのみ。REQUIREMENTS §3.5(a)）。
  * gallery.tsx の閲覧モード相当の縮小版：並べ替え関連（モード切替・保存・override）は
  * 持たない。配置は書き手本人と同じ（対象 subject の board_seed＋保存済み board_*）なので、
- * 「本人がならべた机」がそのまま見える。タップ拡大＋声の再生はチケット15の PhotoLightbox を
+ * 「本人が並べた机」がそのまま見える。タップ拡大＋声の再生はチケット15の PhotoLightbox を
  * そのまま使い、家族のときだけ「見たよ」ボタンを渡す。
  */
 import { usePreventRemove } from '@react-navigation/native';
@@ -85,22 +85,22 @@ export default function FamilyGalleryScreen() {
           {!busy && anyError ? (
             <AppCard style={styles.card}>
               <AppText variant="cardTitle" style={styles.errorTitle}>
-                よみこめませんでした
+                読み込めませんでした
               </AppText>
               <AppText>{anyError}</AppText>
-              <SecondaryButton label="もういちどよみこむ" onPress={() => void refetch()} />
+              <SecondaryButton label="もう一度読み込む" onPress={() => void refetch()} />
             </AppCard>
           ) : null}
 
           {removed ? (
             <AppCard style={styles.card}>
-              <AppText variant="cardTitle">この博物館は 見られなくなりました</AppText>
+              <AppText variant="cardTitle">この博物館は見られなくなりました</AppText>
             </AppCard>
           ) : null}
 
           {!busy && !anyError && subject && items.length === 0 ? (
             <AppCard style={styles.card}>
-              <AppText variant="cardTitle">まだ 写真が ありません</AppText>
+              <AppText variant="cardTitle">まだ写真がありません</AppText>
             </AppCard>
           ) : null}
 

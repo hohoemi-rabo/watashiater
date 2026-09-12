@@ -15,7 +15,7 @@ export type InviteCode = Tables<'invite_codes'>;
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 6;
 const CREATE_ERROR_MESSAGE =
-  '招待コードをつくれませんでした。電波のよいところで、もういちどためしてください。';
+  '招待コードを作れませんでした。電波のよいところで、もう一度試してください。';
 
 function generateCode(): string {
   const bytes = Crypto.getRandomBytes(CODE_LENGTH);

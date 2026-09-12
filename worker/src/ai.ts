@@ -111,7 +111,7 @@ async function generateEssay(env: Env, answers: AnswerItem[]): Promise<string | 
 		});
 	} catch (error) {
 		if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
-			return jsonError(504, "upstream_timeout", "時間がかかりすぎたため、中断しました。もういちどためしてください");
+			return jsonError(504, "upstream_timeout", "時間がかかりすぎたため、中断しました。もう一度試してください");
 		}
 		throw error;
 	}
@@ -119,14 +119,14 @@ async function generateEssay(env: Env, answers: AnswerItem[]): Promise<string | 
 	// 失敗の詳細（安全フィルタの理由等）はログにのみ残し、ユーザーには一般的な文言を返す
 	if (!response.ok) {
 		console.error(`Gemini API ${response.status}: ${await response.text()}`);
-		return jsonError(502, "upstream_error", "自分史をつくれませんでした。少し時間をおいて、もういちどためしてください");
+		return jsonError(502, "upstream_error", "自分史を作れませんでした。少し時間をおいて、もう一度試してください");
 	}
 	const result = (await response.json()) as GeminiResponse;
 	const candidate = result.candidates?.[0];
 	const bodyText = candidate?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
 	if (result.promptFeedback?.blockReason || candidate?.finishReason !== "STOP" || bodyText === "") {
 		console.error(`Gemini unusable response: ${JSON.stringify(result).slice(0, 2000)}`);
-		return jsonError(502, "upstream_error", "自分史をつくれませんでした。少し時間をおいて、もういちどためしてください");
+		return jsonError(502, "upstream_error", "自分史を作れませんでした。少し時間をおいて、もう一度試してください");
 	}
 	return bodyText;
 }
@@ -150,7 +150,7 @@ export async function handleGenerateLifeStory(request: Request, env: Env): Promi
 	const key = `gen:${auth.userId}:${jstDayKey(Date.now())}`;
 	const count = Number(await env.RATE_LIMIT.get(key)) || 0;
 	if (count >= DAILY_LIMIT) {
-		return jsonError(429, "rate_limited", "今日つくれる回数（3回）を使い切りました。また明日ためしてください");
+		return jsonError(429, "rate_limited", "今日作れる回数（3回）を使い切りました。また明日試してください");
 	}
 
 	const essay = await generateEssay(env, answers);

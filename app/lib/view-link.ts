@@ -29,9 +29,9 @@ const SLUG_ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567';
 const SLUG_LENGTH = 16;
 
 const CREATE_ERROR_MESSAGE =
-  'リンクをつくれませんでした。電波のよいところで、もういちどためしてください。';
+  'リンクを作れませんでした。電波のよいところで、もう一度試してください。';
 const DEACTIVATE_ERROR_MESSAGE =
-  'リンクを止められませんでした。電波のよいところで、もういちどためしてください。';
+  'リンクを止められませんでした。電波のよいところで、もう一度試してください。';
 
 function generateSlug(): string {
   const bytes = Crypto.getRandomBytes(SLUG_LENGTH);

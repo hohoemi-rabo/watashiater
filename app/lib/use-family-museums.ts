@@ -22,7 +22,7 @@ type FamilyMuseumsState = {
 };
 
 const LOAD_ERROR_MESSAGE =
-  'よみこめませんでした。電波のよいところで、もういちどためしてください。';
+  '読み込めませんでした。電波のよいところで、もう一度試してください。';
 
 export function useFamilyMuseums() {
   const { session } = useAuth();

@@ -1,5 +1,5 @@
 /**
- * 回答画面の音声カード（チケット10）。録音 → プレビュー → のこす（アップロード）→ 保存済み表示。
+ * 回答画面の音声カード（チケット10）。録音 → プレビュー → 残す（アップロード）→ 保存済み表示。
  *
  * 録音まわりの機微はチケット00の検証画面から移植した実機検証済みの実装（docs/00 検証結果）：
  * - 停止は「タップ」「native の forDuration」「JS 予備」の3経路 → finalizingRef で同期ガード
@@ -86,7 +86,7 @@ const WAVE_BAR_MAX_HEIGHT = 56;
 
 const SAVE_NOTICE = 'この声は写真の説明として使えます';
 const GENERIC_SAVE_ERROR =
-  'のこせませんでした。でんぱの よいところで もういちど ためしてください。';
+  '残せませんでした。電波のよいところでもう一度試してください。';
 
 export type RecordingBoxPhase =
   | 'checking'
@@ -106,7 +106,7 @@ type RecordingBoxProps = {
   loading: boolean;
   loadError: string | null;
   onRetryLoad: () => void;
-  /** 自由お題でタイトル未入力なら親が Alert を出して false を返す（録音開始前と のこす時の2回呼ぶ） */
+  /** 自由お題でタイトル未入力なら親が Alert を出して false を返す（録音開始前と残す時の2回呼ぶ） */
   requireFreeTitle: () => boolean;
   ensureAnswerId: () => Promise<{ ok: true; answerId: string } | { ok: false; message: string }>;
   /** 保存成功。親の refetch（recordings・prompts）が終わるまで await して表示のチラつきを防ぐ */
@@ -166,7 +166,7 @@ export function RecordingBox({
 
   const handleRecordingStatus = useCallback((status: RecordingStatus) => {
     if (status.hasError) {
-      setErrorMessage('録音中に エラーが おきました。もういちど ためしてください。');
+      setErrorMessage('録音中にエラーが起きました。もう一度試してください。');
     }
     if (status.isFinished) {
       onNativeFinishRef.current(status.url);
@@ -219,7 +219,7 @@ export function RecordingBox({
       });
 
       if (!uri) {
-        setErrorMessage('録音した声が みつかりませんでした。もういちど ためしてください。');
+        setErrorMessage('録音した声が見つかりませんでした。もう一度試してください。');
         setPhase('idle');
         finalizingRef.current = false;
         return;
@@ -335,7 +335,7 @@ export function RecordingBox({
       setPhase(next.canAskAgain ? 'idle' : 'blocked');
       setErrorMessage(
         next.canAskAgain
-          ? 'マイクを使う許可がありません。もう一度ボタンをおして「許可」をえらんでください。'
+          ? 'マイクを使う許可がありません。もう一度ボタンを押して「許可」を選んでください。'
           : null,
       );
       return false;
@@ -345,7 +345,7 @@ export function RecordingBox({
     return true;
   }, []);
 
-  /** 録音開始（新規・プレビューからのとりなおし・保存済みからのとりなおし共通） */
+  /** 録音開始（新規・プレビューからの録り直し・保存済みからの録り直し共通） */
   const startRecording = useCallback(async () => {
     if (!requireFreeTitle()) {
       return;
@@ -374,12 +374,12 @@ export function RecordingBox({
       setPhase('recording');
       recorder.record({ forDuration: RECORDING_MAX_SEC });
     } catch {
-      setErrorMessage('録音をはじめられませんでした。もういちど ためしてください。');
+      setErrorMessage('録音を始められませんでした。もう一度試してください。');
       setPhase('idle');
     }
   }, [requireFreeTitle, ensurePermission, player, recorder]);
 
-  /** 「この声を のこす」＝ PUT → answers 行の用意 → recordings upsert → 親の refetch を待つ */
+  /** 「この声を残す」＝ PUT → answers 行の用意 → recordings upsert → 親の refetch を待つ */
   const handleSave = useCallback(async () => {
     if (!localUri || phase === 'uploading') {
       return;
@@ -441,35 +441,35 @@ export function RecordingBox({
 
       {!loading && loadError && offline ? (
         // オフラインは「失敗」ではないので赤くしない（チケット19。DESIGN §3）
-        <AppText variant="caption">声は つながると 聞けます。</AppText>
+        <AppText variant="caption">声はつながると聞けます。</AppText>
       ) : !loading && loadError ? (
         <>
           <AppText variant="caption" style={styles.errorText}>
             {loadError}
           </AppText>
-          <SecondaryButton label="もういちど よみこむ" onPress={onRetryLoad} />
+          <SecondaryButton label="もう一度読み込む" onPress={onRetryLoad} />
         </>
       ) : null}
 
       {!loading && !loadError ? (
         <>
-          {phase === 'checking' ? <AppText>じゅんびちゅう…</AppText> : null}
+          {phase === 'checking' ? <AppText>準備中…</AppText> : null}
 
           {phase === 'blocked' ? (
             Platform.OS === 'web' ? (
               // Web 版：Linking.openSettings() はブラウザで機能しないので鍵マーク案内に差し替え。
               // Web は AppState 復帰の自動回復（refreshPermission）も無いため、
-              // 「もういちど ためす」が回復経路（Safari は再試行で許可ダイアログが出なおす）
+              // 「もう一度試す」が回復経路（Safari は再試行で許可ダイアログが出なおす）
               <>
                 <AppText variant="cardTitle">マイクが使えません</AppText>
                 <AppText>
                   ブラウザにマイクの使用が止められています。アドレスバーの鍵マーク（iPhone
-                  は「ぁあ」→「Webサイトの設定」）からマイクを「許可」にして、もういちど
-                  ためしてください。
+                  は「ぁあ」→「Webサイトの設定」）からマイクを「許可」にして、もう一度
+                  試してください。
                 </AppText>
                 <SecondaryButton
                   icon={Mic}
-                  label="もういちど ためす"
+                  label="もう一度試す"
                   onPress={() => void startRecording()}
                 />
               </>
@@ -477,30 +477,30 @@ export function RecordingBox({
               <>
                 <AppText variant="cardTitle">マイクが使えません</AppText>
                 <AppText>
-                  スマホの設定で、このアプリの「マイク」をオンにしてください。下のボタンから設定をひらけます。
+                  スマホの設定で、このアプリの「マイク」をオンにしてください。下のボタンから設定を開けます。
                 </AppText>
-                <SecondaryButton label="設定をひらく" onPress={() => void Linking.openSettings()} />
+                <SecondaryButton label="設定を開く" onPress={() => void Linking.openSettings()} />
               </>
             )
           ) : null}
 
           {phase === 'idle' && !recording ? (
             <>
-              <AppText variant="cardTitle">声で おはなしを どうぞ</AppText>
+              <AppText variant="cardTitle">声でお話をどうぞ</AppText>
               {offline ? (
                 <AppText variant="caption">
-                  声を のこすには インターネットが ひつようです。
+                  声を残すにはインターネットが必要です。
                 </AppText>
               ) : (
                 <>
                   <AppText variant="caption">{SAVE_NOTICE}</AppText>
                   <SecondaryButton
                     icon={Mic}
-                    label="録音をはじめる"
+                    label="録音を始める"
                     onPress={() => void startRecording()}
                   />
                   <AppText variant="caption" style={styles.centerText}>
-                    録音は いちばん長くて 3分です
+                    録音は一番長くて 3分です
                   </AppText>
                 </>
               )}
@@ -509,10 +509,10 @@ export function RecordingBox({
 
           {phase === 'idle' && recording ? (
             <>
-              <AppText variant="cardTitle">のこした声</AppText>
+              <AppText variant="cardTitle">残した声</AppText>
               <SecondaryButton
                 icon={playing ? Pause : Play}
-                label={playing ? 'とめる' : '聞いてみる'}
+                label={playing ? '止める' : '聞いてみる'}
                 onPress={() => void togglePlayback()}
                 disabled={!viewUrl}
               />
@@ -521,20 +521,20 @@ export function RecordingBox({
               </AppText>
               <SecondaryButton
                 icon={RotateCcw}
-                label="とりなおす"
+                label="もう一度録音する"
                 onPress={() => void startRecording()}
                 disabled={offline}
               />
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="この声をけす"
+                accessibilityLabel="この声を消す"
                 disabled={offline}
                 hitSlop={8}
                 onPress={() => onDeleteRequest(recording)}
                 style={({ pressed }) => [styles.deleteButton, pressed && styles.deletePressed]}>
                 <Trash2 color={colors.errorRed} size={16} strokeWidth={2} />
                 <AppText variant="caption" style={styles.deleteLabel}>
-                  けす
+                  消す
                 </AppText>
               </Pressable>
             </>
@@ -571,17 +571,17 @@ export function RecordingBox({
                 </View>
               )}
 
-              <SecondaryButton icon={Square} label="とめる" onPress={() => void finalize('tap', null)} />
+              <SecondaryButton icon={Square} label="止める" onPress={() => void finalize('tap', null)} />
             </>
           ) : null}
 
           {phase === 'preview' ? (
             <>
-              <AppText variant="cardTitle">ろくおんできました</AppText>
-              <AppText>聞いてみて、よければ のこしてください。</AppText>
+              <AppText variant="cardTitle">録音できました</AppText>
+              <AppText>聞いてみて、よければ残してください。</AppText>
               <SecondaryButton
                 icon={playing ? Pause : Play}
-                label={playing ? 'とめる' : '聞いてみる'}
+                label={playing ? '止める' : '聞いてみる'}
                 onPress={() => void togglePlayback()}
               />
               <AppText variant="caption" style={styles.centerText}>
@@ -595,17 +595,17 @@ export function RecordingBox({
               ) : null}
               <SecondaryButton
                 icon={Check}
-                label={uploadError ? 'もういちど のこす' : 'この声を のこす'}
+                label={uploadError ? 'もう一度残す' : 'この声を残す'}
                 onPress={() => void handleSave()}
               />
-              <SecondaryButton icon={RotateCcw} label="とりなおす" onPress={() => void startRecording()} />
+              <SecondaryButton icon={RotateCcw} label="もう一度録音する" onPress={() => void startRecording()} />
             </>
           ) : null}
 
           {phase === 'uploading' ? (
             <View style={styles.centerBlock}>
               <ActivityIndicator color={colors.stageNavy} />
-              <AppText variant="caption">声を のこしています…</AppText>
+              <AppText variant="caption">声を残しています…</AppText>
             </View>
           ) : null}
 

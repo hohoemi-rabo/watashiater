@@ -48,7 +48,7 @@ export default function NicknameScreen() {
       }
       setBusy(false);
       setErrorMessage(
-        'ほぞんできませんでした。インターネットに つながっているか たしかめて、もういちど ためしてください。',
+        '保存できませんでした。インターネットにつながっているか確かめて、もう一度試してください。',
       );
       return;
     }
@@ -60,9 +60,9 @@ export default function NicknameScreen() {
   return (
     <SkyBackground>
       <View style={styles.content}>
-        <AppText variant="screenTitle">なんと よびましょうか？</AppText>
+        <AppText variant="screenTitle">なんとよびましょうか？</AppText>
         <AppCard style={styles.card}>
-          <AppText>ニックネームを おしえてください。あとから かえられます。</AppText>
+          <AppText>ニックネームを教えてください。あとからかえられます。</AppText>
           <TextInput
             accessibilityLabel="ニックネーム"
             value={nickname}
@@ -74,7 +74,7 @@ export default function NicknameScreen() {
           />
           <PrimaryButton
             icon={Check}
-            label={busy ? 'ほぞんしています…' : 'これで けってい'}
+            label={busy ? '保存しています…' : 'これで決定'}
             onPress={() => void handleSave()}
             disabled={busy || trimmed.length === 0 || !isOnline}
           />
@@ -86,7 +86,7 @@ export default function NicknameScreen() {
         {/* 家族専用アカウント（自分の博物館を作らない人）の入口（チケット16） */}
         <SecondaryButton
           icon={Users}
-          label="かぞくに招待された方はこちら"
+          label="家族に招待された方はこちら"
           onPress={() => router.push('/join')}
         />
       </View>

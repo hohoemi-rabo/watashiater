@@ -167,7 +167,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 1. **MVP スコープ厳守**：REQUIREMENTS.md §2.2 の項目（ペット・課金・通知・コメント・iOS・会話型 AI）を実装しない。先回りの抽象化もしない（`subject_type` カラムのみ例外）
 2. **デザイントークン**：上記の定数ファイルから参照する。生値ハードコード禁止
 3. **文字サイズ変更機能を作らない**（DESIGN.md §11-3）
-4. **UI 文言は日本語・やさしい言葉**。REQUIREMENTS.md の文言（「見たよ」「並べ替え」「自分史を作る」）をそのまま使う。**ひらがなの分かち書きにしすぎず、日常的な漢字をスペースなしで使う**（例：「自分でかく」「声で話す」。チケット06でのユーザー指示）
+4. **UI 文言は日本語・やさしい言葉**。固定文言（「お題を書く」「自分史を作る」「見たよ」「並べ替え」「みんなに見せる」）をそのまま使う。**分かち書きのスペースは使わず、日常的な漢字をスペースなしで書く**（チケット34で全面改訂。表記ルールと語彙は DESIGN.md §10 が唯一の情報源。ひらがなのままにするのは、のせる・やめる・わかりました・つながる・ほかの、の5語だけ）
 5. AI 呼び出し・R2 アクセスは必ず worker 経由。レート制限は 1日3回/ユーザー・JST 0時リセット
 6. 迷ったら判断基準は「シニアの書き手が一人で迷わず使えるか」。判断内容はコードコメントに残す
 
@@ -201,7 +201,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
   1. **読み込むモジュール自体が違うなら `.web.ts` でファイルごと分ける**（`Platform.OS` 分岐では import 文が残り、Metro が不要な資産を Web バンドルに入れてしまう。`lib/app-fonts.ts` / `.web.ts` が実例）
   2. **共通部分が支配的で、分かれるのが処理の一部だけなら `Platform.OS === 'web'`**（`lib/auth-context.tsx` が実例。丸ごと複製すると片方だけ直る事故になる）
   3. どちらの場合も**判断の理由をコードコメントに残す**
-  - **メディア実装（チケット26 で差し替え済み）**：`putObject` の転送は `lib/upload-binary.ts` / `.web.ts`（native: legacy uploadAsync / web: `fetch` PUT）に分離し、エラーマッピングは `worker-api.ts` 側に残す。マイク許可は録音ボタン押下時のみ（Web の `refreshPermission` は early return・`ensurePermission` は request 直行。**Web の `canAskAgain` は常に true のハードコード**＝判定に使えない。拒否は blocked＝鍵マーク案内＋「もういちど ためす」）。波形は Web では `lib/mic-level.web.ts`（expo-audio 内部の `mediaRecorder.stream` に AnalyserNode。同一ストリームなので2本目の getUserMedia 不要。TS 上 private への キャスト＝expo-audio 更新で壊れたら波形非表示に劣化するだけで録音は壊れない）。**`RECORDING_OPTIONS` の `web:` はプリセットの web キーをオブジェクトごと潰す**（`web.bitsPerSecond` が `bitRate` より優先されるため。docs/26 メモ）。24 の一時検証画面 `web-check.tsx` は削除済み
+  - **メディア実装（チケット26 で差し替え済み）**：`putObject` の転送は `lib/upload-binary.ts` / `.web.ts`（native: legacy uploadAsync / web: `fetch` PUT）に分離し、エラーマッピングは `worker-api.ts` 側に残す。マイク許可は録音ボタン押下時のみ（Web の `refreshPermission` は early return・`ensurePermission` は request 直行。**Web の `canAskAgain` は常に true のハードコード**＝判定に使えない。拒否は blocked＝鍵マーク案内＋「もう一度試す」）。波形は Web では `lib/mic-level.web.ts`（expo-audio 内部の `mediaRecorder.stream` に AnalyserNode。同一ストリームなので2本目の getUserMedia 不要。TS 上 private への キャスト＝expo-audio 更新で壊れたら波形非表示に劣化するだけで録音は壊れない）。**`RECORDING_OPTIONS` の `web:` はプリセットの web キーをオブジェクトごと潰す**（`web.bitsPerSecond` が `bitRate` より優先されるため。docs/26 メモ）。24 の一時検証画面 `web-check.tsx` は削除済み
   - `app/scripts/` の生成物（`public/fonts/fonts.css`・`public/icons/*`・`assets/images/wood-tile.png`・`favicon.png`）は**コミットする**。ビルド時に再生成しない（外部サービスの都合でデプロイが落ちないようにするため）
   - **本番URL**：書き手Web = `https://watashiater-app.vercel.app`（Vercel プロジェクト `watashiater-app`。閲覧Web の `watashiater` とは**別プロジェクト**。Root Directory = `app`・設定は `app/vercel.json`）。**両プロジェクトとも GitHub 連携ずみ＝main への push が本番デプロイになる**（手動の `vercel deploy` は不要。Root Directory は CLI から設定できないのでダッシュボードか REST API で行う）。`web.output: "single"` なので **SPA rewrite（全パス→`/index.html`）が必須**。`app.json` の `"static"` には戻さない（Supabase 認証が Node 上で `window` を触って落ちる）
   - **録音形式は `audio/mp4;codecs=mp4a.40.2`（コーデックまで明示）**。Chrome 151・iOS Safari 26.6 の両方で `isTypeSupported` = true。**コンテナだけの `audio/mp4` を指定してはいけない**（Chrome が MP4 に Opus を入れる＝AAC 要件違反）。expo-audio の Web recorder をそのまま使えるが、指定場所は **`web: { mimeType }`**（`useAudioRecorder` は `createRecordingOptions()` で `options.web` をトップレベルへ展開するので、トップレベルに置くと黙って捨てられ既定の `audio/webm` になる）。Safari は type を `audio/mp4; codecs=…`（**空白入り**）で返すので完全一致で比べない

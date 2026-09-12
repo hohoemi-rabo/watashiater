@@ -1,7 +1,7 @@
 /**
  * 自分（家族）の「見たよ」状態と送信（チケット16）。REQUIREMENTS §3.5(a)。
  * - 楽観更新：タップの瞬間に reacted にして拍手演出を遅らせない。INSERT が
- *   23505（すでに 見たよ 済み）なら維持、それ以外の失敗（RLS で家族解除・
+ *   23505（すでに見たよ済み）なら維持、それ以外の失敗（RLS で家族解除・
  *   対象削除のトリガー RAISE 等）は巻き戻してエラー文言を出す
  * - 見たよの取り消しは仕様に無い（reactions に UPDATE/DELETE ポリシーも無い）
  */
@@ -16,9 +16,9 @@ const reactionKey = (targetType: ReactionTargetType, targetId: string) =>
   `${targetType}:${targetId}`;
 
 const SEND_ERROR_MESSAGE =
-  '見たよ を おくれませんでした。電波のよいところで、もういちど ためしてください。';
+  '見たよを送れませんでした。電波のよいところで、もう一度試してください。';
 const LOAD_ERROR_MESSAGE =
-  'よみこめませんでした。電波のよいところで、もういちどためしてください。';
+  '読み込めませんでした。電波のよいところで、もう一度試してください。';
 
 export function useMyReactions(memberId: string | null) {
   const [reactedKeys, setReactedKeys] = useState<Set<string>>(new Set());

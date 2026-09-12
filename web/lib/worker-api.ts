@@ -23,7 +23,7 @@ const MAX_VIEW_KEYS = 200
  *   （POST は既定で非キャッシュ。署名URLをキャッシュに載せない原則＝CLAUDE.md）
  * - **失敗しても throw しない**：署名URLが取れなくても回答本文と自分史は読める。
  *   「見せるものがあるなら全滅させない」（チケット19で確立した契約）の閲覧Web版。
- *   呼び出し側は URL が欠けた写真を個別に「よみこめませんでした」と出す
+ *   呼び出し側は URL が欠けた写真を個別に「読み込めませんでした」と出す
  */
 export async function getViewUrls(
   r2Keys: readonly string[],

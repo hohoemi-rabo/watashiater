@@ -22,7 +22,7 @@ type FamilyCardsState = {
 };
 
 const LOAD_ERROR_MESSAGE =
-  'よみこめませんでした。電波のよいところで、もういちどためしてください。';
+  '読み込めませんでした。電波のよいところで、もう一度試してください。';
 
 export function useFamilyCards(subjectId: string | null) {
   const [state, setState] = useState<FamilyCardsState>({
@@ -78,7 +78,7 @@ export function useFamilyCards(subjectId: string | null) {
         title:
           (answer.prompt_id !== null
             ? promptTitleById.get(answer.prompt_id)
-            : answer.custom_title) ?? 'じぶんのお題',
+            : answer.custom_title) ?? '自分のお題',
         bodyText: answer.body_text,
         hasRecording: recordedAnswerIds.has(answer.id),
         // 自由お題（prompt_id null）は最後

@@ -182,7 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
         setSubjectError(
-          'データを よみこめませんでした。でんぱの よいところで もういちど ためしてください。',
+          'データを読み込めませんでした。電波のよいところでもう一度試してください。',
         );
         return { ok: false, subject: null, memberships: [] };
       }
@@ -276,7 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) {
           return {
             status: 'error',
-            message: 'ログインの じゅんびが できませんでした。もういちど ためしてください。',
+            message: 'ログインのじゅんびができませんでした。もう一度試してください。',
           };
         }
         // ここから先はページが遷移する。戻り値は使われないので dismissed 扱い
@@ -291,7 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error || !data.url) {
         return {
           status: 'error',
-          message: 'ログインの じゅんびが できませんでした。もういちど ためしてください。',
+          message: 'ログインのじゅんびができませんでした。もう一度試してください。',
         };
       }
 
@@ -304,7 +304,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!newSession) {
         return {
           status: 'error',
-          message: 'ログインできませんでした。もういちど ためしてください。',
+          message: 'ログインできませんでした。もう一度試してください。',
         };
       }
       const loaded = await loadSubject(newSession.user.id);
@@ -319,7 +319,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return {
         status: 'error',
         message:
-          'ログインできませんでした。インターネットに つながっているか たしかめて、もういちど ためしてください。',
+          'ログインできませんでした。インターネットにつながっているか確かめて、もう一度試してください。',
       };
     }
   }, [loadSubject]);

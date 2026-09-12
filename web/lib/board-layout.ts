@@ -24,7 +24,7 @@
  *   チケット14で最前面に出すときは「現在の最大 z + 1」を保存する
  * - photos.board_x / board_y / board_rotation / board_z はこの単位で保存する（チケット14）。
  *   board_x と board_y が両方 non-null のときだけ保存配置を採用する（14 は4項目セットで
- *   書き、「もとにもどす」で4項目とも null に戻す前提）。rotation / z の欠落は自動値で補う
+ *   書き、「もとに戻す」で4項目とも null に戻す前提）。rotation / z の欠落は自動値で補う
  * - 乱数の引き順（jitterX → jitterY → rotation）も契約の一部。変えると全端末で配置が変わる
  *
  * ── 安定性（完了条件「枚数が増減しても安定」）──

@@ -17,7 +17,7 @@ type SubjectState = {
 };
 
 const LOAD_ERROR_MESSAGE =
-  'よみこめませんでした。電波のよいところで、もういちどためしてください。';
+  '読み込めませんでした。電波のよいところで、もう一度試してください。';
 
 export function useSubject(subjectId: string | null) {
   const [state, setState] = useState<SubjectState>({

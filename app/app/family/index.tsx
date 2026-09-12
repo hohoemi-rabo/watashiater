@@ -1,5 +1,5 @@
 /**
- * かぞくの博物館ハブ（チケット16・18）。自分が家族として登録されている博物館の一覧と、
+ * 家族の博物館ハブ（チケット16・18）。自分が家族として登録されている博物館の一覧と、
  * 招待コード入力への導線。家族専用アカウント（自分の博物館なし）のホームでもあるため、
  * ログアウトとアカウント削除もここに置く（settings は subject 前提で到達できない。
  * アカウント削除はどの種類のアカウントにも必要＝REQUIREMENTS §4.3・Google Play 要件）。
@@ -42,7 +42,7 @@ export default function FamilyHubScreen() {
   const confirmDelete = () => {
     showAlert(
       'アカウントを削除しますか？',
-      'もとにもどすことは できません。',
+      'もとに戻すことはできません。',
       [
         { text: 'やめる', style: 'cancel' },
         {
@@ -52,7 +52,7 @@ export default function FamilyHubScreen() {
             // 最重度の破壊的操作なので確認を2段にする（settings と同じ）
             showAlert(
               '本当に削除してよろしいですか？',
-              '登録した家族の博物館は 見られなくなります。',
+              '登録した家族の博物館は見られなくなります。',
               [
                 { text: 'やめる', style: 'cancel' },
                 { text: 'すべて削除する', style: 'destructive', onPress: () => void runDelete() },
@@ -65,7 +65,7 @@ export default function FamilyHubScreen() {
   };
 
   const confirmSignOut = () => {
-    showAlert('ログアウトしますか？', 'また Google でログインすれば、つづきから つかえます。', [
+    showAlert('ログアウトしますか？', 'また Google でログインすれば、続きから使えます。', [
       { text: 'やめる', style: 'cancel' },
       {
         text: 'ログアウトする',
@@ -83,24 +83,24 @@ export default function FamilyHubScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* 自分の博物館を持つ人は settings から来る＝もどれる。家族専用はここがホーム */}
         {subject ? <BackButton /> : null}
-        <AppText variant="screenTitle">かぞくの博物館</AppText>
+        <AppText variant="screenTitle">家族の博物館</AppText>
 
         {loading ? <ActivityIndicator color={colors.stageNavy} size="large" /> : null}
 
         {!loading && error ? (
           <AppCard style={styles.card}>
             <AppText variant="cardTitle" style={styles.errorTitle}>
-              よみこめませんでした
+              読み込めませんでした
             </AppText>
             <AppText>{error}</AppText>
-            <SecondaryButton label="もういちどよみこむ" onPress={() => void refetch()} />
+            <SecondaryButton label="もう一度読み込む" onPress={() => void refetch()} />
           </AppCard>
         ) : null}
 
         {!loading && !error && museums.length === 0 ? (
           <AppCard style={styles.card}>
-            <AppText variant="cardTitle">まだ 登録した博物館が ありません</AppText>
-            <AppText>招待コードを もらったら、下のボタンから 登録してください。</AppText>
+            <AppText variant="cardTitle">まだ登録した博物館がありません</AppText>
+            <AppText>招待コードをもらったら、下のボタンから登録してください。</AppText>
           </AppCard>
         ) : null}
 

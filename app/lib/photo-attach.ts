@@ -15,7 +15,7 @@ const LONG_EDGE_MAX = 1600;
 const JPEG_QUALITY = 0.8;
 
 const UPLOAD_ERROR_MESSAGE =
-  'のせられませんでした。でんぱの よいところで もういちど ためしてください。';
+  'のせられませんでした。電波のよいところでもう一度試してください。';
 
 export type PickedPhoto = { uri: string; width: number; height: number };
 

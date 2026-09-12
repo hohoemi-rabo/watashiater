@@ -52,7 +52,7 @@ export default function GalleryScreen() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   // ドロップ済み（DB反映待ち・反映済み）の配置。refetch が着地したら DB が真実になるので捨てる
   const [overrides, setOverrides] = useState<Record<string, BoardPlacement>>({});
-  // インクリメントで該当写真の offset を 0 に戻す（保存失敗・もとにもどす）
+  // インクリメントで該当写真の offset を 0 に戻す（保存失敗・もとに戻す）
   const [revertSignals, setRevertSignals] = useState<Record<string, number>>({});
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingSaves, setPendingSaves] = useState(0);
@@ -158,10 +158,10 @@ export default function GalleryScreen() {
   };
 
   const handleReset = () => {
-    showAlert('ならびを もとにもどしますか？', 'じぶんでならべた配置は もどせません。', [
+    showAlert('並びをもとにもどしますか？', '自分で並べた配置は戻せません。', [
       { text: 'やめる', style: 'cancel' },
       {
-        text: 'もとにもどす',
+        text: 'もとに戻す',
         style: 'destructive',
         onPress: () => {
           void (async () => {
@@ -202,24 +202,24 @@ export default function GalleryScreen() {
             ギャラリー
           </AppText>
 
-          {!isOnline ? <OfflineNote detail="並べ替えは つながってから できます。" /> : null}
+          {!isOnline ? <OfflineNote detail="並べ替えはつながってからできます。" /> : null}
 
           {loading ? <ActivityIndicator color={colors.cardWhite} size="large" /> : null}
 
           {!loading && error ? (
             <AppCard style={styles.card}>
               <AppText variant="cardTitle" style={styles.errorTitle}>
-                よみこめませんでした
+                読み込めませんでした
               </AppText>
               <AppText>{error}</AppText>
-              <SecondaryButton label="もういちどよみこむ" onPress={() => void refetch()} />
+              <SecondaryButton label="もう一度読み込む" onPress={() => void refetch()} />
             </AppCard>
           ) : null}
 
           {!loading && !error && items.length === 0 ? (
             <AppCard style={styles.card}>
               <AppText variant="cardTitle">まだ写真がありません</AppText>
-              <AppText>お題にこたえて写真をのせると、この机にならびます。</AppText>
+              <AppText>お題に答えて写真をのせると、この机に並びます。</AppText>
             </AppCard>
           ) : null}
 
@@ -228,7 +228,7 @@ export default function GalleryScreen() {
               <View style={styles.modeActions}>
                 <SecondaryButton
                   icon={Check}
-                  label="おわる"
+                  label="終わる"
                   onPress={() => {
                     setMode('view');
                     setActionError(null);
@@ -236,7 +236,7 @@ export default function GalleryScreen() {
                 />
                 <SecondaryButton
                   icon={Undo2}
-                  label="もとにもどす"
+                  label="もとに戻す"
                   onPress={handleReset}
                   disabled={pendingSaves > 0 || draggingId !== null || !isOnline}
                 />

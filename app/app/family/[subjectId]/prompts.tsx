@@ -40,22 +40,22 @@ export default function FamilyPromptsScreen() {
         {!busy && anyError ? (
           <AppCard style={styles.card}>
             <AppText variant="cardTitle" style={styles.errorTitle}>
-              よみこめませんでした
+              読み込めませんでした
             </AppText>
             <AppText>{anyError}</AppText>
-            <SecondaryButton label="もういちどよみこむ" onPress={() => void refetch()} />
+            <SecondaryButton label="もう一度読み込む" onPress={() => void refetch()} />
           </AppCard>
         ) : null}
 
         {removed ? (
           <AppCard style={styles.card}>
-            <AppText variant="cardTitle">この博物館は 見られなくなりました</AppText>
+            <AppText variant="cardTitle">この博物館は見られなくなりました</AppText>
           </AppCard>
         ) : null}
 
         {!busy && !anyError && subject && cards.length === 0 ? (
           <AppCard style={styles.card}>
-            <AppText variant="cardTitle">まだ 回答が ありません</AppText>
+            <AppText variant="cardTitle">まだ回答がありません</AppText>
           </AppCard>
         ) : null}
 

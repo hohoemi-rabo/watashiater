@@ -1,10 +1,10 @@
 /**
- * お題（prompts）と自分の回答（answers）をまとめて取得するフック。
+ * お題（prompts）と自分の回答（answers）をま止めて取得するフック。
  * ホーム・お題一覧・回答画面で共用する。
  *
  * - 「回答済み」の定義は「answers に行が存在する」（チケット06が保存時に行を作る）
  * - 進捗（answeredCount）は固定10問のみ数える（自由お題は含めない。
- *   REQUIREMENTS §7-2「10このうち 4つ こたえました」）
+ *   REQUIREMENTS §7-2「10このうち 4つ答えました」）
  * - 画面フォーカスのたびに再取得する（回答して戻ったとき一覧と進捗を追随させる）
  * - オフライン対応（チケット19）は use-life-story.ts と同型（判断コメントはそちら）
  */
@@ -31,7 +31,7 @@ type PromptsState = {
 type CachedPrompts = { items: PromptListItem[]; freeAnswer: Answer | null };
 
 const LOAD_ERROR_MESSAGE =
-  'よみこめませんでした。でんぱの よいところで もういちど ためしてください。';
+  '読み込めませんでした。電波のよいところでもう一度試してください。';
 
 export function usePrompts() {
   const { subject } = useAuth();

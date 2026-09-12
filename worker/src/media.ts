@@ -234,7 +234,7 @@ export async function handleGetObject(request: Request, env: Env, r2Key: string)
 //     （src/supabase.ts は読み取り専用の設計。行削除は definer 関数 delete_own_account の責務）
 //  2. prefix はクライアントから受け取らず JWT → getOwnedSubjectId で導出（キー偽装の余地なし）
 //  3. docs/09・10 が許容してきた孤児オブジェクト（削除済み写真・録り直しの旧録音・
-//     INSERT 失敗後のリトライ残骸）もこの prefix 一括削除がまとめて回収する
+//     INSERT 失敗後のリトライ残骸）もこの prefix 一括削除がま止めて回収する
 //  4. アプリはこれを delete_own_account（DB削除）の前に呼ぶ。逆順だと subject_id が
 //     消えて prefix を導出できず、孤児が永久に残る
 

@@ -8,7 +8,7 @@
  * 生成のきまり：
  * - 回答カードの本文は書き換えない。生成されるのは独立した life_story 1本のみ（REQUIREMENTS §3.3）
  * - worker へ送るのは body_text が空でない回答だけ（写真・声だけの回答は対象外。docs/11 申し送り）
- * - 幕は「閉じる → じゅんびちゅう… → 開くと本文」。レート制限 429 は幕が閉じ切る前（<1秒）に
+ * - 幕は「閉じる → 準備中… → 開くと本文」。レート制限 429 は幕が閉じ切る前（<1秒）に
  *   返ることがあるため、開幕は必ず閉幕完了の Promise を await してから始める（state で判定しない）
  * - 生成成功後の保存失敗では本文を捨てない：生成は今日の1回分を消費済みなので、
  *   unsavedBody に保持して表示し、保存だけをやり直せるようにする
@@ -52,7 +52,7 @@ import { useLifeStory } from '@/lib/use-life-story';
 import { usePrompts } from '@/lib/use-prompts';
 import { WorkerApiError, generateLifeStory } from '@/lib/worker-api';
 
-const GENERATE_ERROR_MESSAGE = 'つくれませんでした。電波のよいところで、もういちどためしてください。';
+const GENERATE_ERROR_MESSAGE = '作れませんでした。電波のよいところで、もう一度試してください。';
 
 function formatJaDate(iso: string): string {
   const date = new Date(iso);
@@ -82,7 +82,7 @@ export default function StoryScreen() {
   // 幕のフェーズ。null 以外＝生成中（幕が出ている）
   const [genPhase, setGenPhase] = useState<CurtainPhase | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
-  // 直近の生成で返った「今日あと何回つくれるか」。生成するまでは出さない
+  // 直近の生成で返った「今日あと何回作れるか」。生成するまでは出さない
   const [remaining, setRemaining] = useState<number | null>(null);
   // 生成は成功したが DB 保存に失敗した本文（1回分消費済みなので捨てない）
   const [unsavedBody, setUnsavedBody] = useState<string | null>(null);
@@ -124,29 +124,29 @@ export default function StoryScreen() {
   const loading = storyLoading || promptsLoading;
   const loadError = storyError ?? promptsError;
 
-  // 離脱ガード：生成中・編集の書きかけ・未保存の生成本文があるときは「もどる」を差し止める
+  // 離脱ガード：生成中・編集の書きかけ・未保存の生成本文があるときは「戻る」を差し止める
   usePreventRemove(generating || editDirty || unsavedBody !== null, ({ data }) => {
     if (generating) {
-      showAlert('自分史をつくっています', 'できあがるまで少しおまちください。', [
+      showAlert('自分史を作っています', 'できあがるまで少しお待ちください。', [
         { text: 'わかりました', style: 'cancel' },
       ]);
       return;
     }
     if (unsavedBody !== null && mode === 'view') {
-      showAlert('できあがった自分史がほぞんされていません', 'もどると消えてしまいます。', [
+      showAlert('できあがった自分史が保存されていません', '戻ると消えてしまいます。', [
         { text: 'やめる', style: 'cancel' },
         {
-          text: 'ほぞんしないで もどる',
+          text: '保存しないで戻る',
           style: 'destructive',
           onPress: () => navigation.dispatch(data.action),
         },
       ]);
       return;
     }
-    showAlert('書きなおした文章がほぞんされていません', 'もどると消えてしまいます。', [
+    showAlert('書き直した文章が保存されていません', '戻ると消えてしまいます。', [
       { text: 'やめる', style: 'cancel' },
       {
-        text: 'ほぞんしないで もどる',
+        text: '保存しないで戻る',
         style: 'destructive',
         onPress: () => navigation.dispatch(data.action),
       },
@@ -211,9 +211,9 @@ export default function StoryScreen() {
 
   const handleRegenerate = () => {
     if (story?.edited_by_user) {
-      showAlert('つくりなおしますか？', '書きなおした文章は消えて、あたらしい文章に置きかわります。', [
+      showAlert('作り直しますか？', '書き直した文章は消えて、新しい文章に置き換わります。', [
         { text: 'やめる', style: 'cancel' },
-        { text: 'つくりなおす', style: 'destructive', onPress: () => void handleGenerate() },
+        { text: '作り直す', style: 'destructive', onPress: () => void handleGenerate() },
       ]);
       return;
     }
@@ -267,9 +267,9 @@ export default function StoryScreen() {
 
   const handleCancelEdit = () => {
     if (draft !== editInitialRef.current) {
-      showAlert('書きなおした文章がほぞんされていません', 'やめると消えてしまいます。', [
-        { text: 'かきつづける', style: 'cancel' },
-        { text: 'ほぞんしないでやめる', style: 'destructive', onPress: () => setMode('view') },
+      showAlert('書き直した文章が保存されていません', 'やめると消えてしまいます。', [
+        { text: '書き続ける', style: 'cancel' },
+        { text: '保存しないでやめる', style: 'destructive', onPress: () => setMode('view') },
       ]);
       return;
     }
@@ -292,7 +292,7 @@ export default function StoryScreen() {
               <BackButton />
               <AppText variant="screenTitle">自分史</AppText>
               <AppCard style={styles.gapCard}>
-                <AppText variant="cardTitle">じぶんの言葉で書きなおせます</AppText>
+                <AppText variant="cardTitle">自分の言葉で書きなおせます</AppText>
                 <TextInput
                   accessibilityLabel="自分史の本文"
                   multiline
@@ -307,11 +307,11 @@ export default function StoryScreen() {
             <View style={styles.footer}>
               {editError ? <AppText style={styles.footerError}>{editError}</AppText> : null}
               {trimmedDraft === '' ? (
-                <AppText style={styles.footerError}>からっぽではほぞんできません</AppText>
+                <AppText style={styles.footerError}>からっぽでは保存できません</AppText>
               ) : null}
               <PrimaryButton
                 icon={Check}
-                label={busy ? 'ほぞんしています…' : 'ほぞんする'}
+                label={busy ? '保存しています…' : '保存する'}
                 onPress={() => void handleSaveEdit()}
                 disabled={busy || trimmedDraft === '' || !isOnline}
               />
@@ -324,18 +324,18 @@ export default function StoryScreen() {
             {/* 本文があるときは扉（ページ内の題字）が画面タイトルを兼ねる。二重に出さない */}
             {bodyToShow === null ? <AppText variant="screenTitle">自分史</AppText> : null}
 
-            {!isOnline ? <OfflineNote detail="自分史づくりは つながってから できます。" /> : null}
+            {!isOnline ? <OfflineNote detail="自分史づくりはつながってからできます。" /> : null}
 
             {loading ? <ActivityIndicator color={colors.curtainRed} size="large" /> : null}
 
             {!loading && loadError && bodyToShow === null ? (
               <AppCard style={styles.gapCard}>
                 <AppText variant="cardTitle" style={styles.errorTitle}>
-                  よみこめませんでした
+                  読み込めませんでした
                 </AppText>
                 <AppText>{loadError}</AppText>
                 <PrimaryButton
-                  label="もういちどよみこむ"
+                  label="もう一度読み込む"
                   onPress={() => {
                     void refetchStory();
                     void refetchPrompts();
@@ -347,7 +347,7 @@ export default function StoryScreen() {
             {genError ? (
               <AppCard style={styles.gapCard}>
                 <AppText variant="cardTitle" style={styles.errorTitle}>
-                  つくれませんでした
+                  作れませんでした
                 </AppText>
                 <AppText>{genError}</AppText>
               </AppCard>
@@ -356,11 +356,11 @@ export default function StoryScreen() {
             {unsavedBody !== null ? (
               <AppCard style={styles.gapCard}>
                 <AppText variant="cardTitle" style={styles.errorTitle}>
-                  まだほぞんできていません
+                  まだ保存できていません
                 </AppText>
                 {saveWarning ? <AppText>{saveWarning}</AppText> : null}
                 <PrimaryButton
-                  label={busy ? 'ほぞんしています…' : 'もういちど保存する'}
+                  label={busy ? '保存しています…' : 'もう一度保存する'}
                   onPress={() => void handleRetrySave()}
                   disabled={busy}
                 />
@@ -396,8 +396,8 @@ export default function StoryScreen() {
                     {story && unsavedBody === null ? (
                       // 奥付：日付は本文の末尾に右寄せで（本の奥付の位置）
                       <AppText variant="caption" style={styles.colophon}>
-                        {formatJaDate(story.generated_at)}につくりました
-                        {story.edited_by_user ? '（じぶんで書きなおしました）' : ''}
+                        {formatJaDate(story.generated_at)}に作りました
+                        {story.edited_by_user ? '（自分で書き直しました）' : ''}
                       </AppText>
                     ) : null}
                   </View>
@@ -406,33 +406,33 @@ export default function StoryScreen() {
                   <View style={styles.actions}>
                     <SecondaryButton
                       icon={Pencil}
-                      label="書きなおす"
+                      label="書き直す"
                       onPress={startEdit}
                       disabled={generating || !isOnline}
                     />
                     {/* 残り回数はボタン自体に出す（実機フィードバック反映）。
-                        worker が生成応答で返す値なので、この画面で一度つくる（または
+                        worker が生成応答で返す値なので、この画面で一度作る（または
                         レート制限に当たる）までは分からず、その間は素のラベルにする */}
                     <SecondaryButton
                       icon={RotateCcw}
                       label={
                         remaining !== null
-                          ? `もういちどつくる（あと${remaining}回）`
-                          : 'もういちどつくる'
+                          ? `もう一度作る（あと${remaining}回）`
+                          : 'もう一度作る'
                       }
                       onPress={handleRegenerate}
                       disabled={generating || usableAnswers.length === 0 || remaining === 0 || !isOnline}
                     />
                     {remaining === 0 ? (
                       <AppText variant="caption" style={styles.dateCaption}>
-                        今日つくれる回数はこれでおしまいです。また明日つくれます
+                        今日作れる回数はこれでおしまいです。また明日作れます
                       </AppText>
                     ) : null}
                     {usableAnswers.length === 0 && !promptsLoading ? (
                       <AppText variant="caption" style={styles.dateCaption}>
                         {promptsError
-                          ? '回答をよみこめなかったため、いまはつくりなおせません'
-                          : '文字で書いた回答がないため、いまはつくりなおせません'}
+                          ? '回答を読み込めなかったため、今は作り直せません'
+                          : '文字で書いた回答がないため、今は作り直せません'}
                       </AppText>
                     ) : null}
                   </View>
@@ -443,17 +443,17 @@ export default function StoryScreen() {
                 <AppCard style={styles.gapCard}>
                   <AppText variant="cardTitle">文字の回答がまだありません</AppText>
                   <AppText>
-                    文字で書いた回答をもとに自分史をつくります。お題にもどって、文字でもこたえてみてください。
+                    文字で書いた回答をもとに自分史を作ります。お題に戻って、文字でも答えてみてください。
                   </AppText>
                 </AppCard>
               ) : (
                 <AppCard style={styles.gapCard}>
-                  <AppText variant="cardTitle">あなたの自分史をつくれます</AppText>
+                  <AppText variant="cardTitle">あなたの自分史を作れます</AppText>
                   <AppText>
                     これまでの回答をもとに、AIが1本の読み物にまとめます。回答カードの文章はそのまま残ります。
                   </AppText>
                   <AppText variant="caption" style={styles.dateCaption}>
-                    できあがるまで30秒ほどかかります。1日に3回までつくれます。
+                    できあがるまで30秒ほどかかります。1日に3回まで作れます。
                   </AppText>
                   <PrimaryButton
                     icon={ScrollText}

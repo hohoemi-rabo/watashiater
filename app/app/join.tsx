@@ -1,8 +1,8 @@
 /**
- * かぞくとして登録する（チケット16。REQUIREMENTS §3.5(a)）。
- * 招待コード＋よびかた（表示名）を入れて redeem_invite_code RPC を呼ぶ。
+ * 家族として登録する（チケット16。REQUIREMENTS §3.5(a)）。
+ * 招待コード＋呼び方（表示名）を入れて redeem_invite_code RPC を呼ぶ。
  * - 表示名の初期値は Google アカウント名（user_metadata.full_name）。書き手に伝わる
- *   よびかた（例：たろう）へ自由に直せる（2026-08-12 ユーザー決定）
+ *   呼び方（例：たろう）へ自由に直せる（2026-08-12 ユーザー決定）
  * - 成功したらフォームを成功表示に置き換える（1画面1目的。REQUIREMENTS §4.1）
  * - コードの真の検証（期限・使用済み）はサーバー側。ここは結果 status を文言に写すだけ
  */
@@ -25,13 +25,13 @@ const CODE_LENGTH = 6;
 
 /** RPC の業務エラー status → 画面文言 */
 const ERROR_MESSAGES: Record<string, string> = {
-  not_found: 'この招待コードは 見つかりませんでした。コードを たしかめて、もういちど ためしてください。',
-  already_used: 'この招待コードは すでに つかわれています。あたらしいコードを 発行してもらってください。',
-  expired: 'この招待コードは 期限が すぎています。あたらしいコードを 発行してもらってください。',
-  own_code: 'これは 自分の博物館の 招待コードです。',
-  invalid_name: 'おなまえを 20文字までで 入れてください。',
+  not_found: 'この招待コードは見つかりませんでした。コードを確かめて、もう一度試してください。',
+  already_used: 'この招待コードはすでに使われています。新しいコードを発行してもらってください。',
+  expired: 'この招待コードは期限がすぎています。新しいコードを発行してもらってください。',
+  own_code: 'これは自分の博物館の招待コードです。',
+  invalid_name: 'お名前を 20文字までで入れてください。',
   network_error:
-    'とうろくできませんでした。インターネットに つながっているか たしかめて、もういちど ためしてください。',
+    '登録できませんでした。インターネットにつながっているか確かめて、もう一度試してください。',
 };
 
 export default function JoinScreen() {
@@ -77,17 +77,17 @@ export default function JoinScreen() {
     <SkyBackground>
       <ScrollView contentContainerStyle={styles.content}>
         <BackButton />
-        <AppText variant="screenTitle">かぞくとして登録する</AppText>
+        <AppText variant="screenTitle">家族として登録する</AppText>
 
         {joined ? (
           <AppCard style={styles.card}>
             <AppText variant="cardTitle">
               {joined.already
-                ? 'すでに かぞくとして 登録されています'
-                : `${joined.nickname}さんの かぞくに なりました`}
+                ? 'すでに家族として登録されています'
+                : `${joined.nickname}さんの家族になりました`}
             </AppText>
             <AppText>
-              {joined.nickname}さんの 博物館（しゃしん・自分史）を いつでも 見られます。
+              {joined.nickname}さんの博物館（写真・自分史）をいつでも見られます。
             </AppText>
             <PrimaryButton
               icon={DoorOpen}
@@ -97,7 +97,7 @@ export default function JoinScreen() {
           </AppCard>
         ) : (
           <AppCard style={styles.card}>
-            <AppText>おうちの方から きいた 6文字の招待コードを 入れてください。</AppText>
+            <AppText>おうちの方から聞いた 6文字の招待コードを入れてください。</AppText>
             <TextInput
               accessibilityLabel="招待コード"
               autoCapitalize="characters"
@@ -109,9 +109,9 @@ export default function JoinScreen() {
               style={[styles.input, styles.codeInput]}
               value={code}
             />
-            <AppText>あなたの よびかたを おしえてください。書き手の方に この名前で 伝わります。</AppText>
+            <AppText>あなたの呼び方を教えてください。書き手の方にこの名前で伝わります。</AppText>
             <TextInput
-              accessibilityLabel="あなたのおなまえ"
+              accessibilityLabel="あなたのお名前"
               maxLength={20}
               onChangeText={setName}
               placeholder="れい：たろう"
@@ -121,7 +121,7 @@ export default function JoinScreen() {
             />
             <PrimaryButton
               icon={Check}
-              label={busy ? 'とうろくしています…' : 'とうろくする'}
+              label={busy ? '登録しています…' : '登録する'}
               onPress={() => void handleJoin()}
               disabled={
                 busy || trimmedCode.length !== CODE_LENGTH || trimmedName.length === 0 || !isOnline

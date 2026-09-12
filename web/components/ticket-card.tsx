@@ -58,7 +58,7 @@ export function TicketCard({ title, bodyText, thumbnailUrl, hasRecording }: Tick
           {bodyText.trim() !== '' ? (
             <p className="mt-2 whitespace-pre-wrap text-body">{bodyText}</p>
           ) : (
-            <p className="mt-2 text-caption text-text-soft">声で こたえています。</p>
+            <p className="mt-2 text-caption text-text-soft">声で答えています。</p>
           )}
         </div>
       </div>

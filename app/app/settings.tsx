@@ -1,5 +1,5 @@
 /**
- * せってい（チケット04・18）。ニックネーム変更・つかいかた・かぞくの博物館・
+ * 設定（チケット04・18）。ニックネーム変更・使い方・家族の博物館・
  * ログアウト・アカウント削除。
  * - アカウント削除は二重確認（REQUIREMENTS §4.1 破壊的操作＋最重度なので2段）。
  *   削除の順序と失敗時の再開は lib/account.ts の判断コメント参照
@@ -67,7 +67,7 @@ export default function SettingsScreen() {
   const confirmDelete = () => {
     showAlert(
       'アカウントを削除しますか？',
-      '写真・声・自分史など、すべてのデータが消えます。もとにもどすことは できません。',
+      '写真・声・自分史など、すべてのデータが消えます。もとに戻すことはできません。',
       [
         { text: 'やめる', style: 'cancel' },
         {
@@ -77,7 +77,7 @@ export default function SettingsScreen() {
             // 最重度の破壊的操作なので確認を2段にする
             showAlert(
               '本当に削除してよろしいですか？',
-              '削除すると、家族も この博物館を 見られなくなります。',
+              '削除すると、家族もこの博物館を見られなくなります。',
               [
                 { text: 'やめる', style: 'cancel' },
                 { text: 'すべて削除する', style: 'destructive', onPress: () => void runDelete() },
@@ -90,7 +90,7 @@ export default function SettingsScreen() {
   };
 
   const confirmSignOut = () => {
-    showAlert('ログアウトしますか？', 'また Google でログインすれば、つづきから つかえます。', [
+    showAlert('ログアウトしますか？', 'また Google でログインすれば、続きから使えます。', [
       { text: 'やめる', style: 'cancel' },
       {
         text: 'ログアウトする',
@@ -108,7 +108,7 @@ export default function SettingsScreen() {
     <SkyBackground>
       <View style={styles.content}>
         <BackButton />
-        <AppText variant="screenTitle">せってい</AppText>
+        <AppText variant="screenTitle">設定</AppText>
         <AppCard style={styles.card}>
           <AppText variant="cardTitle">ニックネーム</AppText>
           <TextInput
@@ -125,25 +125,25 @@ export default function SettingsScreen() {
           />
           <SecondaryButton
             icon={Check}
-            label={nicknameBusy ? 'ほぞんしています…' : '保存する'}
+            label={nicknameBusy ? '保存しています…' : '保存する'}
             onPress={() => void handleSaveNickname()}
             disabled={nicknameBusy || trimmed.length === 0 || unchanged || !isOnline}
           />
-          {nicknameSaved ? <AppText variant="caption">ほぞんしました</AppText> : null}
+          {nicknameSaved ? <AppText variant="caption">保存しました</AppText> : null}
           {!isOnline ? (
-            <AppText variant="caption">なまえの変更は つながってから できます。</AppText>
+            <AppText variant="caption">名前の変更はつながってからできます。</AppText>
           ) : null}
           {nicknameError ? <AppText style={styles.error}>{nicknameError}</AppText> : null}
         </AppCard>
         <SecondaryButton
           icon={CircleHelp}
-          label="つかいかたを見る"
+          label="使い方を見る"
           onPress={() => router.push('/onboarding')}
         />
         {/* 自分の博物館を持つ人が家族側（招待コード入力・閲覧）へ入る導線（チケット16） */}
         <SecondaryButton
           icon={Users}
-          label="かぞくの博物館"
+          label="家族の博物館"
           onPress={() => router.push('/family')}
         />
         {/* オフラインでログアウトすると再ログインできず、キャッシュした博物館への

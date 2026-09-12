@@ -20,7 +20,7 @@ type RecordingRowState = {
   error: string | null;
 };
 
-const LOAD_ERROR_MESSAGE = '声を よみこめませんでした。';
+const LOAD_ERROR_MESSAGE = '声を読み込めませんでした。';
 
 export function useRecording(answerId: string | null) {
   const [state, setState] = useState<RecordingRowState>({

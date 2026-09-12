@@ -52,7 +52,7 @@ type CachedBoardItem = Omit<BoardItem, 'recordingUrl'>;
 type CachedBoard = { items: CachedBoardItem[] };
 
 const LOAD_ERROR_MESSAGE =
-  '写真をよみこめませんでした。電波のよいところで、もういちどためしてください。';
+  '写真を読み込めませんでした。電波のよいところで、もう一度試してください。';
 
 /**
  * @param targetSubjectId 家族として見る対象の subject（チケット16）。省略時は自分の博物館。
@@ -188,7 +188,7 @@ export function useBoardPhotos(targetSubjectId?: string) {
       const caption =
         (answer?.prompt_id !== null && answer?.prompt_id !== undefined
           ? promptTitleById.get(answer.prompt_id)
-          : answer?.custom_title) ?? 'じぶんのお題';
+          : answer?.custom_title) ?? '自分のお題';
       const recordingKey = recordingKeyByAnswerId.get(photo.answer_id);
       return {
         photo,

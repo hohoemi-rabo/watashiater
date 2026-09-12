@@ -1,7 +1,7 @@
 /**
  * 閲覧Webの補助ボタン。app/components/secondary-button.tsx の移植
  * （白カード面＋stage-navy 文字・タップターゲット48px以上・押すとわずかに沈む＝DESIGN §5）。
- * 閲覧Webのボタンは「聞く」「とじる」など読む行為の補助だけなので、
+ * 閲覧Webのボタンは「聞く」「閉じる」など読む行為の補助だけなので、
  * curtain-red の主役ボタンは作らない（DESIGN §3：curtain-red は各画面で1つだけ）。
  */
 import type { LucideIcon } from 'lucide-react'

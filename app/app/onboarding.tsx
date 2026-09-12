@@ -1,7 +1,7 @@
 /**
  * オンボーディング／ログイン（REQUIREMENTS §3.1：3枚以内のかんたん説明 → Google ログイン）。
- * ログイン済みのときは「つかいかた」の説明ページとして機能し、もどるだけを出す
- * （せってい「つかいかたを見る」からの導線）。
+ * ログイン済みのときは「使い方」の説明ページとして機能し、戻るだけを出す
+ * （設定「使い方を見る」からの導線）。
  */
 import { useRouter } from 'expo-router';
 import { LogIn } from 'lucide-react-native';
@@ -20,16 +20,16 @@ import { useAuth } from '@/lib/auth-context';
 
 const GUIDE_CARDS = [
   {
-    title: 'お題に こたえる',
-    body: '「子どものころの話」など、きまった お題に すきなだけ こたえます。ぜんぶ こたえなくても だいじょうぶ。',
+    title: 'お題に答える',
+    body: '「子どものころの話」など、決まったお題に好きなだけ答えます。全部答えなくても大丈夫。',
   },
   {
-    title: 'しゃしんと 声を のせる',
-    body: 'おもいでの しゃしんを そえたり、じぶんの 声で はなして のこせます。',
+    title: '写真と声をのせる',
+    body: '思い出の写真を添えたり、自分の声で話して残せます。',
   },
   {
-    title: 'かぞくに 見せる',
-    body: 'できあがった「じぶんの博物館」は、リンクひとつで おまごさんにも 見てもらえます。',
+    title: '家族に見せる',
+    body: 'できあがった「自分の博物館」は、リンクひとつでお孫さんにも見てもらえます。',
   },
 ] as const;
 
@@ -51,7 +51,7 @@ export default function OnboardingScreen() {
       return;
     }
     if (result.status === 'error') {
-      setErrorMessage(result.message ?? 'ログインできませんでした。もういちど ためしてください。');
+      setErrorMessage(result.message ?? 'ログインできませんでした。もう一度試してください。');
     }
     // dismissed（ユーザーがブラウザを閉じた）は何も出さない
   };
@@ -62,7 +62,7 @@ export default function OnboardingScreen() {
         {session ? <BackButton /> : null}
 
         <AppLogo />
-        <AppText style={styles.lead}>じぶんの博物館を つくりましょう</AppText>
+        <AppText style={styles.lead}>自分の博物館を作りましょう</AppText>
 
         {GUIDE_CARDS.map((card, index) => (
           <AppCard key={card.title} shadow="rest" style={styles.card}>
@@ -74,7 +74,7 @@ export default function OnboardingScreen() {
         ))}
 
         {/* iPhone Safari のときだけ出る「ホーム画面に追加」の手順（チケット27）。
-            ログイン前の初見でも、せってい「つかいかたを見る」の再訪でも見える位置に置く */}
+            ログイン前の初見でも、設定「使い方を見る」の再訪でも見える位置に置く */}
         <AddToHomeGuide />
 
         {session ? null : (
@@ -88,7 +88,7 @@ export default function OnboardingScreen() {
             {errorMessage ? (
               <AppCard style={styles.card}>
                 <AppText variant="cardTitle" style={styles.errorTitle}>
-                  うまく いきませんでした
+                  うまくいきませんでした
                 </AppText>
                 <AppText>{errorMessage}</AppText>
               </AppCard>

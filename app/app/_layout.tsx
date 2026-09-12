@@ -6,7 +6,7 @@
  *   代わりに `public/fonts/fonts.css` の @font-face が効く（チケット25）
  * - テーマはライト固定（DESIGN.md §11「黒背景・夜の劇場化」禁止）
  * - 認証ガード：未ログイン → onboarding／subject 未登録 → nickname。
- *   ログイン済み＋登録済みは強制遷移しない（onboarding を「つかいかた」として開けるように）
+ *   ログイン済み＋登録済みは強制遷移しない（onboarding を「使い方」として開けるように）
  */
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -61,7 +61,7 @@ function AuthGate({ children }: { children: ReactNode }) {
       return;
     }
     // subject が無くても居てよい画面（チケット16）：ニックネーム登録・招待コード入力・
-    // 家族の閲覧（/family 配下）・つかいかた。それ以外に居たら、家族登録があれば
+    // 家族の閲覧（/family 配下）・使い方。それ以外に居たら、家族登録があれば
     // 家族ハブへ、無ければニックネーム登録へ誘導する
     const familyAllowed =
       pathname === '/nickname' ||
@@ -95,11 +95,11 @@ function AuthGate({ children }: { children: ReactNode }) {
       <SkyBackground>
         <View style={styles.errorContent}>
           <AppCard style={styles.errorCard}>
-            <AppText variant="cardTitle">よみこめませんでした</AppText>
+            <AppText variant="cardTitle">読み込めませんでした</AppText>
             <AppText>{subjectError}</AppText>
             <SecondaryButton
               icon={RefreshCw}
-              label="もういちど よみこむ"
+              label="もう一度読み込む"
               onPress={() => void refreshSubject()}
             />
           </AppCard>

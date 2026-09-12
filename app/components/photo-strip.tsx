@@ -1,6 +1,6 @@
 /**
  * 回答画面の写真エリア（チケット09）。表示・追加・削除・アップロード進捗をまとめる。
- * - ポラロイド仕様は DESIGN §5：白フチ 左右上8px・下28px・shadow-rest・±3°以内の傾き。
+ * - ポラロイド仕様は DESIGN §5：白フチ左右上8px・下28px・shadow-rest・±3°以内の傾き。
  *   傾きは index 決定的（再レンダーで揺れない）
  * - 削除系は errorRed（curtain-red はこの画面では保存ボタン専用。DESIGN §3）
  * - 画像は r2_key を cacheKey にしてディスクキャッシュ（署名URLのクエリは毎回変わるため）
@@ -32,7 +32,7 @@ type PhotoStripProps = {
   onRetryUpload: () => void;
   onAdd: () => void;
   onDelete: (photo: Photo) => void;
-  /** オフライン（チケット19）。のせる・けすはオンライン前提なので隠して案内に替える */
+  /** オフライン（チケット19）。のせる・消すはオンライン前提なので隠して案内に替える */
   offline?: boolean;
 };
 
@@ -77,14 +77,14 @@ export function PhotoStrip({
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="この写真をけす"
+            accessibilityLabel="この写真を消す"
             disabled={uploading || offline}
             hitSlop={8}
             onPress={() => onDelete(photo)}
             style={({ pressed }) => [styles.deleteButton, pressed && styles.deletePressed]}>
             <Trash2 color={colors.errorRed} size={16} strokeWidth={2} />
             <AppText variant="caption" style={styles.deleteLabel}>
-              けす
+              消す
             </AppText>
           </Pressable>
         </View>
@@ -120,14 +120,14 @@ export function PhotoStrip({
       {loadError && offline ? (
         // オフラインは「失敗」ではないので赤くしない（チケット19。DESIGN §3）
         <View style={styles.centerBlock}>
-          <AppText variant="caption">写真は つながると 見られます。</AppText>
+          <AppText variant="caption">写真はつながると見られます。</AppText>
         </View>
       ) : loadError ? (
         <View style={styles.centerBlock}>
           <AppText variant="caption" style={styles.errorText}>
             {loadError}
           </AppText>
-          <SecondaryButton label="もういちど よみこむ" onPress={onRetryLoad} />
+          <SecondaryButton label="もう一度読み込む" onPress={onRetryLoad} />
         </View>
       ) : null}
 
@@ -145,20 +145,20 @@ export function PhotoStrip({
           <AppText variant="caption" style={styles.errorText}>
             {uploadError}
           </AppText>
-          <SecondaryButton icon={ImagePlus} label="もういちど のせる" onPress={onRetryUpload} />
+          <SecondaryButton icon={ImagePlus} label="もう一度のせる" onPress={onRetryUpload} />
         </View>
       ) : null}
 
       {offline ? (
         <AppText variant="caption" style={styles.limitText}>
-          写真を のせるには インターネットが ひつようです。
+          写真をのせるにはインターネットが必要です。
         </AppText>
       ) : !uploading && !uploadError && !loadError && photos.length < PHOTO_MAX_PER_ANSWER ? (
         <SecondaryButton icon={ImagePlus} label="写真をのせる" onPress={onAdd} disabled={loading} />
       ) : null}
       {photos.length >= PHOTO_MAX_PER_ANSWER ? (
         <AppText variant="caption" style={styles.limitText}>
-          写真は 5まいまで のせられます
+          写真は 5まいまでのせられます
         </AppText>
       ) : null}
     </View>

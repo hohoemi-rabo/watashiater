@@ -37,7 +37,7 @@ export default function HomeScreen() {
 
         <AppCard shadow="raised" style={styles.progressCard}>
           <AppText variant="cardTitle">
-            {subject ? `${subject.nickname}さんの博物館` : 'わたしの博物館'}
+            {subject ? `${subject.nickname}さんの博物館` : '私の博物館'}
           </AppText>
           {error ? (
             <AppText variant="caption">{error}</AppText>
@@ -45,8 +45,8 @@ export default function HomeScreen() {
             <>
               <AppText>
                 {loading
-                  ? 'よみこんでいます…'
-                  : `${PROMPT_TOTAL}このうち ${answeredCount}つ こたえました`}
+                  ? '読み込んでいます…'
+                  : `${PROMPT_TOTAL}このうち${answeredCount}つ答えました`}
               </AppText>
               <ProgressDots total={PROMPT_TOTAL} filled={loading ? 0 : answeredCount} />
             </>
@@ -72,7 +72,7 @@ export default function HomeScreen() {
               ギャラリー
             </AppText>
             <AppText variant="caption" style={styles.deskCaption}>
-              しゃしんが ここに ならびます
+              写真がここに並びます
             </AppText>
           </View>
         </Pressable>
@@ -80,15 +80,15 @@ export default function HomeScreen() {
         <View style={styles.menu}>
           <SecondaryButton icon={Share2} label="みんなに見せる" onPress={() => router.push('/share')} />
           {/* 自分も誰かの家族として登録しているときだけ出す（チケット16。純粋な書き手の
-              ホームを混み合わせない。未登録者の入口は settings の「かぞくの博物館」） */}
+              ホームを混み合わせない。未登録者の入口は settings の「家族の博物館」） */}
           {memberships.length > 0 ? (
             <SecondaryButton
               icon={Users}
-              label="かぞくの博物館"
+              label="家族の博物館"
               onPress={() => router.push('/family')}
             />
           ) : null}
-          <SecondaryButton icon={Settings} label="せってい" onPress={() => router.push('/settings')} />
+          <SecondaryButton icon={Settings} label="設定" onPress={() => router.push('/settings')} />
         </View>
       </ScrollView>
     </SkyBackground>

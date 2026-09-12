@@ -52,30 +52,30 @@ export default function FamilyStoryScreen() {
           {!busy && anyError ? (
             <AppCard style={styles.card}>
               <AppText variant="cardTitle" style={styles.errorTitle}>
-                よみこめませんでした
+                読み込めませんでした
               </AppText>
               <AppText>{anyError}</AppText>
-              <SecondaryButton label="もういちどよみこむ" onPress={() => void refetch()} />
+              <SecondaryButton label="もう一度読み込む" onPress={() => void refetch()} />
             </AppCard>
           ) : null}
 
           {removed ? (
             <AppCard style={styles.card}>
-              <AppText variant="cardTitle">この博物館は 見られなくなりました</AppText>
+              <AppText variant="cardTitle">この博物館は見られなくなりました</AppText>
             </AppCard>
           ) : null}
 
           {!busy && !anyError && subject && !story ? (
             <AppCard style={styles.card}>
-              <AppText variant="cardTitle">自分史は まだ ありません</AppText>
-              <AppText>できあがったら、ここで 読めます。</AppText>
+              <AppText variant="cardTitle">自分史はまだありません</AppText>
+              <AppText>できあがったら、ここで読めます。</AppText>
             </AppCard>
           ) : null}
 
           {!busy && !anyError && subject && story ? (
             <>
               <AppText variant="caption" style={styles.dateCaption}>
-                {formatJaDate(story.generated_at)}につくりました
+                {formatJaDate(story.generated_at)}に作りました
               </AppText>
               <AppText variant="story">{story.body_text}</AppText>
               {reactionError ? (

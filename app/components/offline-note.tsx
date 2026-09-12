@@ -12,7 +12,7 @@ import { colors, spacing } from '@/constants/tokens';
 import { StyleSheet, View } from 'react-native';
 
 type OfflineNoteProps = {
-  /** 画面ごとの追記（例「並べ替えは つながってから できます。」） */
+  /** 画面ごとの追記（例「並べ替えはつながってからできます。」） */
   detail?: string;
 };
 
@@ -23,10 +23,10 @@ export function OfflineNote({ detail }: OfflineNoteProps) {
         <WifiOff color={colors.textSoft} size={22} strokeWidth={2} />
         {/* 横並びの中では flex を与えないと、折り返し幅がカードの外まで伸びる */}
         <AppText variant="cardTitle" style={styles.headingText}>
-          インターネットに つながっていません
+          インターネットにつながっていません
         </AppText>
       </View>
-      <AppText>前に見たものは そのまま見られます。書きこみは つながってから できます。</AppText>
+      <AppText>前に見たものはそのまま見られます。書きこみはつながってからできます。</AppText>
       {detail ? <AppText variant="caption">{detail}</AppText> : null}
     </AppCard>
   );

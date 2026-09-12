@@ -7,7 +7,7 @@
  *   （同一フレームで tx→ox に移すので、React の再描画を待たず跳ね戻りが起きない）
  * - 基準 props が変わる（refetch 着地）と offset を 0 に戻す。保存成功後は
  *   「新基準 == 旧基準 + offset」なので見た目は動かない
- * - 保存失敗・「もとにもどす」は revertSignal のインクリメントで offset を 0 へ滑らせ、
+ * - 保存失敗・「もとに戻す」は revertSignal のインクリメントで offset を 0 へ滑らせ、
  *   真実（DB）の位置へ帰す
  *
  * ジェスチャー：
@@ -57,7 +57,7 @@ type DraggablePolaroidProps = {
   boardHeight: number;
   rearrange: boolean;
   dragging: boolean;
-  /** インクリメントされたら offset を 0 へ戻す（保存失敗・もとにもどす） */
+  /** インクリメントされたら offset を 0 へ戻す（保存失敗・もとに戻す） */
   revertSignal: number;
   onLift: (photoId: string) => void;
   onDrop: (photoId: string, left: number, top: number) => void;
@@ -101,7 +101,7 @@ export const DraggablePolaroid = memo(function DraggablePolaroid({
     oy.set(0);
   }, [baseLeft, baseTop, tx, ty, ox, oy]);
 
-  // 保存失敗・もとにもどす：真実（DB）の位置へ滑って帰る
+  // 保存失敗・もとに戻す：真実（DB）の位置へ滑って帰る
   useEffect(() => {
     if (revertSignal === 0) {
       return;
@@ -181,7 +181,7 @@ export const DraggablePolaroid = memo(function DraggablePolaroid({
             共通の「沈む」演出（scale 0.98）は animated 側の transform と競合する。
             半透明にする案はボードの木目が透けて写真が汚れて見えた（ユーザー指摘で削除） */}
         <Pressable
-          accessibilityLabel={`「${caption}」の写真をひらく`}
+          accessibilityLabel={`「${caption}」の写真を開く`}
           accessibilityRole="button"
           disabled={rearrange}
           onPress={() => onOpen(photoId)}

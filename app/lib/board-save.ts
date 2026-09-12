@@ -2,16 +2,16 @@
  * 並べ替えの保存の道具箱（React 非依存。チケット14）。
  * 座標契約は board-layout.ts 冒頭コメントのとおり：
  * - 保存は board_x / board_y / board_rotation / board_z の4項目セット
- * - 「もとにもどす」は4項目とも null に戻す（自動整列に復帰）
+ * - 「もとに戻す」は4項目とも null に戻す（自動整列に復帰）
  * RLS は photos_owner_update（回答の持ち主のみ）が既存なのでマイグレーション不要。
  */
 import type { BoardPlacement } from '@/lib/board-layout';
 import { supabase } from '@/lib/supabase';
 
 const SAVE_ERROR_MESSAGE =
-  '並べ替えを ほぞんできませんでした。電波のよいところで、もういちどためしてください。';
+  '並べ替えを保存できませんでした。電波のよいところで、もう一度試してください。';
 const RESET_ERROR_MESSAGE =
-  'もとにもどせませんでした。電波のよいところで、もういちどためしてください。';
+  'もとに戻せませんでした。電波のよいところで、もう一度試してください。';
 
 /** 1枚ぶんの配置を保存する（ドロップ毎に呼ぶ） */
 export async function saveBoardPlacement(

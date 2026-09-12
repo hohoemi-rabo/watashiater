@@ -1,7 +1,7 @@
 /**
  * お題一覧（REQUIREMENTS §7-3）。演目札カードの縦積み。
  * お題の文言・順序は DB（prompts テーブル）が唯一の情報源。
- * 自由お題枠は最後に「＋じぶんでお題をつくる」（作成済みならそのタイトル）。
+ * 自由お題枠は最後に「＋自分でお題を作る」（作成済みならそのタイトル）。
  */
 import { useRouter } from 'expo-router';
 import { RefreshCw } from 'lucide-react-native';
@@ -30,9 +30,9 @@ export default function PromptsScreen() {
 
         {error ? (
           <AppCard style={styles.errorCard}>
-            <AppText variant="cardTitle">よみこめませんでした</AppText>
+            <AppText variant="cardTitle">読み込めませんでした</AppText>
             <AppText>{error}</AppText>
-            <SecondaryButton icon={RefreshCw} label="もういちど よみこむ" onPress={() => void refetch()} />
+            <SecondaryButton icon={RefreshCw} label="もう一度読み込む" onPress={() => void refetch()} />
           </AppCard>
         ) : null}
 
@@ -48,7 +48,7 @@ export default function PromptsScreen() {
 
         {!loading && !error ? (
           <PromptCard
-            title={freeAnswer?.custom_title ?? '＋じぶんでお題をつくる'}
+            title={freeAnswer?.custom_title ?? '＋自分でお題を作る'}
             answered={freeAnswer !== null}
             preview={freeAnswer?.body_text.trim() || undefined}
             onPress={() => router.push('/answer/free')}

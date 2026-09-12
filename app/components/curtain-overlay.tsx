@@ -252,7 +252,7 @@ export function CurtainOverlay({ phase }: { phase: CurtainPhase }) {
           {/* 進行中表示（recording-box の uploading と同じ扱い。装飾ループではない） */}
           {!reduceMotion ? <ActivityIndicator color={colors.cardWhite} size="large" /> : null}
           <AppText variant="cardTitle" style={styles.label}>
-            じゅんびちゅう…
+            準備中…
           </AppText>
           <AppText variant="caption" style={styles.caption}>
             できあがるまで30秒ほどかかります

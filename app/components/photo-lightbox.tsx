@@ -24,7 +24,7 @@
  * - audio mode は自動再生の直前に設定する。設定しないと再生が受話口から小さく鳴る
  *   （recording-box.tsx の教訓）。録音モードには入れないので後始末は不要
  * - 読み込み失敗は10秒タイムアウトで検知（SDK 54 の AudioStatus に error フィールドが無い）。
- *   「もういちどよみこむ」→ 親の refetch → 新しい署名URLが props で流れ込み source が差し替わる。
+ *   「もう一度読み込む」→ 親の refetch → 新しい署名URLが props で流れ込み source が差し替わる。
  *   読み込みが初めて成功した時点で1回だけ自動再生する（リトライ成功後も含む＝聞きたくて押している）
  * - 拡大表示は写真を切り抜かず、実際の縦横比で全体を見せる（2026-08-15 ユーザー決定。
  *   正方形 cover だと縦写真の頭と足が切れる）。比率は onLoad で実画像から得るまで正方形で仮置き
@@ -77,7 +77,7 @@ const PLEATS = buildPleatStops(FOLDS_PER_PANEL);
 const LOAD_TIMEOUT_MS = 10000;
 
 const LOAD_ERROR_MESSAGE =
-  '声をよみこめませんでした。電波のよいところで、もういちどためしてください。';
+  '声を読み込めませんでした。電波のよいところで、もう一度試してください。';
 
 type PhotoLightboxProps = {
   uri: string | undefined;
@@ -89,7 +89,7 @@ type PhotoLightboxProps = {
   hasRecording: boolean;
   recordingUrl: string | undefined;
   onClose: () => void;
-  /** 音声よみこみ失敗 → 親の refetch（署名URLの取り直し） */
+  /** 音声読み込み失敗 → 親の refetch（署名URLの取り直し） */
   onRetry: () => void;
   /** 家族の閲覧時だけ渡す「見たよ」（チケット16）。書き手側は渡さない＝表示しない */
   reaction?: { reacted: boolean; onReact: () => void };
@@ -193,7 +193,7 @@ export function PhotoLightbox({
   const loadingAudio = hasRecording && !loadFailed && !status.isLoaded;
 
   // 拡大ポラロイドの寸法：写真の実比率を保ったまま「画面幅いっぱい」と
-  // 「コントロール＋とじるが必ず入る高さ（画面の45%）」の両方に収める
+  // 「コントロール＋閉じるが必ず入る高さ（画面の45%）」の両方に収める
   const ratio = photoRatio ?? 1;
   const maxPhotoWidth = width - spacing.xl * 2 - POLAROID_FRAME.side * 2;
   const maxPhotoHeight = height * 0.45;
@@ -217,9 +217,9 @@ export function PhotoLightbox({
     <View style={styles.overlay}>
       {/* 舞台の地。幕ではないので動かさない（チケット30。幕は下の CurtainPanel 2枚） */}
       <View pointerEvents="none" style={styles.veil} />
-      {/* 背面タップでも閉じる（補助経路。主経路は最下部の「とじる」） */}
+      {/* 背面タップでも閉じる（補助経路。主経路は最下部の「閉じる」） */}
       <Pressable
-        accessibilityLabel="とじる"
+        accessibilityLabel="閉じる"
         accessibilityRole="button"
         onPress={onClose}
         style={StyleSheet.absoluteFill}
@@ -262,12 +262,12 @@ export function PhotoLightbox({
               {offline ? (
                 // オフラインは「失敗」ではないので赤くしない（チケット19。DESIGN §3）
                 <AppCard style={styles.errorCard}>
-                  <AppText>声は つながると 聞けます。</AppText>
+                  <AppText>声はつながると聞けます。</AppText>
                 </AppCard>
               ) : loadFailed ? (
                 <AppCard style={styles.errorCard}>
                   <AppText style={styles.errorText}>{LOAD_ERROR_MESSAGE}</AppText>
-                  <SecondaryButton icon={RotateCcw} label="もういちどよみこむ" onPress={onRetry} />
+                  <SecondaryButton icon={RotateCcw} label="もう一度読み込む" onPress={onRetry} />
                 </AppCard>
               ) : loadingAudio ? (
                 <View style={styles.loading}>
@@ -281,11 +281,11 @@ export function PhotoLightbox({
                   {!finished ? (
                     <SecondaryButton
                       icon={status.playing ? Pause : Play}
-                      label={status.playing ? '一時停止' : 'つづきを聞く'}
+                      label={status.playing ? '一時停止' : '続きを聞く'}
                       onPress={handleToggle}
                     />
                   ) : null}
-                  <SecondaryButton icon={RotateCcw} label="もういちど聞く" onPress={handleReplay} />
+                  <SecondaryButton icon={RotateCcw} label="もう一度聞く" onPress={handleReplay} />
                 </>
               )}
             </View>
@@ -301,7 +301,7 @@ export function PhotoLightbox({
         {reaction ? (
           <MitayoButton reacted={reaction.reacted} onPress={reaction.onReact} />
         ) : null}
-        <SecondaryButton icon={X} label="とじる" onPress={onClose} />
+        <SecondaryButton icon={X} label="閉じる" onPress={onClose} />
       </Animated.View>
 
       {/* 幕は写真より手前＝開きながら写真を見せていく。開き切ったら消して操作の邪魔をしない */}

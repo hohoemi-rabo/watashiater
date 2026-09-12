@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PageProps<'/w/[slug]'>): Prom
   const { slug } = await params
   // getMuseumBySlug は React の cache() 済み。ページ本体と二重に取りに行かない
   const museum = await getMuseumBySlug(slug)
-  return museum ? { title: `${museum.nickname}の はくぶつかん` } : {}
+  return museum ? { title: `${museum.nickname}の博物館` } : {}
 }
 
 export default async function ViewPage({ params }: PageProps<'/w/[slug]'>) {
@@ -95,7 +95,7 @@ export default async function ViewPage({ params }: PageProps<'/w/[slug]'>) {
         <header className="flex flex-col items-center gap-5 px-5 pb-10 pt-12">
           <p className="font-heading text-card-title text-curtain-red">ワタシアター</p>
           <h1 className="text-center font-heading text-screen-title">
-            {museum.nickname}の はくぶつかん
+            {museum.nickname}の博物館
           </h1>
           {museum.coverPhoto ? (
             // 完全な水平垂直を疑う（DESIGN §2）。机の上の傾きと同じ ±3°の範囲に収める
@@ -119,7 +119,7 @@ export default async function ViewPage({ params }: PageProps<'/w/[slug]'>) {
               polaroidWidthFraction={BOARD.POLAROID_W}
             />
             <p className="px-5 pt-3 text-caption text-text-soft">
-              写真をおすと、大きくなります。声のある写真は聞けます。
+              写真を押すと、大きくなります。声のある写真は聞けます。
             </p>
           </section>
         ) : null}
@@ -159,7 +159,7 @@ export default async function ViewPage({ params }: PageProps<'/w/[slug]'>) {
                 </div>
                 {museum.lifeStoryGeneratedAt !== null ? (
                   <p className="pt-4 text-right text-caption text-text-soft">
-                    {formatJaDate(museum.lifeStoryGeneratedAt)}につくりました
+                    {formatJaDate(museum.lifeStoryGeneratedAt)}に作りました
                   </p>
                 ) : null}
               </div>

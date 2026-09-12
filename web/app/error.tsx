@@ -6,16 +6,16 @@
 export default function Error({ reset }: { error: Error; reset: () => void }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-6 px-6 text-center">
-      <h1 className="font-heading text-screen-title">よみこめませんでした</h1>
+      <h1 className="font-heading text-screen-title">読み込めませんでした</h1>
       <p className="text-body">
-        でんぱの よいところで、もういちど ためしてください。
+        電波のよいところで、もう一度試してください。
       </p>
       <button
         type="button"
         onClick={reset}
         className="min-h-[48px] rounded-xl bg-curtain-red px-8 font-heading text-button text-card-white shadow-raised"
       >
-        もういちど
+        もう一度
       </button>
     </main>
   )

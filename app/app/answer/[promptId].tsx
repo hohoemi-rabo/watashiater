@@ -17,7 +17,7 @@
  * - アップロードは PhotoStrip＋lib/photo-attach.ts。失敗分は署名URLを取り直してリトライ
  *
  * 録音（チケット10）：
- * - 「声で話す」モードは RecordingBox（録音 → プレビュー → のこす）。録音の保存順序は
+ * - 「声で話す」モードは RecordingBox（録音 → プレビュー → 残す）。録音の保存順序は
  *   「R2 へ PUT → answers 行の用意 → recordings upsert」（空行が残る失敗経路を作らない）
  * - 録音中・プレビュー・声のアップロード中はモード切替と保存を無効にし、離脱もガードする
  * - 音声入力（テキスト化）はキーボードの音声認識に任せる（チケット22で確定）：録音が
@@ -63,7 +63,7 @@ import { useRecording, type Recording } from '@/lib/use-recording';
 import { usePrompts } from '@/lib/use-prompts';
 
 const SAVE_ERROR_MESSAGE =
-  'ほぞんできませんでした。インターネットに つながっているか たしかめて、もういちど ためしてください。';
+  '保存できませんでした。インターネットにつながっているか確かめて、もう一度試してください。';
 /** スタンプを見せてから戻るまでの時間（表示250ms＋余韻） */
 const STAMP_DWELL_MS = 950;
 const CUSTOM_TITLE_MAX = 30;
@@ -81,7 +81,7 @@ export default function AnswerScreen() {
   const isFree = promptId === 'free';
   const fixedItem = items.find(({ prompt }) => String(prompt.id) === promptId);
   const existingAnswer = isFree ? freeAnswer : (fixedItem?.answer ?? null);
-  const title = isFree ? 'じぶんのお題' : fixedItem?.prompt.title;
+  const title = isFree ? '自分のお題' : fixedItem?.prompt.title;
 
   const [bodyText, setBodyText] = useState('');
   const [customTitle, setCustomTitle] = useState('');
@@ -101,7 +101,7 @@ export default function AnswerScreen() {
   const initialBodyRef = useRef('');
   const initialTitleRef = useRef('');
   const backTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // アップロードに失敗した圧縮済みファイル（「もういちど のせる」で使う）
+  // アップロードに失敗した圧縮済みファイル（「もう一度のせる」で使う）
   const pendingUrisRef = useRef<string[]>([]);
 
   // 回答行の id。usePrompts の再取得が追いつく前でも createdAnswerId で写真を扱える
@@ -152,41 +152,41 @@ export default function AnswerScreen() {
   // 録音の進行中（録音・未保存プレビュー・アップロード）。この間はモード切替と保存を止める
   const recBusy = recPhase === 'recording' || recPhase === 'preview' || recPhase === 'uploading';
 
-  // 書きかけ保護：未保存の変更・各アップロード・録音中は「もどる」を差し止める
+  // 書きかけ保護：未保存の変更・各アップロード・録音中は「戻る」を差し止める
   usePreventRemove(dirty || uploading || recBusy, ({ data }) => {
     if (recPhase === 'recording') {
-      showAlert('録音しています', '「とめる」を おしてから おもどりください。', [
+      showAlert('録音しています', '「止める」を押してからお戻りください。', [
         { text: 'わかりました', style: 'cancel' },
       ]);
       return;
     }
     if (recPhase === 'uploading') {
-      showAlert('声を のこしています', 'おわるまで すこし おまちください。', [
+      showAlert('声を残しています', '終わるまで少しお待ちください。', [
         { text: 'わかりました', style: 'cancel' },
       ]);
       return;
     }
     if (uploading) {
-      showAlert('写真をのせています', 'おわるまで すこし おまちください。', [
+      showAlert('写真をのせています', '終わるまで少しお待ちください。', [
         { text: 'わかりました', style: 'cancel' },
       ]);
       return;
     }
     if (recPhase === 'preview') {
-      showAlert('ろくおんした声を まだ のこしていません', 'もどると きえてしまいます。', [
+      showAlert('録音した声をまだ残していません', '戻ると消えてしまいます。', [
         { text: 'やめる', style: 'cancel' },
         {
-          text: 'のこさないで もどる',
+          text: '残さないで戻る',
           style: 'destructive',
           onPress: () => navigation.dispatch(data.action),
         },
       ]);
       return;
     }
-    showAlert('かきかけの ぶんしょうが ほぞんされていません', 'もどると きえてしまいます。', [
+    showAlert('書きかけの文章が保存されていません', '戻ると消えてしまいます。', [
       { text: 'やめる', style: 'cancel' },
       {
-        text: 'ほぞんしないで もどる',
+        text: '保存しないで戻る',
         style: 'destructive',
         onPress: () => navigation.dispatch(data.action),
       },
@@ -207,17 +207,17 @@ export default function AnswerScreen() {
 
   /**
    * 自由お題は custom_title が必須（DB の CHECK）。行の自動作成が起きる操作
-   * （写真をのせる・録音をはじめる・声をのこす）の前にタイトルを求める
+   * （写真をのせる・録音を始める・声を残す）の前にタイトルを求める
    */
   const requireFreeTitle = (kind: 'photo' | 'voice'): boolean => {
     if (!isFree || answerId !== null || trimmedTitle.length > 0) {
       return true;
     }
     showAlert(
-      'さきに お題のなまえを かいてください',
+      'さきにお題の名前を書いてください',
       kind === 'photo'
-        ? 'いちばん上の「お題の なまえ」を うめると、写真をのせられます。'
-        : 'いちばん上の「お題の なまえ」を うめると、声を のこせます。',
+        ? '一番上の「お題の名前」を書くと、写真をのせられます。'
+        : '一番上の「お題の名前」を書くと、声を残せます。',
     );
     return false;
   };
@@ -288,7 +288,7 @@ export default function AnswerScreen() {
       setSaveError(result.message ?? SAVE_ERROR_MESSAGE);
       return;
     }
-    // 保存済み＝もう差分は無いので、書きかけ保護を解いてからスタンプ→もどる
+    // 保存済み＝もう差分は無いので、書きかけ保護を解いてからスタンプ→戻る
     initialBodyRef.current = trimmedBody.length === 0 ? '' : trimmedBody;
     initialTitleRef.current = trimmedTitle;
     setBodyText(initialBodyRef.current);
@@ -414,7 +414,7 @@ export default function AnswerScreen() {
       }
     } catch {
       setUploadState(null);
-      setUploadError('写真を よみこめませんでした。ちがう写真で ためしてください。');
+      setUploadError('写真を読み込めませんでした。違う写真で試してください。');
       return;
     }
     const ensured = await ensureAnswerId();
@@ -438,10 +438,10 @@ export default function AnswerScreen() {
       return;
     }
     // 破壊的操作は必ず確認ダイアログ（REQUIREMENTS §4.1）
-    showAlert('この写真を けしますか？', 'けした写真は もどせません。', [
+    showAlert('この写真を消しますか？', '消した写真は戻せません。', [
       { text: 'やめる', style: 'cancel' },
       {
-        text: 'けす',
+        text: '消す',
         style: 'destructive',
         onPress: () => {
           void (async () => {
@@ -451,8 +451,8 @@ export default function AnswerScreen() {
               .eq('id', photo.id);
             if (deleteError) {
               showAlert(
-                'けせませんでした',
-                'でんぱの よいところで もういちど ためしてください。',
+                '消せませんでした',
+                '電波のよいところでもう一度試してください。',
               );
               return;
             }
@@ -479,18 +479,18 @@ export default function AnswerScreen() {
       return;
     }
     // 破壊的操作は必ず確認ダイアログ（REQUIREMENTS §4.1）
-    showAlert('この声を けしますか？', 'けした声は もどせません。', [
+    showAlert('この声を消しますか？', '消した声は戻せません。', [
       { text: 'やめる', style: 'cancel' },
       {
-        text: 'けす',
+        text: '消す',
         style: 'destructive',
         onPress: () => {
           void (async () => {
             const deleted = await deleteRecording(target.id);
             if (!deleted) {
               showAlert(
-                'けせませんでした',
-                'でんぱの よいところで もういちど ためしてください。',
+                '消せませんでした',
+                '電波のよいところでもう一度試してください。',
               );
               return;
             }
@@ -513,9 +513,9 @@ export default function AnswerScreen() {
         <View style={styles.content}>
           <BackButton />
           <AppCard style={styles.gapCard}>
-            <AppText variant="cardTitle">よみこめませんでした</AppText>
+            <AppText variant="cardTitle">読み込めませんでした</AppText>
             <AppText>{error}</AppText>
-            <PrimaryButton label="もういちど よみこむ" onPress={() => void refetch()} />
+            <PrimaryButton label="もう一度読み込む" onPress={() => void refetch()} />
           </AppCard>
         </View>
       </SkyBackground>
@@ -528,8 +528,8 @@ export default function AnswerScreen() {
         <View style={styles.content}>
           <BackButton />
           <AppCard style={styles.gapCard}>
-            <AppText variant="cardTitle">このお題は 見つかりませんでした</AppText>
-            <AppText>「もどる」から お題の いちらんへ おもどりください。</AppText>
+            <AppText variant="cardTitle">このお題は見つかりませんでした</AppText>
+            <AppText>「戻る」からお題の一覧へお戻りください。</AppText>
           </AppCard>
         </View>
       </SkyBackground>
@@ -551,7 +551,7 @@ export default function AnswerScreen() {
               {isFree && trimmedTitle ? trimmedTitle : title}
             </AppText>
 
-            {!isOnline ? <OfflineNote detail="ほぞんは つながってから できます。" /> : null}
+            {!isOnline ? <OfflineNote detail="保存はつながってからできます。" /> : null}
 
             {/* テキスト⇄音声の大きな2ボタン（DESIGN §7）。録音の進行中は切り替えない
                 （未保存のテイクが RecordingBox のアンマウントで消えるのを防ぐ） */}
@@ -602,7 +602,7 @@ export default function AnswerScreen() {
                     <AppText
                       variant="caption"
                       style={mode === 'voice' ? styles.modeCaptionActive : undefined}>
-                      ろくおん あり
+                      録音あり
                     </AppText>
                   ) : null}
                 </View>
@@ -611,12 +611,12 @@ export default function AnswerScreen() {
 
             {isFree ? (
               <AppCard style={styles.gapCard}>
-                <AppText variant="cardTitle">お題の なまえ</AppText>
+                <AppText variant="cardTitle">お題の名前</AppText>
                 <TextInput
-                  accessibilityLabel="お題のなまえ"
+                  accessibilityLabel="お題の名前"
                   value={customTitle}
                   onChangeText={setCustomTitle}
-                  placeholder="れい：わたしの たからもの"
+                  placeholder="れい：私の宝物"
                   placeholderTextColor={colors.textSoft}
                   maxLength={CUSTOM_TITLE_MAX}
                   style={styles.titleInput}
@@ -626,12 +626,12 @@ export default function AnswerScreen() {
 
             {mode === 'text' ? (
               <AppCard style={styles.gapCard}>
-                <AppText variant="cardTitle">おはなしを どうぞ</AppText>
+                <AppText variant="cardTitle">お話をどうぞ</AppText>
                 <TextInput
                   accessibilityLabel="回答の本文"
                   value={bodyText}
                   onChangeText={setBodyText}
-                  placeholder="おもいだしたことを じゆうに かいてください"
+                  placeholder="思い出したことを自由に書いてください"
                   placeholderTextColor={colors.textSoft}
                   multiline
                   textAlignVertical="top"
@@ -642,11 +642,11 @@ export default function AnswerScreen() {
                     Gboard は「音声を受信できません」で失敗する。docs/22 検証結果）ため、
                     モードを分けたまま案内だけを出す */}
                 <AppText variant="caption">
-                  キーボードの マイクのしるしを おすと、話した ことばが 文字に なります。
+                  キーボードのマイクの印を押すと、話した言葉が文字になります。
                 </AppText>
               </AppCard>
             ) : (
-              /* 音声カード（チケット10）。録音〜のこすの流れは RecordingBox がまとめる */
+              /* 音声カード（チケット10）。録音〜残すの流れは RecordingBox がまとめる */
               <RecordingBox
                 recording={recording}
                 viewUrl={recordingViewUrl}
@@ -687,7 +687,7 @@ export default function AnswerScreen() {
             {saveError ? <AppText style={styles.footerError}>{saveError}</AppText> : null}
             <PrimaryButton
               icon={Check}
-              label={busy ? 'ほぞんしています…' : 'ほぞんする'}
+              label={busy ? '保存しています…' : '保存する'}
               onPress={() => void handleSave()}
               disabled={!canSave || !isOnline}
             />
@@ -711,7 +711,7 @@ export default function AnswerScreen() {
               },
             ]}>
             <AppText variant="cardTitle" style={styles.stampText}>
-              ほぞん{'\n'}しました
+              保存{'\n'}しました
             </AppText>
           </Animated.View>
         </View>

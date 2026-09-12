@@ -4,11 +4,11 @@
 export default function NotFound() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
-      <h1 className="font-heading text-screen-title">このリンクは いま 見られません</h1>
+      <h1 className="font-heading text-screen-title">このリンクはいま見られません</h1>
       <p className="text-body">
-        リンクが 止められているか、まちがっているようです。
+        リンクが止められているか、まちがっているようです。
         <br />
-        送ってくれた人に、もういちど きいてみてください。
+        送ってくれた人に、もう一度聞いてみてください。
       </p>
     </main>
   )

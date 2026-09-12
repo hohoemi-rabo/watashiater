@@ -23,7 +23,7 @@ import { ActionButton } from '@/components/action-button'
 import { Polaroid } from '@/components/polaroid'
 
 const LOAD_ERROR_MESSAGE =
-  '声をよみこめませんでした。電波のよいところで、もういちどためしてください。'
+  '声を読み込めませんでした。電波のよいところで、もう一度試してください。'
 
 export type LightboxPhoto = {
   id: string
@@ -91,9 +91,9 @@ export function PhotoLightbox({ photo, onClose, onRetry }: PhotoLightboxProps) {
 
   return (
     <div className="fixed inset-0 z-40 bg-[color:var(--dimmed-sky)]">
-      {/* 背面タップでも閉じる（補助経路。主経路は最下部の「とじる」） */}
+      {/* 背面タップでも閉じる（補助経路。主経路は最下部の「閉じる」） */}
       <button
-        aria-label="とじる"
+        aria-label="閉じる"
         className="absolute inset-0 cursor-default"
         onClick={onClose}
         type="button"
@@ -134,7 +134,7 @@ export function PhotoLightbox({ photo, onClose, onRetry }: PhotoLightboxProps) {
               <div className="paper paper-edge relative w-full rounded-2xl p-5 shadow-rest">
                 <p className="text-body text-error-red">{LOAD_ERROR_MESSAGE}</p>
                 <div className="mt-3 flex justify-center">
-                  <ActionButton icon={RotateCcw} label="もういちどよみこむ" onClick={onRetry} />
+                  <ActionButton icon={RotateCcw} label="もう一度読み込む" onClick={onRetry} />
                 </div>
               </div>
             ) : blocked ? (
@@ -145,11 +145,11 @@ export function PhotoLightbox({ photo, onClose, onRetry }: PhotoLightboxProps) {
                 {!finished ? (
                   <ActionButton
                     icon={playing ? Pause : Play}
-                    label={playing ? '一時停止' : 'つづきを聞く'}
+                    label={playing ? '一時停止' : '続きを聞く'}
                     onClick={() => (playing ? audioRef.current?.pause() : play())}
                   />
                 ) : null}
-                <ActionButton icon={RotateCcw} label="もういちど聞く" onClick={replay} />
+                <ActionButton icon={RotateCcw} label="もう一度聞く" onClick={replay} />
               </>
             )}
           </div>
@@ -160,7 +160,7 @@ export function PhotoLightbox({ photo, onClose, onRetry }: PhotoLightboxProps) {
         ) : null}
 
         <div className="pointer-events-auto">
-          <ActionButton icon={X} label="とじる" onClick={onClose} />
+          <ActionButton icon={X} label="閉じる" onClick={onClose} />
         </div>
       </div>
     </div>

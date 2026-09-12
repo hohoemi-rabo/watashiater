@@ -10,7 +10,7 @@ const DOT_SIZE = 16;
 
 export function ProgressDots({ total, filled }: { total: number; filled: number }) {
   return (
-    <View accessibilityLabel={`${total}このうち ${filled}こ かいとうずみ`} style={styles.row}>
+    <View accessibilityLabel={`${total}このうち ${filled}こ回答済み`} style={styles.row}>
       {Array.from({ length: total }, (_, index) => (
         <View key={index} style={[styles.dot, index < filled ? styles.dotFilled : styles.dotEmpty]} />
       ))}

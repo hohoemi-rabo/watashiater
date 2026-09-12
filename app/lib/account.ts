@@ -1,11 +1,11 @@
 /**
- * せってい（チケット18）：ニックネーム変更とアカウント削除。
+ * 設定（チケット18）：ニックネーム変更とアカウント削除。
  *
  * アカウント削除の順序（逆にしない）：
  *   1. worker /media/wipe（R2 全削除。subject 行と JWT が生きているうちに）
  *   2. RPC delete_own_account（auth.users の DELETE → 全テーブルへ CASCADE）
  *   3. 呼び出し側で signOut（AsyncStorage のセッションはサーバー側削除では消えない）
- * 1 と 2 の間で失敗しても、行が残っているので再実行でつづきから消せる
+ * 1 と 2 の間で失敗しても、行が残っているので再実行で続きから消せる
  * （空 prefix への wipe は冪等）。
  */
 import { clearOfflineCache } from '@/lib/offline-cache';
@@ -13,11 +13,11 @@ import { supabase } from '@/lib/supabase';
 import { WorkerApiError, wipeMedia } from '@/lib/worker-api';
 
 const NICKNAME_ERROR_MESSAGE =
-  'ほぞんできませんでした。インターネットに つながっているか たしかめて、もういちど ためしてください。';
+  '保存できませんでした。インターネットにつながっているか確かめて、もう一度試してください。';
 const DELETE_RETRY_MESSAGE =
-  '削除が途中で止まりました。もういちど「アカウントを削除する」を押すと、つづきから削除できます。';
+  '削除が途中で止まりました。もう一度「アカウントを削除する」を押すと、続きから削除できます。';
 const DELETE_ERROR_MESSAGE =
-  '削除できませんでした。電波のよいところで、もういちどためしてください。';
+  '削除できませんでした。電波のよいところで、もう一度試してください。';
 
 export type AccountResult = { ok: true } | { ok: false; message: string };
 
@@ -46,7 +46,7 @@ export async function deleteAccount(hasSubject: boolean): Promise<AccountResult>
   }
   const { error } = await supabase.rpc('delete_own_account');
   if (error) {
-    // R2 は消えたが行は残っている状態。再実行で wipe（0件）→ RPC のつづきから消せる
+    // R2 は消えたが行は残っている状態。再実行で wipe（0件）→ RPC の続きから消せる
     return { ok: false, message: hasSubject ? DELETE_RETRY_MESSAGE : DELETE_ERROR_MESSAGE };
   }
   // 端末に残した写し（オフライン閲覧用）も消す（チケット19）

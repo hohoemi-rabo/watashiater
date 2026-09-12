@@ -87,7 +87,7 @@ export function PromptCard({ title, answered, preview, onPress }: PromptCardProp
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`お題：${title}${answered ? '（かいとうずみ）' : ''}`}
+      accessibilityLabel={`お題：${title}${answered ? '（回答済み）' : ''}`}
       onPress={onPress}
       onLayout={handleLayout}
       style={({ pressed }) => [
