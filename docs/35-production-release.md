@@ -1,8 +1,8 @@
 # 35. 製品版（一般公開）の申請
 
-- ステータス: 未着手
+- ステータス: 進行中（ビルド前の検査）
 - 参照: docs/23-release-prep.md（ビルド・トラック・オプトインの手順とメモ）/ docs/store-listing.md / CLAUDE.md「リリース」「製品版への道のり」
-- 依存: 29〜34 がすべて完了し、実機（Expo Go）で確認済みであること
+- 依存: 29〜34・36・37 がすべて完了し、実機（Expo Go）で確認済みであること
 - 由来: 2026-09-08 ユーザー方針「修正が終わったら本番申請作業に入る」
 
 ## 目的
@@ -11,7 +11,7 @@
 
 ## 進め方（順序）
 
-1. **ビルド前の検査**：`npx expo-doctor`・`npx tsc --noEmit`・`npm run lint`・`npx expo export --platform android`（ネイティブ依存は増えていない想定＝アイコン・権限・app.json は不変）
+1. **ビルド前の検査**：`npx expo-doctor`・`npx tsc --noEmit`・`npm run lint`・`npx expo export --platform android`。**アイコンは変わった**（チケット37）＝ビルド入力なのでこの版に載る。権限・package・scheme は不変。ネイティブ依存も増えていない（sharp は devDependencies でアプリには積まれない）
 2. **production ビルド（AAB）**：`npx eas-cli build --platform android --profile production`。**EAS ビルドは実行前に必ずユーザーの許可を取る**（回数制限のある有料資源）。versionCode は EAS の remote 管理で自動的に 5 になる
 3. **クローズドテストへ配信**：Alpha と 生徒テスト の両トラックに同じ AAB を上げる（どちらも同じテスターリスト。片方だけ更新すると versionCode が食い違う）。**オプトアウトやトラックの停止は絶対にしない**（12人×14日の実績がリセットされる）
 4. **ストア掲載の更新**：`docs/store-listing.md` の変更（「自分史」表記）を Play Console に反映。**スクリーンショットは撮り直し**（画面の文言が変わったため。ホーム・お題・回答・ギャラリー・自分史・みんなに見せるの6枚目安。Expo Go ではなく配信ビルドで撮る）
