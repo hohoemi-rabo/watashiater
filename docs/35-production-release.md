@@ -1,6 +1,6 @@
 # 35. 製品版（一般公開）の申請
 
-- ステータス: 進行中（ビルド前の検査）
+- ステータス: 進行中（AAB 完成／Play Console の作業まち）
 - 参照: docs/23-release-prep.md（ビルド・トラック・オプトインの手順とメモ）/ docs/store-listing.md / CLAUDE.md「リリース」「製品版への道のり」
 - 依存: 29〜34・36・37 がすべて完了し、実機（Expo Go）で確認済みであること
 - 由来: 2026-09-08 ユーザー方針「修正が終わったら本番申請作業に入る」
@@ -20,8 +20,8 @@
 
 ## Todo
 
-- [ ] 1. ビルド前の検査（Claude）
-- [ ] 2. production ビルド（ユーザー許可 → Claude が実行）
+- [x] 1. ビルド前の検査（Claude）
+- [x] 2. production ビルド（ユーザー許可 → Claude が実行）
 - [ ] 3. 両クローズドトラックへ配信（ユーザー：Play Console）
 - [ ] 4. 掲載文とスクリーンショットの更新（ユーザー：Play Console。文面は store-listing.md から）
 - [ ] 5. 製品版アクセス申請（ユーザー：Play Console）
@@ -33,4 +33,33 @@ Google Play で「ワタシアター」が一般公開され、ストアから�
 
 ## メモ
 
-（作業中の記録）
+### ビルド前の検査（2026-09-12）
+
+`expo-doctor` が expo / expo-constants / expo-file-system のパッチずれを指摘したので
+`npx expo install --fix` で揃えた（54.0.36→54.0.37 など）。チケット23で起動時クラッシュを
+起こしたのと同じ種類のずれなので、AAB を切る前に解消しておく。そのうえで **18/18 通過**、
+`tsc --noEmit`・`lint`・`expo export`（android / web）も通過。
+
+### production ビルド（2026-09-12）
+
+- versionCode: **4 → 5**（EAS の remote 管理で自動）／version: 1.0.0
+- ビルド: https://expo.dev/accounts/hohoemirabo/projects/watashiater/builds/71565c8b-8942-4d6c-95cf-d973cc5ff9bf
+- AAB: https://expo.dev/artifacts/eas/zWPmwYY0AvucGCbJEY_3oHxJ2BRdyI-r3GeA3xtnkto.aab
+- キーストアは EAS の既存のもの（Build Credentials MoilovH8fC）＝署名は前回と同じ
+- `.env` は EAS に上がらないので `EXPO_PUBLIC_*` は eas.json の env から入る（4件とも読まれたことをログで確認）
+
+### この版に載っているもの
+
+29〜34（幕の質感と速さ・拡大表示の幕・写真の枠タップ・LINEで送る・補助ボタンの枠・文言の全面改訂）／
+36（戻るの固定とホームボタン）／37（新しいアイコン）／ログイン後のちらつき修正。
+
+### ストアに出す素材の置き場所
+
+| 用途 | ファイル |
+|---|---|
+| アイコン 512×512 | `app/public/icons/icon-512.png` |
+| フィーチャーグラフィック 1024×500 | `docs/store/feature-graphic.png` |
+| 掲載文 | `docs/store-listing.md` |
+
+スクリーンショットは**撮り直しが必要**（文言が全面的に変わり、戻るボタンの位置も変わったため）。
+Expo Go ではなく配信したビルドで撮る。
