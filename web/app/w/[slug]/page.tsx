@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { Curtain } from '@/components/curtain'
 import { DeskBoard, type BoardItem } from '@/components/desk-board'
+import { ScrollHint } from '@/components/scroll-hint'
 import { Polaroid } from '@/components/polaroid'
 import { TicketCard } from '@/components/ticket-card'
 import { BOARD, resolveBoardPlacements } from '@/lib/board-layout'
@@ -86,6 +87,8 @@ export default async function ViewPage({ params }: PageProps<'/w/[slug]'>) {
         }}
       />
       <Curtain slug={slug} />
+      {/* 下に続きがあることを知らせる（チケット33）。幕が開き切ってから出る */}
+      <ScrollHint />
 
       <main className="mx-auto max-w-[520px] pb-16">
         {/* ── 表紙（DESIGN §6.1：幕が開くと名前と代表写真が現れる） ── */}

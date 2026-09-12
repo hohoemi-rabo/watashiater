@@ -125,4 +125,56 @@
       display: none;
     }
   }
+
+  /*
+   * 「下にもあります」の案内（チケット33。components/scroll-hint.tsx）。
+   * 指が下へスワイプするしぐさを**3回だけ**繰り返して止まる。DESIGN §8 は装飾アニメの
+   * 常時ループを禁じているので、回数を切って「伝わるぶんだけ動く」形にした（2026-09-12 ユーザー判断）。
+   * 止まったあとは指と文字が静かに残る（both＝最後のキーフレーム＝元の位置で保持）。
+   */
+  @keyframes scroll-hint-swipe {
+    0%,
+    12% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    55% {
+      transform: translateY(16px);
+      opacity: 0.35;
+    }
+    70% {
+      transform: translateY(16px);
+      opacity: 0;
+    }
+    /* 消えた瞬間に元の位置へ戻す＝戻る動きを見せない */
+    71% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes scroll-hint-appear {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .scroll-hint {
+    animation: scroll-hint-appear 200ms ease-out both;
+  }
+
+  .scroll-hint-chip {
+    animation: scroll-hint-swipe 1500ms ease-in-out 3 both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-hint,
+    .scroll-hint-chip {
+      animation: none;
+    }
+  }
 }
