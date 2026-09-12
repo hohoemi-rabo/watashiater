@@ -137,4 +137,14 @@ await write('assets/images/android-icon-foreground.png', await insetOnTransparen
 await write('assets/images/android-icon-background.png', sharp(skySvg(1024, 1024)));
 await write('assets/images/android-icon-monochrome.png', sharp(monochromeSvg(1024)));
 
-await write('../docs/store/feature-graphic.png', await featureGraphic(1024, 500), { fullColor: true });
+// Play Console へ出す素材は**フルカラー（32ビット PNG）**で書く。
+// アプリ用の 512 はパレット PNG にしてあるが、Play のアプリアイコンは 32bit PNG が条件で、
+// パレットだとアップロードではじかれうる。ストア用はアプリに積まれないので重さも問題にならない
+await write('../docs/store/app-icon-512.png', fullBleed(512).ensureAlpha(), { fullColor: true });
+// バナーは透過を持たせない（Play のフィーチャーグラフィックは 24bit PNG か JPEG。
+// 全面不透明でもアルファチャンネルが残っていると弾く検証系があるため落としておく）
+await write(
+  '../docs/store/feature-graphic.png',
+  (await featureGraphic(1024, 500)).removeAlpha(),
+  { fullColor: true },
+);
