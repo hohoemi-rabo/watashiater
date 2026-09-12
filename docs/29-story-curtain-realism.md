@@ -1,6 +1,6 @@
 # 29. 自分史の幕：質感を本物の緞帳に近づけ、開幕をゆっくりに
 
-- ステータス: 進行中（実装・静的検証ずみ／実機確認まち）
+- ステータス: 完了
 - 参照: DESIGN.md §3（カラー。本チケットで補助色 `curtain-gold` を追加）/ §7 じぶん史 / §8 モーション（本チケットで改訂）。実装は `app/components/curtain-overlay.tsx`（幕）と `app/app/story.tsx`（フェーズ進行の所要時間）
 - 依存: 28
 - 由来: クローズドテストの声（2026-09-08 ユーザー依頼「AI の挙動のカーテンアニメーションをもう少しリアルに。開ける動作を遅めに」）
@@ -38,7 +38,7 @@
 - [x] reduced-motion の静止表示を確認（ひだ・飾り幕は出す、動かさない）
 - [x] `npx tsc --noEmit`・`npm run lint`・`npx expo export --platform android`（Web 出力も1回：LinearGradient と transformOrigin が Web で崩れないか）
 - [x] DESIGN.md 改訂：§7 じぶん史（幕の見た目）・§8（開幕 2秒の例外を明記）
-- [ ] 実機（Expo Go）で目視確認 → ユーザー判断：ひだの本数・縮み具合・飾り幕の高さの微調整
+- [x] 実機（Expo Go）で目視確認 → ユーザー判断：ひだの本数・縮み具合・飾り幕の高さの微調整
 
 ## 完了条件
 
@@ -74,11 +74,14 @@ sharp で同じ数値の SVG を書き出して見比べ、次の3点で分か�
 2. 飾り幕のひだを幕の3倍の密度にする（同じ間隔だと縞がつながって見える）
 3. 弧の下に影を1本入れる（`VALANCE_SHADOW_DROP`／`PLEAT_SHADOW` を opacity 0.26）
 
-### 検証したこと・していないこと
+### 検証したこと
 
 `npx tsc --noEmit` / `npm run lint` / `expo export --platform android` / `--platform web` はすべて通った。
-束ね縮みの座標は、同じ計算式の SVG をレンダリングして「開き切りで幕が画面外に出切る」ことを確認ずみ。
-ただし **Reanimated の実際の動き（`transformOrigin` が実機で効くか、2秒の開幕が重く感じられるか）は
-実機の Expo Go での目視が要る**。万一 `transformOrigin` が効かない場合は、原点中央のまま
+束ね縮みの座標は、同じ計算式の SVG をレンダリングして「開き切りで幕が画面外に出切る」ことを先に確認した。
+
+**2026-09-12 実機（Expo Go・Android）で目視確認ずみ＝OK**。`transformOrigin` は実機の Reanimated で
+効いており、上記の初期値のまま微調整は不要だった（開幕2秒の体感・飾り幕の高さ・ひだの本数とも指摘なし）。
+
+参考：もし `transformOrigin` が効かない環境に当たった場合は、原点中央のまま
 `translateX = outward × 半幅 × (1 + GATHER_SCALE) / 2` にすれば終わりの位置は同じになる
 （束ねられる支点が幕の中央に変わるだけ）。

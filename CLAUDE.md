@@ -248,6 +248,7 @@ Next.js **15.5** 向け（context7 の v15 公式ドキュメント準拠、2026
 ## 既知の注意点
 
 - Expo SDK は **54 に固定**（2026-08-08 時点）。ユーザー端末の Expo Go が新しい SDK のプロジェクトを開けず「This project requires a newer version of Expo Go」になるため、動作実績のある SDK 54 環境（expo ~54.0.35 / react-native 0.81.5 / react 19.1.0）に合わせて再スキャフォールドした。上げる場合は実機の Expo Go が対応する SDK を先に確認し、`npx expo install --fix` で揃えること
+- **Expo Go が自動更新されると実機確認が止まる**（2026-09-12 に発生）。Play ストアの Expo Go は SDK 57 に上がり、SDK 54 のプロジェクトを開くと「Project is incompatible with this version of Expo Go」になる。直し方は**SDK 54 版の Expo Go を入れ直す**こと（今の Expo Go をアンインストール → `https://github.com/expo/expo-go-releases/releases/download/Expo-Go-54.0.8/Expo-Go-54.0.8.apk` を端末のブラウザで取得してインストール。Android は versionCode が下がる上書きを拒否するので先に消す必要がある）。入れ直したら**Play ストアで Expo Go の自動更新をオフ**にしないと再発する。SDK ごとの配布ページは `https://expo.dev/go?sdkVersion=54&platform=android&device=true`
 - `worker/wrangler.jsonc` の `compatibility_date` はローカル workerd の対応上限（2026-03-10）に合わせてある。無闇に上げない（テストで警告が出て本番と挙動が乖離する）
 - `npm audit` が next 15.5.22 同梱の postcss / sharp の脆弱性を報告するが、修正には next 16 が必要なため対応不可（意図的な妥協。README 参照）
 - `app/AGENTS.md`（Expo SDK 57 ドキュメント参照）と `worker/AGENTS.md`（Cloudflare 向け）はスキャフォールド生成物で有効。web 側の AGENTS.md は Next 16 向けの内容だったため削除済み — 復活させない
