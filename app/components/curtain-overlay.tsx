@@ -1,7 +1,8 @@
 /**
  * 緞帳オーバーレイ（チケット12。チケット29で「布の緞帳」に作り直し）。
- * 幕演出をアプリ内で使ってよい唯一の場面（DESIGN.md §7 じぶん史）。
- * ギャラリーの拡大表示の「幕」（photo-lightbox.tsx の背景面）と閲覧Web の開幕は別物。
+ * **朱色の緞帳そのもの**を出すのはアプリ内でここだけ（DESIGN.md §7 じぶん史）。
+ * ギャラリーの拡大表示（photo-lightbox.tsx）はチケット30 で同じひだの幕を使うようになったが、
+ * あちらは金の縁も飾り幕も無い軽い版＝共有するのは lib/pleats.ts の色と座標だけ。
  *
  * 実装の判断：
  * - Reanimated の CSS アニメ（保存スタンプと同じ流儀）には完了コールバックが無いため、
@@ -12,7 +13,7 @@
  *   （componentDidMount＝描画の後）までの1フレームを base＝終わりの姿で描くため、
  *   全面を覆う幕がその1フレームだけ出てパッと光る（チケット23の実機で確認）
  * - 布に見せる3点（チケット29。クローズドテストの声）：
- *   1) ひだ＝横方向グラデの縦縞（buildPleatStops）。View を本数ぶん並べない
+ *   1) ひだ＝横方向グラデの縦縞（lib/pleats.ts）。View を本数ぶん並べない
  *   2) 束ね縮み＝外側の端を原点にした translateX + scaleX。ひだが詰まって「束ねられた」に見える
  *   3) 飾り幕（バランス）＋金の縁・房。矩形でない形なので react-native-svg（prompt-card と同じ判断）
  * - reduced-motion 時はスライドせず「閉じた緞帳」を静的に出すだけ（親が閉幕待ちを 0ms にする）
@@ -25,6 +26,7 @@ import Svg, { Circle, Defs, Line, LinearGradient as SvgGradient, Path, Stop } fr
 
 import { AppText } from '@/components/app-text';
 import { colors, spacing } from '@/constants/tokens';
+import { PLEAT_SHADOW, buildPleatStops, curtainGather } from '@/lib/pleats';
 
 export type CurtainPhase = 'closing' | 'closed' | 'opening';
 
@@ -60,39 +62,6 @@ const VALANCE_SHADOW_DROP = 7;
 const VALANCE_SHADOW_WIDTH = 8;
 /** 飾り幕が開幕の終盤で消えるまで */
 const VALANCE_FADE_MS = 600;
-
-/** ひだの山（明部）＝ curtainRed(#E0472F) 80% + cardWhite(#FFFFFF) 20% の混色 */
-const PLEAT_HIGHLIGHT = '#E66C59';
-/**
- * ひだの谷（暗部）＝ curtainRed 78% + stageNavy(#2B3A55) 22% の混色。
- * 黒で落とさないのは DESIGN §11-4「黒背景・夜の劇場化禁止」。DIMMED_SKY と同じ流儀
- */
-const PLEAT_SHADOW = '#B84437';
-
-/**
- * 縦のひだ（布のドレープ）を作る横方向グラデの stop 列。
- * 1ひだの中は「谷(0) → 山(0.35) → 基調(0.7) → 次の谷」。幕と飾り幕で同じ列を共有する
- * （色の定義を2か所に置かない）。expo-linear-gradient と react-native-svg の両方へ渡す
- */
-function buildPleatStops(folds: number): {
-  colors: [string, string, ...string[]];
-  locations: [number, number, ...number[]];
-} {
-  const stopColors: string[] = [];
-  const locations: number[] = [];
-  for (let i = 0; i < folds; i += 1) {
-    const start = i / folds;
-    stopColors.push(PLEAT_SHADOW, PLEAT_HIGHLIGHT, colors.curtainRed);
-    locations.push(start, start + 0.35 / folds, start + 0.7 / folds);
-  }
-  stopColors.push(PLEAT_SHADOW);
-  locations.push(1);
-  // expo-linear-gradient は色・位置を「2つ以上」のタプル型で要求する（本数1以上なら必ず満たす）
-  return {
-    colors: stopColors as [string, string, ...string[]],
-    locations: locations as [number, number, ...number[]],
-  };
-}
 
 const PANEL_PLEATS = buildPleatStops(FOLDS_PER_PANEL);
 // 飾り幕は幕の3倍の密度で寄せる。幕と同じ間隔にすると縞が地続きになり、
@@ -135,16 +104,8 @@ function CurtainPanel({
   phase: CurtainPhase;
   reduceMotion: boolean;
 }) {
-  const outward = side === 'left' ? -1 : 1;
-  // 閉じた姿と束ねた姿の2つだけ。transform の並びは両者で同じ形にする
-  // （Reanimated は配列を要素ごとに補間するため、並びが違うと途中で飛ぶ）
-  //
-  // 並び順が結果を決める：RN は配列の先頭が最後に適用される（CSS と同じ）。
-  // [{translateX}, {scaleX}] なら「縮めてから、縮む前の座標で動かす」ので、
-  // 原点を外側の端に置けば translateX = ±GATHER_SCALE × 半幅 でちょうど画面外に出切る。
-  // 逆順（[{scaleX},{translateX}]）にすると移動量まで縮んで出切らない
-  const closed = [{ translateX: 0 }, { scaleX: 1 }];
-  const gathered = [{ translateX: outward * GATHER_SCALE * half }, { scaleX: GATHER_SCALE }];
+  // 閉じた姿と束ねた姿の2つだけ。座標と並び順の理屈は lib/pleats.ts のコメントに書いた
+  const { origin, closed, gathered } = curtainGather(side, half, GATHER_SCALE);
   const base = !reduceMotion && phase === 'opening' ? gathered : closed;
 
   const animation =
@@ -162,12 +123,7 @@ function CurtainPanel({
       style={[
         styles.panel,
         side === 'left' ? styles.left : styles.right,
-        {
-          width: half,
-          // 束ねられる支点は外側の端（左幕は左端・右幕は右端）
-          transformOrigin: side === 'left' ? 'left center' : 'right center',
-          transform: base,
-        },
+        { width: half, transformOrigin: origin, transform: base },
         animation,
       ]}>
       <LinearGradient

@@ -5,11 +5,17 @@
  * 実装の判断：
  * - 背景は DIMMED_SKY＝skyTop 85% + stageNavy 15% の混色。DESIGN §7「背景色を少し濃くする」・
  *   §11-4「黒背景・夜の劇場化禁止」。app-card.tsx の PAPER_TINT と同じトークン由来混色方式
- * - 開き方は「幕が中央から左右へ広がり、その前で写真が上映される」（2026-08-15 ユーザー決定）。
- *   単なるフェードだと一瞬光るだけで劇場に見えなかった。**CSS アニメには animationFillMode:
- *   'backwards' を必ず付ける**：既定の 'none' はアニメ登録前の1フレームを「終わりの姿」で
- *   描くため、全面の幕がその1フレームだけ出て光る（実機で確認。curtain-overlay.tsx の
- *   「base style は終わりの姿」の流儀は、この点だけ補う必要がある）
+ * - 開き方は「ひだのある朱色の幕が左右に開いて、その奥から写真が現れる」（チケット30。
+ *   2026-09-12 ユーザー決定）。チケット15 の版は「濃くした背景の面が中央から広がる」だけで、
+ *   320ms では動きが読めなかった（クローズドテストの声）。**背景の面（veil）は幕ではなく
+ *   舞台の地**なので静止させ、その手前に本物の幕を2枚かぶせて開く形に改めた。
+ *   幕は開き切ったらアンマウントする（写真と操作の上に居座らせない）
+ * - じぶん史の緞帳（curtain-overlay.tsx）とはひだの色と座標だけ共有する（lib/pleats.ts）。
+ *   金の縁・飾り幕は入れない：写真とボタンにかぶるうえ、**写真を見るたびに毎回出る**ので
+ *   豪華すぎると邪魔になる。速さも 0.6秒（じぶん史は2秒）
+ * - **CSS アニメには animationFillMode: 'backwards' を必ず付ける**：既定の 'none' はアニメ
+ *   登録前の1フレームを「終わりの姿」で描くため、全面の幕がその1フレームだけ消えて光る
+ *   （実機で確認。curtain-overlay.tsx の「base style は終わりの姿」の流儀は、この点だけ補う）
  * - 閉じる＝即アンマウント（退場アニメなし）。CSS アニメには完了コールバックが無く
  *   （curtain-overlay.tsx の判断記録）、「閉じたら音声が即止まる」が完了条件そのもの。
  *   useAudioPlayer はアンマウントで自動 release＝停止する
@@ -27,6 +33,7 @@
  */
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pause, Play, RotateCcw, X } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -46,15 +53,26 @@ import { POLAROID_FRAME } from '@/components/board-polaroid';
 import { MitayoButton } from '@/components/mitayo-button';
 import { SecondaryButton } from '@/components/secondary-button';
 import { colors, shadows, spacing } from '@/constants/tokens';
+import { buildPleatStops, curtainGather, type CurtainSide } from '@/lib/pleats';
 
 /** skyTop(#FFD6E8) 85% + stageNavy(#2B3A55) 15% の混色（DESIGN §7「背景色を少し濃くする」） */
 export const DIMMED_SKY = '#DFBFD2';
-/** 幕が中央から左右へ広がりきるまで。基準の 200ms より長め＝動きが「広がる」と読める最短 */
-const CURTAIN_SPREAD_MS = 320;
-/** 写真が現れるまでの待ち。幕が8割ほど開いたところで出す */
-const CONTENT_DELAY_MS = 140;
-/** 写真がすっと立ち上がる所要（DESIGN §8 の基準 200ms） */
-const CONTENT_RISE_MS = 200;
+/**
+ * 幕が開き切るまで（チケット30で 320→600ms）。DESIGN §8 の基準 200ms の例外。
+ * じぶん史の緞帳（2秒）より短いのは、あちらが生成のとき1回きりなのに対し、
+ * こちらは写真をタップするたびに毎回出るため＝重い演出だと数枚目で邪魔になる
+ */
+const CURTAIN_OPEN_MS = 600;
+/** 写真が現れるまでの待ち。幕が半分ほど開いたところで出す（同時だと幕の動きが読めない） */
+const CONTENT_DELAY_MS = 320;
+/** 写真がすっと立ち上がる所要（チケット30で 200→280ms。幕の速さに合わせる） */
+const CONTENT_RISE_MS = 280;
+/** 幕のひだ本数（片側）。じぶん史より1本少ない＝一瞬しか出ないので粗めで足りる */
+const FOLDS_PER_PANEL = 5;
+/** 開き切ったときの幕の幅（元の何倍まで束ねるか。じぶん史と同じ） */
+const GATHER_SCALE = 0.5;
+
+const PLEATS = buildPleatStops(FOLDS_PER_PANEL);
 /** 音声読み込みの見切り（AudioStatus に error が無いための代替検知） */
 const LOAD_TIMEOUT_MS = 10000;
 
@@ -101,7 +119,22 @@ export function PhotoLightbox({
   const [timedOut, setTimedOut] = useState(false);
   /** 写真の実比率（幅÷高さ）。onLoad まで null＝正方形で仮置き。photo.id を key に開き直すのでリセット不要 */
   const [photoRatio, setPhotoRatio] = useState<number | null>(null);
+  /**
+   * 幕を片付けたか。CSS アニメには完了コールバックが無いので所要時間の setTimeout で進める
+   * （curtain-overlay.tsx と同じ判断記録）。reduced-motion では幕を出さない＝最初から片付け済み
+   */
+  const [curtainGone, setCurtainGone] = useState(reduceMotion);
   const autoPlayedRef = useRef(false);
+
+  // 開き切ったら幕を消す。写真は photo.id を key に開き直す＝毎回マウントし直されるので、
+  // このタイマーも写真ごとに1回だけ走る
+  useEffect(() => {
+    if (reduceMotion) {
+      return;
+    }
+    const timer = setTimeout(() => setCurtainGone(true), CURTAIN_OPEN_MS);
+    return () => clearTimeout(timer);
+  }, [reduceMotion]);
 
   // リトライで新しい署名URLが届いたら、前回のタイムアウト表示を解いて読み込みからやり直す
   useEffect(() => {
@@ -167,17 +200,8 @@ export function PhotoLightbox({
   const photoWidth = Math.min(maxPhotoWidth, maxPhotoHeight * ratio);
   const polaroidWidth = photoWidth + POLAROID_FRAME.side * 2;
 
-  // 幕が中央から左右へ広がって、その前で写真が上映される（DESIGN §7）。
-  // animationFillMode: 'backwards' が要（既定の 'none' だと、アニメ登録前の1フレームだけ
-  // 「終わりの姿」＝全面の幕がそのまま描かれ、パッと光って見える。実機で確認した不具合）
-  const curtainOpen = !reduceMotion
-    ? {
-        animationName: { from: { transform: [{ scaleX: 0 }] } },
-        animationDuration: `${CURTAIN_SPREAD_MS}ms`,
-        animationTimingFunction: 'ease-out' as const,
-        animationFillMode: 'backwards' as const,
-      }
-    : null;
+  // 2枚の幕で全幅を覆う。切り上げ＋1px で中央に隙間を作らない（curtain-overlay と同じ）
+  const half = Math.ceil(width / 2) + 1;
   // 幕が広がりきるころに写真が現れる（同時だと幕の動きが読めない）
   const riseIn = !reduceMotion
     ? {
@@ -191,8 +215,8 @@ export function PhotoLightbox({
 
   return (
     <View style={styles.overlay}>
-      {/* 幕。中央から左右へ広がる（transform の原点は既定で中央） */}
-      <Animated.View pointerEvents="none" style={[styles.veil, curtainOpen]} />
+      {/* 舞台の地。幕ではないので動かさない（チケット30。幕は下の CurtainPanel 2枚） */}
+      <View pointerEvents="none" style={styles.veil} />
       {/* 背面タップでも閉じる（補助経路。主経路は最下部の「とじる」） */}
       <Pressable
         accessibilityLabel="とじる"
@@ -279,7 +303,45 @@ export function PhotoLightbox({
         ) : null}
         <SecondaryButton icon={X} label="とじる" onPress={onClose} />
       </Animated.View>
+
+      {/* 幕は写真より手前＝開きながら写真を見せていく。開き切ったら消して操作の邪魔をしない */}
+      {!curtainGone ? (
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <CurtainPanel side="left" half={half} />
+          <CurtainPanel side="right" half={half} />
+        </View>
+      ) : null}
     </View>
+  );
+}
+
+/**
+ * 拡大表示の幕1枚（チケット30）。じぶん史の緞帳と同じ束ね縮みだが、
+ * 金の縁も飾り幕も持たない軽い版（判断の理由はファイル冒頭）
+ */
+function CurtainPanel({ side, half }: { side: CurtainSide; half: number }) {
+  const { origin, closed, gathered } = curtainGather(side, half, GATHER_SCALE);
+  return (
+    <Animated.View
+      style={[
+        styles.curtainPanel,
+        side === 'left' ? styles.curtainLeft : styles.curtainRight,
+        { width: half, transformOrigin: origin, transform: gathered },
+        {
+          animationName: { from: { transform: closed } },
+          animationDuration: `${CURTAIN_OPEN_MS}ms`,
+          animationTimingFunction: 'ease-in-out' as const,
+          animationFillMode: 'backwards' as const,
+        },
+      ]}>
+      <LinearGradient
+        colors={PLEATS.colors}
+        locations={PLEATS.locations}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
   );
 }
 
@@ -335,6 +397,18 @@ const styles = StyleSheet.create({
   veil: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: DIMMED_SKY,
+  },
+  curtainPanel: {
+    bottom: 0,
+    overflow: 'hidden',
+    position: 'absolute',
+    top: 0,
+  },
+  curtainLeft: {
+    left: 0,
+  },
+  curtainRight: {
+    right: 0,
   },
   polaroid: {
     backgroundColor: colors.cardWhite,
