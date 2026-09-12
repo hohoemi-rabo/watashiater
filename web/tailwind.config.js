@@ -23,6 +23,9 @@ module.exports = {
         'error-red': '#C0392B',
         // DESIGN.md §4：じぶん史ページだけ背景を生成りの紙質にする
         'story-paper': '#FBF7EF',
+        // DESIGN.md §3 補助色：じぶん史の緞帳の縁と房だけに使う（チケット29）。
+        // 現状は app 側だけが使うが、トークンは両方で同じ値を持つ規約（DESIGN.md §12）
+        'curtain-gold': '#E3AD4E',
       },
       boxShadow: {
         // DESIGN.md §5 影スケール（3段階。これ以外の影を発明しない）

@@ -4,7 +4,7 @@
  * 生値のハードコード禁止。UIの色・影・フォント・サイズは必ずここから参照する。
  */
 
-/** DESIGN.md §3 カラーパレット（基本トークン9色＋規定の補助色3つ。チケット28で刷新） */
+/** DESIGN.md §3 カラーパレット（基本トークン9色＋規定の補助色4つ。チケット28で刷新） */
 export const colors = {
   skyTop: '#FFD6E8', // 背景グラデ上端（桜色）
   skyMid: '#E0D4FF', // 背景グラデ中間 60%（ラベンダー）
@@ -18,6 +18,9 @@ export const colors = {
   errorRed: '#C0392B', // エラー・削除系（curtain-red と区別する。DESIGN.md §3）
   storyPaper: '#FBF7EF', // じぶん史ページの紙背景（DESIGN.md §4）
   shadowPlum: '#8C3CB4', // 影専用の紫（桜系背景に青い影は濁るため。DESIGN.md §5）
+  // 緞帳（じぶん史）の縁と房だけに使う補助色。spotYellow(#F5B93C) 60% + deskWood(#C99A68) 40% の混色＝
+  // PAPER_TINT・DIMMED_SKY と同じ「トークン由来の混色」で作り、生値を発明しない（チケット29）
+  curtainGold: '#E3AD4E',
 } as const;
 
 /**

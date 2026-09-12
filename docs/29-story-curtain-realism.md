@@ -1,6 +1,6 @@
 # 29. 自分史の幕：質感を本物の緞帳に近づけ、開幕をゆっくりに
 
-- ステータス: 未着手
+- ステータス: 進行中（実装・静的検証ずみ／実機確認まち）
 - 参照: DESIGN.md §3（カラー。本チケットで補助色 `curtain-gold` を追加）/ §7 じぶん史 / §8 モーション（本チケットで改訂）。実装は `app/components/curtain-overlay.tsx`（幕）と `app/app/story.tsx`（フェーズ進行の所要時間）
 - 依存: 28
 - 由来: クローズドテストの声（2026-09-08 ユーザー依頼「AI の挙動のカーテンアニメーションをもう少しリアルに。開ける動作を遅めに」）
@@ -31,13 +31,13 @@
 
 ## Todo
 
-- [ ] トークン追加：`curtainGold`（app）⇄ `curtain-gold`（web）。DESIGN §3 の表に補助色として追記（用途を緞帳限定と明記）
-- [ ] `curtain-overlay.tsx`：ひだ（縦縞グラデ）・金の縁・飾り幕＋房を実装。混色の式と本数の判断をコメントに残す
-- [ ] `curtain-overlay.tsx`：束ね縮みのキーフレーム（transformOrigin＋translateX/scaleX）。閉幕は逆再生
-- [ ] 所要時間の更新：`CURTAIN_CLOSE_MS = 1000` / `CURTAIN_OPEN_MS = 2000`。story.tsx 側は定数参照のみで変更不要なことを確認
-- [ ] reduced-motion の静止表示を確認（ひだ・飾り幕は出す、動かさない）
-- [ ] `npx tsc --noEmit`・`npm run lint`・`npx expo export --platform android`（Web 出力も1回：LinearGradient と transformOrigin が Web で崩れないか）
-- [ ] DESIGN.md 改訂：§7 じぶん史（幕の見た目）・§8（開幕 2秒の例外を明記）
+- [x] トークン追加：`curtainGold`（app）⇄ `curtain-gold`（web）。DESIGN §3 の表に補助色として追記（用途を緞帳限定と明記）
+- [x] `curtain-overlay.tsx`：ひだ（縦縞グラデ）・金の縁・飾り幕＋房を実装。混色の式と本数の判断をコメントに残す
+- [x] `curtain-overlay.tsx`：束ね縮みのキーフレーム（transformOrigin＋translateX/scaleX）。閉幕は逆再生
+- [x] 所要時間の更新：`CURTAIN_CLOSE_MS = 1000` / `CURTAIN_OPEN_MS = 2000`。story.tsx 側は定数参照のみで変更不要なことを確認
+- [x] reduced-motion の静止表示を確認（ひだ・飾り幕は出す、動かさない）
+- [x] `npx tsc --noEmit`・`npm run lint`・`npx expo export --platform android`（Web 出力も1回：LinearGradient と transformOrigin が Web で崩れないか）
+- [x] DESIGN.md 改訂：§7 じぶん史（幕の見た目）・§8（開幕 2秒の例外を明記）
 - [ ] 実機（Expo Go）で目視確認 → ユーザー判断：ひだの本数・縮み具合・飾り幕の高さの微調整
 
 ## 完了条件
@@ -46,4 +46,39 @@
 
 ## メモ
 
-（作業中の記録）
+### 決めた値と、その根拠
+
+新しい補助色 `curtain-gold = #E3AD4E` は `spot-yellow` 60% + `desk-wood` 40% の混色。
+幕のひだも同じ流儀でトークンから作る：山（明部）`#E66C59` ＝ curtain-red 80% + card-white 20%、
+谷（暗部）`#B84437` ＝ curtain-red 78% + stage-navy 22%（黒で落とさないのは DESIGN §11-4）。
+生値を発明せず混色式をコメントに残すのは `PAPER_TINT`（app-card）・`DIMMED_SKY`（photo-lightbox）と同じ。
+
+見た目のつまみは `curtain-overlay.tsx` 冒頭に集約した（実機で触るのはそこだけ）。初期値は
+`GATHER_SCALE 0.5` / `FOLDS_PER_PANEL 6` / `VALANCE_HEIGHT 38` / `VALANCE_SCALLOPS 4` /
+`SCALLOP_DEPTH 34` / `FRINGE_LENGTH 10` / `VALANCE_FADE_MS 600`。
+
+### transform の並び順（ここを間違えると幕が画面外に出切らない）
+
+束ね縮みは `transformOrigin` を外側の端（左幕 `left center` / 右幕 `right center`）に置き、
+`transform: [{ translateX }, { scaleX }]` の順で書く。RN は配列の**先頭が最後に適用される**（CSS と同じ）ので、
+この順なら translateX は縮む前の座標で効き、`translateX = ±GATHER_SCALE × 半幅` でちょうど画面外に出切る。
+逆順にすると移動量まで縮んで幕の帯が残る。`from` と base の transform は同じ並びにすること
+（Reanimated は配列を要素ごとに補間するため、形が違うと途中で飛ぶ）。
+
+### 飾り幕を「別の布」に見せるのに要ったもの
+
+最初の実装（弧が浅い・幕と同じひだ間隔）では、飾り幕が幕と地続きの一枚に見えて金の線だけが浮いた。
+sharp で同じ数値の SVG を書き出して見比べ、次の3点で分かれた：
+
+1. 弧を深く・数を減らす（7本×深さ14 → 4本×深さ34）。浅い弧は「波打つ帯」にしか見えない
+2. 飾り幕のひだを幕の3倍の密度にする（同じ間隔だと縞がつながって見える）
+3. 弧の下に影を1本入れる（`VALANCE_SHADOW_DROP`／`PLEAT_SHADOW` を opacity 0.26）
+
+### 検証したこと・していないこと
+
+`npx tsc --noEmit` / `npm run lint` / `expo export --platform android` / `--platform web` はすべて通った。
+束ね縮みの座標は、同じ計算式の SVG をレンダリングして「開き切りで幕が画面外に出切る」ことを確認ずみ。
+ただし **Reanimated の実際の動き（`transformOrigin` が実機で効くか、2秒の開幕が重く感じられるか）は
+実機の Expo Go での目視が要る**。万一 `transformOrigin` が効かない場合は、原点中央のまま
+`translateX = outward × 半幅 × (1 + GATHER_SCALE) / 2` にすれば終わりの位置は同じになる
+（束ねられる支点が幕の中央に変わるだけ）。
