@@ -112,4 +112,6 @@ export const spacing = {
 export const radii = {
   button: 12,
   card: 16,
+  /** 錠剤型（両端が半円）。高さに関わらず丸くなるよう十分大きい値を入れる */
+  pill: 999,
 } as const;

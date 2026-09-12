@@ -1,6 +1,6 @@
 # 33. みんなに見せる：「下にもあります」の案内
 
-- ステータス: 未着手
+- ステータス: 進行中（実装・静的検証ずみ／実機確認まち）
 - 参照: REQUIREMENTS.md §4.1（シニアが迷わない）/ DESIGN.md §7 みんなに見せる／設定 / §8 モーション（**装飾アニメの常時ループ禁止**＝矢印を揺らし続けない）。実装は `app/app/share.tsx`＋新規 `app/components/scroll-hint.tsx`
 - 依存: 32（同じ画面。先に 32 を入れてから）
 - 由来: クローズドテストの声（2026-09-08 ユーザー依頼「みんなに見せる画面は『下にスワイプしてね』みたいな案内があると分かりやすい」）
@@ -18,14 +18,16 @@
 
 ## 実装方針
 
-- `components/scroll-hint.tsx`：`useScrollHint()`（ScrollView に渡す `onScroll` / `onContentSizeChange` / `onLayout` と `visible` を返す）＋ `ScrollHint`（表示部品。`bottom` はセーフエリア＋余白）。ScrollView 自体は各画面が持ち続ける（ラッパー部品にしない＝既存画面の構造を変えない）
-- 表示判定は「内容の高さ > 表示領域＋8px」かつ「scrollY < 40」。判定に必要な値は state ではなく ref に持ち、再レンダーを増やさない
+- `components/scroll-hint.tsx`：`useScrollHint()`（ScrollView に渡す `onScroll` / `onContentSizeChange` / `onLayout`、`scrollRef`、`scrollDown`、`visible` を返す）＋ `ScrollHint`（表示部品）。ScrollView 自体は各画面が持ち続ける（ラッパー部品にしない＝既存画面の構造を変えない）
+- 表示判定は「内容の高さ > 表示領域＋8px」かつ「まだスクロールしていない」。判定に必要な値は state ではなく ref に持ち、再レンダーを増やさない
+- **訂正（着手時に判明）**：`bottom` に**セーフエリアを足さない**。`SkyBackground` が既に `SafeAreaView edges={['top','bottom']}` で children を包んでいるので、その内側でさらに insets を足すと二重になり、ジェスチャーナビの端末で浮きすぎる
 
 ## Todo
 
-- [ ] `components/scroll-hint.tsx`（hook＋部品。押下でのスクロールは `scrollTo({ y: layoutHeight * 0.8 })`）
-- [ ] `share.tsx` に組み込み（ScrollView の `scrollEventThrottle={16}`）
-- [ ] `npx tsc --noEmit`・`npm run lint`
+- [x] `components/scroll-hint.tsx`（hook＋部品。押下でのスクロールは `scrollTo({ y: layoutHeight * 0.8 })`）
+- [x] `share.tsx` に組み込み（ScrollView の `scrollEventThrottle={16}`）
+- [x] `npx tsc --noEmit`・`npm run lint`・`npx expo export`（android / web）
+- [x] DESIGN.md §7 に案内の仕様を追記
 - [ ] 実機（Expo Go）で確認：初期表示で出る／スクロールで消える／押すと下へ動く／内容が短い端末（横向き等）では出ない
 
 ## 完了条件
@@ -34,4 +36,33 @@
 
 ## メモ
 
-（作業中の記録）
+### セーフエリアを二重に足さない（着手時に判明した訂正）
+
+実装方針に「`bottom` はセーフエリア＋余白」と書いていたが、`SkyBackground` が既に
+`SafeAreaView edges={['top','bottom']}` で children を包んでいる。その内側に置く案内で
+さらに `useSafeAreaInsets` を足すと二重になり、ジェスチャーナビの端末で浮きすぎる。
+`ScrollHint` は `bottom: spacing.xl` だけにし、**「画面のセーフエリアの内側に置く」前提**を
+部品のコメントに明記した。他の画面で使うときはこの前提を確かめること。
+
+### 一度消えたら出し直さない
+
+「40px 超えたら消す」だけだと、上に戻すたびに出てくる。案内の役目は「下に続きがある」と
+教えることで、一度スクロールした時点で済んでいるので、`dismissed` の ref で
+その画面にいる間は二度と出さないようにした。
+
+### 再レンダーを増やさない作り
+
+内容の高さ・表示領域の高さ・スクロール済みフラグはすべて `useRef`。`setVisible` は
+値が実際に変わるときだけ走る（`prev === next` なら素通り）ので、スクロール中の
+再レンダーは起きない。
+
+### 錠剤には枠を付けた
+
+カードの上に重なる白い面なので、チケット32 で決めた「白い面は文字と同じ色の2px枠で押せると示す」
+に合わせた。角丸は `radii.pill`（999）を新設（`radii`・`spacing` は app 専用の実装規約で、
+web との値一致の対象外）。
+
+### 検証したこと
+
+`npx tsc --noEmit` / `npm run lint` / `expo export --platform android` / `--platform web` は通った。
+出る・消える・押して動くの体感は実機で確かめる。
